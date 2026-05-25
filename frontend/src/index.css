@@ -1,0 +1,98 @@
+@import "tailwindcss";
+/* src/index.css or App.css */
+/*@import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,300..900;1,300..900&display=swap');*/
+
+@theme {
+  --color-primary-300: #ffe8d2;
+  --color-primary-500: #ff6d29;
+  --color-primary-400: #ff6d29c5;
+}
+
+* {
+  font-family: "Nunito", sans-serif;
+}
+
+body {
+  font-family: "Nunito", sans-serif;
+}
+
+/* sidebarScroll  */
+.custom-select-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #dbdfe9 transparent;
+}
+.custom-select-scroll::-webkit-scrollbar-button {
+  display: none !important;
+}
+/* sidebarScroll  */
+.custom-select-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #ff6d29 transparent;
+}
+
+.custom-select-scroll::-webkit-scrollbar-button {
+  display: none !important;
+}
+.sidebarScroll::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebarScroll::-webkit-scrollbar-thumb {
+  background-color: #ff6d29;
+  border-radius: 10px;
+}
+.input-style {
+  @apply py-[6px] placeholder:text-sm text-sm bg-[#FCFCFC] border border-[#DBDFE9] w-full rounded placeholder:text-[#B5B7C8] outline-[#00B45F];
+}
+.input-label {
+  @apply block text-sm font-medium mb-1;
+}
+
+
+.table-container {
+  @apply text-lg rounded-t-lg bg-white  font-semibold rounded-lg  py-4 px-3;
+}
+
+
+.table-section {
+  @apply min-w-full mx-auto border-y py-3 border-gray-100;
+}
+
+.table-row {
+  @apply  bg-gray-50 text-gray-500;
+}
+.table-row th {
+  @apply px-2 py-2  text-start  text-xs font-semibold  whitespace-nowrap uppercase;
+}
+.table-body{
+  @apply text-sm divide-y divide-gray-100
+}
+.table-body tr td {
+  @apply px-2 py-2 truncate text-sm  p-2 whitespace-nowrap text-gray-500 border-[#f9fafb];
+}
+
+.table-body tr:nth-child(odd) td {
+  @apply bg-white;
+}
+
+
+
+.search-input {
+  @apply pl-10 pr-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 text-sm focus:ring-primary-400 focus:border-transparent w-full md:w-64;
+}
+
+/* button related css  */
+
+.btn {
+  @apply inline-flex items-center cursor-pointer justify-center px-5 py-2 border border-transparent text-base font-medium rounded-md text-white bg-primary-500 hover:bg-primary-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition;
+}
+
+@media print {
+  img {
+    display: block !important;
+    max-width: 100% !important;
+  }
+}
+
+/* =============================
+   NEW: custom responsive screens
+   ============================= */
