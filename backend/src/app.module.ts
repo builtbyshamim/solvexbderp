@@ -28,6 +28,8 @@ import { StockModule } from './modules/inventory/stock/stock.module';
 import { PurchaseModule } from './modules/purchase/purchase.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
+import { HrmModule } from './modules/hrm/hrm.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -87,6 +89,8 @@ import { AccountingModule } from './modules/accounting/accounting.module';
     PurchaseModule,
     SalesModule,
     AccountingModule,
+    HrmModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [
