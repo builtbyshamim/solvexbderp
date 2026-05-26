@@ -24,6 +24,7 @@ export const tagTypes = {
   attendance: "attendance",
   payroll: "payroll",
   report: "report",
+  productImage: "productImage",
 };
 
 export const tagTypesList = Object.values(tagTypes);

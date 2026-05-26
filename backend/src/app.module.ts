@@ -23,6 +23,11 @@ import { UnitModule } from './modules/inventory/unit/unit.module';
 import { BrandModule } from './modules/inventory/brand/brand.module';
 import { WarrantyModule } from './modules/inventory/warranty/warranty.module';
 import { WarehouseModule } from './modules/inventory/warehouse/warehouse.module';
+import { ProductModule } from './modules/inventory/product/product.module';
+import { StockModule } from './modules/inventory/stock/stock.module';
+import { PurchaseModule } from './modules/purchase/purchase.module';
+import { SalesModule } from './modules/sales/sales.module';
+import { AccountingModule } from './modules/accounting/accounting.module';
 
 @Module({
   imports: [
@@ -77,6 +82,11 @@ import { WarehouseModule } from './modules/inventory/warehouse/warehouse.module'
     BrandModule,
     WarrantyModule,
     WarehouseModule,
+    ProductModule,
+    StockModule,
+    PurchaseModule,
+    SalesModule,
+    AccountingModule,
   ],
   controllers: [AppController],
   providers: [
