@@ -5,6 +5,7 @@ export interface JwtPayload {
   role?: string;
   name?: string;
   mobile?: string;
+  businessId?: string; // tenant identifier (null until business setup completes)
   iat?: number; // issued at
   exp?: number; // expiration
 }

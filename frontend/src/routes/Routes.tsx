@@ -1,23 +1,86 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
 import AuthUserNotAccessRoute from '../components/providers/AuthUserNotAccessRoute';
 import ProtectedRoute from '../components/providers/ProtectedRoute';
+
+// Auth
 import LoginPage from '../components/auth/Login';
 import ForgotPassword from '../components/auth/ForgotPassword';
+
+// Dashboard
 import Dashboard from '../components/dashboard/Dashboard';
-import ProductList from '../features/inventory/products/pages/AllProduct';
-import EditProduct from '../features/inventory/products/pages/EditProduct';
+
+// Inventory
+import AllProduct from '../features/inventory/products/pages/AllProduct';
 import AddProduct from '../features/inventory/products/pages/AddProduct';
+import EditProduct from '../features/inventory/products/pages/EditProduct';
 import AllCategory from '../features/inventory/category/pages/AllCategory';
 import AllBrand from '../features/inventory/brand/AllBrand';
-import ProductMedia from '../features/inventory/products/pages/ProductMedia';
-import UserList from '../features/users/pages/UserList';
-import MlmUserDetails from '../features/users/pages/Mlmuserdetails';
+import AllUnit from '../features/inventory/unit/AllUnit';
+import AllWarranty from '../features/inventory/warranty/AllWarranty';
+import AllWarehouse from '../features/inventory/warehouse/AllWarehouse';
+import StockAdjustment from '../features/inventory/stock/StockAdjustment';
+import StockTransfer from '../features/inventory/stock/StockTransfer';
+import StockReport from '../features/inventory/stock/StockReport';
+
+// Purchase
+import AllSupplier from '../features/purchase/supplier/AllSupplier';
+import PurchaseList from '../features/purchase/PurchaseList';
+import AddPurchase from '../features/purchase/AddPurchase';
+import PurchaseReturns from '../features/purchase/PurchaseReturns';
+import SupplierLedger from '../features/purchase/SupplierLedger';
+
+// Sales
+import AllCustomer from '../features/sales/customer/AllCustomer';
+import SaleList from '../features/sales/SaleList';
+import AddSale from '../features/sales/AddSale';
+import SaleReturns from '../features/sales/SaleReturns';
+import Quotations from '../features/sales/Quotations';
+import CustomerLedger from '../features/sales/CustomerLedger';
+
+// POS
+import POSTerminal from '../features/pos/POSTerminal';
+
+// Accounting
+import AllAccounts from '../features/accounting/AllAccounts';
+import Transactions from '../features/accounting/Transactions';
+import Expenses from '../features/accounting/Expenses';
+import Income from '../features/accounting/Income';
+import AccountLedger from '../features/accounting/AccountLedger';
+import ProfitLoss from '../features/accounting/ProfitLoss';
+import BalanceSheet from '../features/accounting/BalanceSheet';
+import CashFlow from '../features/accounting/CashFlow';
+import TrialBalance from '../features/accounting/TrialBalance';
+
+// HRM
+import AllEmployee from '../features/hrm/employee/AllEmployee';
+import Departments from '../features/hrm/Departments';
+import Designations from '../features/hrm/Designations';
+import Attendance from '../features/hrm/Attendance';
+import Leave from '../features/hrm/Leave';
+import Payroll from '../features/hrm/Payroll';
+import Loans from '../features/hrm/Loans';
+import KPI from '../features/hrm/KPI';
+
+// Reports
+import SalesReport from '../features/reports/SalesReport';
+import PurchaseReport from '../features/reports/PurchaseReport';
+import StockReportPage from '../features/reports/StockReport';
+import ProfitLossReport from '../features/reports/ProfitLossReport';
+import CustomerReport from '../features/reports/CustomerReport';
+import SupplierReport from '../features/reports/SupplierReport';
+import HRMReport from '../features/reports/HRMReport';
+
+// Settings
+import BusinessProfile from '../features/settings/BusinessProfile';
+import UsersRoles from '../features/settings/UsersRoles';
+import Subscription from '../features/settings/Subscription';
+import InvoiceSettings from '../features/settings/InvoiceSettings';
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <AuthUserNotAccessRoute> </AuthUserNotAccessRoute>,
+    element: <Navigate to="/admin" replace />,
   },
   {
     path: '/login',
@@ -43,18 +106,74 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      {
-        path: '/admin',
-        element: <Dashboard />,
-      },
-      {
-        path: '/admin/manage-users',
-        element: <UserList />,
-      },
-      {
-        path: '/admin/manage-users/mlm/:userId',
-        element: <MlmUserDetails />,
-      },
+      { index: true, element: <Dashboard /> },
+
+      // Inventory
+      { path: 'inventory/products', element: <AllProduct /> },
+      { path: 'inventory/products/add', element: <AddProduct /> },
+      { path: 'inventory/products/edit/:id', element: <EditProduct /> },
+      { path: 'inventory/categories', element: <AllCategory /> },
+      { path: 'inventory/brands', element: <AllBrand /> },
+      { path: 'inventory/units', element: <AllUnit /> },
+      { path: 'inventory/warranties', element: <AllWarranty /> },
+      { path: 'inventory/warehouses', element: <AllWarehouse /> },
+      { path: 'inventory/stock-adjustment', element: <StockAdjustment /> },
+      { path: 'inventory/stock-transfer', element: <StockTransfer /> },
+      { path: 'inventory/stock-report', element: <StockReport /> },
+
+      // Purchase
+      { path: 'purchase/suppliers', element: <AllSupplier /> },
+      { path: 'purchase/list', element: <PurchaseList /> },
+      { path: 'purchase/add', element: <AddPurchase /> },
+      { path: 'purchase/returns', element: <PurchaseReturns /> },
+      { path: 'purchase/supplier-ledger', element: <SupplierLedger /> },
+
+      // Sales
+      { path: 'sales/customers', element: <AllCustomer /> },
+      { path: 'sales/list', element: <SaleList /> },
+      { path: 'sales/add', element: <AddSale /> },
+      { path: 'sales/returns', element: <SaleReturns /> },
+      { path: 'sales/quotations', element: <Quotations /> },
+      { path: 'sales/customer-ledger', element: <CustomerLedger /> },
+
+      // POS
+      { path: 'pos', element: <POSTerminal /> },
+
+      // Accounting
+      { path: 'accounting/accounts', element: <AllAccounts /> },
+      { path: 'accounting/transactions', element: <Transactions /> },
+      { path: 'accounting/expenses', element: <Expenses /> },
+      { path: 'accounting/income', element: <Income /> },
+      { path: 'accounting/ledger', element: <AccountLedger /> },
+      { path: 'accounting/profit-loss', element: <ProfitLoss /> },
+      { path: 'accounting/balance-sheet', element: <BalanceSheet /> },
+      { path: 'accounting/cash-flow', element: <CashFlow /> },
+      { path: 'accounting/trial-balance', element: <TrialBalance /> },
+
+      // HRM
+      { path: 'hrm/employees', element: <AllEmployee /> },
+      { path: 'hrm/departments', element: <Departments /> },
+      { path: 'hrm/designations', element: <Designations /> },
+      { path: 'hrm/attendance', element: <Attendance /> },
+      { path: 'hrm/leave', element: <Leave /> },
+      { path: 'hrm/payroll', element: <Payroll /> },
+      { path: 'hrm/loans', element: <Loans /> },
+      { path: 'hrm/kpi', element: <KPI /> },
+
+      // Reports
+      { path: 'reports/sales', element: <SalesReport /> },
+      { path: 'reports/purchase', element: <PurchaseReport /> },
+      { path: 'reports/stock', element: <StockReportPage /> },
+      { path: 'reports/profit-loss', element: <ProfitLossReport /> },
+      { path: 'reports/customers', element: <CustomerReport /> },
+      { path: 'reports/suppliers', element: <SupplierReport /> },
+      { path: 'reports/hrm', element: <HRMReport /> },
+
+      // Settings
+      { path: 'settings/business', element: <BusinessProfile /> },
+      { path: 'settings/users', element: <UsersRoles /> },
+      { path: 'settings/subscription', element: <Subscription /> },
+      { path: 'settings/invoice', element: <InvoiceSettings /> },
     ],
   },
 ]);

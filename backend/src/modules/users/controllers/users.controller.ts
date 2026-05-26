@@ -130,20 +130,23 @@ export class UsersController {
 
   /**
    * GET /users/profile
-   * Get logged-in user's profile
-   * Protected route: only accessible by authenticated users with CUSTOMER role
-   * Returns basic user info
+   * Get logged-in user's profile (fetched fresh from DB)
    */
   @Get('profile')
-  @Roles(UserRole.ADMIN, UserRole.USER)
+  @Roles(UserRole.ADMIN, UserRole.USER, UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get logged-in user profile' })
   @ApiResponse({ status: 200, description: 'Return user profile' })
-  getProfile(@CurrentUser() user: UserEntity) {
+  async getProfile(@CurrentUser() user: UserEntity) {
+    const fresh = await this.usersService.findById(user.id);
+    if (!fresh) return null;
     return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
+      id: fresh.id,
+      email: fresh.email,
+      name: fresh.name,
+      mobile: fresh.mobile,
+      avatar: fresh.avatar,
+      role: fresh.role,
+      isVerified: fresh.isVerified,
     };
   }
 }

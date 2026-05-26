@@ -1,9 +1,29 @@
 export const tagTypes = {
   auth: "auth",
   users: "users",
+  business: "business",
+  category: "category",
+  unit: "unit",
+  brand: "brand",
+  warranty: "warranty",
+  warehouse: "warehouse",
+  product: "product",
+  stockLedger: "stockLedger",
+  stockAdjustment: "stockAdjustment",
+  stockTransfer: "stockTransfer",
+  supplier: "supplier",
+  purchase: "purchase",
+  purchaseReturn: "purchaseReturn",
+  customer: "customer",
+  sale: "sale",
+  saleReturn: "saleReturn",
+  quotation: "quotation",
+  account: "account",
+  transaction: "transaction",
+  employee: "employee",
+  attendance: "attendance",
+  payroll: "payroll",
+  report: "report",
 };
 
-export const tagTypesList = [
-  tagTypes.auth,
-  tagTypes.users,
-];
+export const tagTypesList = Object.values(tagTypes);

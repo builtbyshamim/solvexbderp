@@ -1,200 +1,136 @@
-import { useState } from "react";
-import {
-  useDeleteCategoryMutation,
-  useGetAllCategoryQuery,
-} from "../categoryApi";
-import { FiSearch } from "react-icons/fi";
-import DeleteAction from "../../../../components/ui/actions/DeleteIcon";
-import CommonPagination from "../../../../components/ui/paginations/CommonPagination";
-import { ErrorState } from "../../../../components/ui/status/ErrorState";
-import { EmptyState } from "../../../../components/ui/status/EmptyState";
-import StatusBadge from "../../../../components/ui/status/StatusBadge";
-import EditWithActionIcon from "../../../../components/ui/actions/EditWithActionIcon";
-import toast from "react-hot-toast";
-import { ImageDisplay } from "../../../../components/ui/modal/ImageDisply";
-import CommonModal from "../../../../components/ui/modal/CommonModal";
-import AddCategory from "./AddCategory";
-import EditCategory from "./EditCategory";
-import { useDebounce } from "../../../../hooks/useDebounce";
+import { useState } from 'react';
+import { Plus, Search, Tag } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useDeleteCategoryMutation, useGetAllCategoryQuery } from '../categoryApi';
+import { useDebounce } from '../../../../hooks/useDebounce';
+import { ImageDisplay } from '../../../../components/ui/modal/ImageDisply';
+import CommonPagination from '../../../../components/ui/paginations/CommonPagination';
+import CommonModal from '../../../../components/ui/modal/CommonModal';
+import AddCategory from './AddCategory';
+import EditCategory from './EditCategory';
+import PageHeader from '../../../../components/shared/PageHeader';
 
-// Reusable Image Component
 const AllCategory = () => {
-  const [openEditModal, setOpenEditModal] = useState(false);
-  const [addItem, setAddItem] = useState(false);
-  const [searchValue, setSearchValue] = useState({
-    search: "",
-    limit: 10,
-    page: 1,
-  });
-
-  // ✅ Debounced search
+  const [editItem, setEditItem] = useState<any>(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState({ search: '', limit: 10, page: 1 });
   const debouncedSearch = useDebounce(searchValue.search, 500);
 
-  // ✅ RTK Query with debounced search
-  const {
-    data: categoryData,
-    error,
-    isFetching,
-    refetch,
-  } = useGetAllCategoryQuery({
-    ...searchValue,
-    search: debouncedSearch,
-  });
+  const { data, error, isFetching, refetch } = useGetAllCategoryQuery({ ...searchValue, search: debouncedSearch });
+  const [deleteCategory, { isLoading: isDeleting }] = useDeleteCategoryMutation();
 
-  const [deleteCategory, { isLoading: isDeleting }] =
-    useDeleteCategoryMutation();
+  const categories = data?.data?.data || [];
+  const meta = data?.data?.meta || { totalItems: 0, totalPages: 1 };
 
-  const categories = categoryData?.data?.data || [];
-  const meta = categoryData?.data?.meta || { totalItems: 0, totalPages: 1 };
-
-  const handleDeleteCategory = async (category: any) => {
+  const handleDelete = async (category: any) => {
     try {
-      const result = await deleteCategory(category?.id).unwrap();
-      if (result?.sccess) {
-        toast.success(result?.message || "Category deleted successfully!");
+      await deleteCategory(category?.id).unwrap();
+      toast.success('Category deleted successfully');
+    } catch (err: any) {
+      if (err?.data?.message?.includes('products')) {
+        toast.error('Cannot delete — category has associated products.');
       } else {
-        toast.success(result?.message || "Category deleted fail!");
-      }
-    } catch (error: any) {
-      // Handle different error scenarios
-      if (error?.data?.message?.includes("products")) {
-        toast.error(
-          "Cannot delete category because it has associated products. Remove the products first.",
-        );
-      } else if (error?.status === 403) {
-        toast.error("You don't have permission to delete categories.");
-      } else if (error?.status === 401) {
-        toast.error("Please login again to perform this action.");
-      } else {
-        toast.error(
-          error?.data?.message ||
-            "Failed to delete category. Please try again.",
-        );
+        toast.error(err?.data?.message || 'Failed to delete category.');
       }
     }
   };
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Category List</h1>
-          <p className="text-gray-600 mt-1">
-            Manage your categories and hierarchy
-          </p>
-        </div>
-        <div className="flex space-x-3">
+      <PageHeader
+        title="Categories"
+        subtitle="Manage product categories"
+        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'Inventory', path: '/admin/inventory/products' }, { label: 'Categories' }]}
+        actions={
           <button
-            onClick={() => setAddItem(true)}
-            className="btn bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+            onClick={() => setAddOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] transition-colors"
           >
-            Add New Category
+            <Plus className="h-4 w-4" /> Add Category
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="table-container mt-8">
-        {/* Search Bar */}
-        <div className="mb-4">
-          <div className="relative max-w-sm">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+      <div className="bg-white border border-[#DBDFE9] rounded-lg shadow-sm">
+        <div className="p-4 border-b border-[#DBDFE9] flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search category name or slug..."
+              placeholder="Search category..."
               value={searchValue.search}
-              onChange={(e) =>
-                setSearchValue({
-                  ...searchValue,
-                  search: e.target.value,
-                  page: 1,
-                })
-              }
-              className="search-input"
+              onChange={(e) => setSearchValue({ ...searchValue, search: e.target.value, page: 1 })}
               disabled={isFetching}
+              className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
             />
           </div>
+          <span className="text-sm text-gray-500">{meta.totalItems} categories</span>
         </div>
 
-        {/* 2. Error State */}
         {error ? (
-          <ErrorState
-            message={error?.data?.message || "Failed to fetch categories"}
-            refetch={refetch}
-          />
+          <div className="p-8 text-center text-red-500 text-sm">Failed to load categories. <button onClick={refetch} className="underline">Retry</button></div>
         ) : (
-          <div className="max-w-full overflow-x-auto mt-4">
-            {/* Loading indicator during refetch */}
-            {/* {isFetching && !isLoading && <TableSkeleton />} */}
-
-            {/* 3. Empty State */}
-            {categories.length === 0 && !isFetching ? (
-              <EmptyState
-                message="No categories found"
-                actionText="Add Your First Category"
-              />
-            ) : (
-              <div className="table-section w-full">
-                <table className="table w-full">
-                  <thead>
-                    <tr className="table-row">
-                      <th>#</th>
-                      <th>IMAGE</th>
-                      <th>NAME</th>
-                      <th>STATUS</th>
-                      <th className="text-center!">ACTION</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-[#DBDFE9]">
+                  {['#', 'Image', 'Name', 'Status', 'Actions'].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {isFetching ? (
+                  <tr><td colSpan={5} className="px-4 py-10 text-center text-gray-400">Loading...</td></tr>
+                ) : categories.length === 0 ? (
+                  <tr><td colSpan={5} className="px-4 py-16 text-center">
+                    <Tag className="h-10 w-10 mx-auto mb-2 text-gray-200" />
+                    <p className="text-gray-400">No categories found</p>
+                    <button onClick={() => setAddOpen(true)} className="mt-3 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]">
+                      Add First Category
+                    </button>
+                  </td></tr>
+                ) : (
+                  categories.map((cat: any, index: number) => (
+                    <tr key={cat._id || cat.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-gray-500">{(searchValue.page - 1) * searchValue.limit + index + 1}</td>
+                      <td className="px-4 py-3">
+                        <ImageDisplay src={cat?.image} alt={cat.name} className="w-10 h-10 rounded-lg object-cover border border-[#DBDFE9]" />
+                      </td>
+                      <td className="px-4 py-3 font-medium text-[#26272F]">{cat.name}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${cat.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {cat.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditItem(cat)}
+                            disabled={isDeleting || isFetching}
+                            className="px-3 py-1.5 text-xs border border-[#DBDFE9] text-gray-600 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(cat)}
+                            disabled={isDeleting}
+                            className="px-3 py-1.5 text-xs border border-red-200 text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="table-body">
-                    {categories?.map((category: any, index: number) => (
-                      <tr key={category._id}>
-                        <td>
-                          {(searchValue.page - 1) * searchValue.limit +
-                            index +
-                            1}
-                        </td>
-                        <td>
-                          <ImageDisplay
-                            src={category?.image}
-                            alt={category.name}
-                            className="w-10 h-10"
-                          />
-                        </td>
-                        <td className="font-medium">{category.name}</td>
-                        <td>
-                          <StatusBadge isActive={category?.isActive} />
-                        </td>
-                        <td>
-                          <div className="flex items-center justify-center w-full gap-2">
-                            <EditWithActionIcon
-                              item={category}
-                              onClick={setOpenEditModal}
-                              disabled={isDeleting || isFetching}
-                            />
-
-                            <DeleteAction
-                              handleDelete={() =>
-                                handleDeleteCategory(category)
-                              }
-                              item={category}
-                              disabled={isDeleting}
-                              itemName={category?.name}
-                              tooltip="Delete category"
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         )}
 
-        {/* 4. Pagination Integration */}
         {categories.length > 0 && (
-          <div>
+          <div className="p-4 border-t border-[#DBDFE9]">
             <CommonPagination
               total={meta.totalItems}
               totalPage={meta.totalPages}
@@ -209,23 +145,12 @@ const AllCategory = () => {
         )}
       </div>
 
-      <CommonModal
-        isOpen={addItem}
-        onClose={() => setAddItem(false)}
-        title="Add New Category"
-      >
-        <AddCategory onClose={() => setAddItem(false)} />
+      <CommonModal isOpen={addOpen} onClose={() => setAddOpen(false)} title="Add New Category">
+        <AddCategory onClose={() => setAddOpen(false)} />
       </CommonModal>
 
-      <CommonModal
-        isOpen={openEditModal}
-        onClose={() => setOpenEditModal(false)}
-        title="Update New Category"
-      >
-        <EditCategory
-          category={openEditModal}
-          onClose={() => setOpenEditModal(false)}
-        />
+      <CommonModal isOpen={!!editItem} onClose={() => setEditItem(false)} title="Edit Category">
+        <EditCategory category={editItem} onClose={() => setEditItem(false)} />
       </CommonModal>
     </div>
   );

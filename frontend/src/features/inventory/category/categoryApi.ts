@@ -1,7 +1,7 @@
 import { baseApi } from "../../../redux/api/baseApi";
 import { tagTypes } from "../../../redux/tag-types";
 
-const COMMON_URL = "/categories";
+const COMMON_URL = "/inventory/categories";
 
 export const categoryApi = baseApi.injectEndpoints({
   endpoints: (build) => ({

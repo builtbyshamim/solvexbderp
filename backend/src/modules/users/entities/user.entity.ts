@@ -64,26 +64,6 @@ export class UserEntity {
   @Column({ type: 'varchar', nullable: true })
   referredBy?: string;
 
-  // MLM Tree Parent
-  @Column({ nullable: true })
-  parentId: string;
-
-  // left or right position
-  @Column({
-    type: 'enum',
-    enum: ['left', 'right'],
-    nullable: true,
-  })
-  position: 'left' | 'right';
-
-  // left child
-  @Column({ nullable: true })
-  leftChild: string;
-
-  // right child
-  @Column({ nullable: true })
-  rightChild: string;
-
   @Column({ default: 0 })
   referralCount: number;
 

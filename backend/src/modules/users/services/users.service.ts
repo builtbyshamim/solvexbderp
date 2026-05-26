@@ -26,6 +26,7 @@ import { GetAllUsersDto } from '../dto/get-all-users.dto';
 
 export interface PendingSignup {
   email: string;
+  name: string | null;
   password: string;
   referralId: string | null;
   otpHash: string;
@@ -60,7 +61,7 @@ export class UsersService {
   }
 
   async initiateRegistration(dto: RegisterUserDto) {
-    const { email, password, referralId } = dto;
+    const { email, password, referralId, name } = dto;
 
     // Email exists check
     const exists = await this.userRepository.findOne({ where: { email } });
@@ -96,6 +97,7 @@ export class UsersService {
 
     const payload: PendingSignup = {
       email,
+      name: name ?? null,
       password: hashedPassword,
       referralId: referralId ?? null,
       otpHash,
@@ -219,13 +221,14 @@ export class UsersService {
         where: { email: data.email },
       });
       if (raceCheck) throw new ConflictException('Email already exists');
-      const referralCode = this.generateReferralCode()
+      const referralCode = this.generateReferralCode();
       const user = queryRunner.manager.create(UserEntity, {
         email: data.email,
+        name: data.name ?? undefined,
         password: data.password,
         isVerified: true,
         referralCode,
-        referralId: data.referralId,
+        referralId: data.referralId ?? undefined,
       });
 
       await queryRunner.manager.save(UserEntity, user);
@@ -260,7 +263,7 @@ export class UsersService {
   private generateReferralCode(): string {
     const part = uuidv4().replace(/-/g, '').substring(0, 6).toUpperCase();
     return `REF${part}`;
-  } F
+  }
   /**
    * Find a user by ID
    * @param id - User ID

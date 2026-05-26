@@ -9,6 +9,7 @@ import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { VerifyOtpDto } from '../dto/verify-otp.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { UserEntity } from 'src/modules/users/entities/user.entity';
 
 @ApiTags('auth') // Swagger tag for grouping authentication routes
 @Controller('auth') // Base route for all auth endpoints: /auth
@@ -43,10 +44,20 @@ export class AuthController {
    * Accepts RefreshTokenDto { refreshToken }.
    * Returns new access and refresh tokens if refresh token is valid.
    */
+  @PublicRoute()
   @Post('refresh')
   @ApiOperation({ summary: 'Get a new access token using refresh token' })
   async refresh(@Req() req: Request, @Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshTokens(req, refreshTokenDto.refreshToken);
+  }
+
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout and revoke refresh token' })
+  async logout(
+    @CurrentUser() user: UserEntity,
+    @Body() body: RefreshTokenDto,
+  ) {
+    return this.authService.logout(user.id, body.refreshToken);
   }
 
   @PublicRoute()

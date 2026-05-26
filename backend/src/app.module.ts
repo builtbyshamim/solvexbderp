@@ -16,8 +16,13 @@ import { UserModule } from './modules/users/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MailModule } from './modules/mail/mail.module';
 import { ImageUploadModule } from './modules/image-upload/image-upload.module';
-import { TagModule } from './tag/tag.module';
 import mailConfig from './config/mail.config';
+import { BusinessModule } from './modules/business/business.module';
+import { CategoryModule } from './modules/inventory/category/category.module';
+import { UnitModule } from './modules/inventory/unit/unit.module';
+import { BrandModule } from './modules/inventory/brand/brand.module';
+import { WarrantyModule } from './modules/inventory/warranty/warranty.module';
+import { WarehouseModule } from './modules/inventory/warehouse/warehouse.module';
 
 @Module({
   imports: [
@@ -38,7 +43,7 @@ import mailConfig from './config/mail.config';
         return {
           store: new Keyv({
             store: new KeyvRedis(redisUrl, {
-              namespace: 'musterbroker:',
+              namespace: 'bizcore:',
             }),
             ttl: 600_000, // 10 minutes
           }),
@@ -66,6 +71,12 @@ import mailConfig from './config/mail.config';
     UserModule,
     MailModule,
     ImageUploadModule,
+    BusinessModule,
+    CategoryModule,
+    UnitModule,
+    BrandModule,
+    WarrantyModule,
+    WarehouseModule,
   ],
   controllers: [AppController],
   providers: [

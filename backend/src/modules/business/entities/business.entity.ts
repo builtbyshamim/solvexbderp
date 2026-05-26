@@ -1,0 +1,87 @@
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToOne,
+  JoinColumn,
+} from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
+import { UserEntity } from 'src/modules/users/entities/user.entity';
+
+export enum BusinessType {
+  RETAIL = 'retail',
+  WHOLESALE = 'wholesale',
+  RESTAURANT = 'restaurant',
+  SERVICE = 'service',
+  MANUFACTURING = 'manufacturing',
+  OTHER = 'other',
+}
+
+@Entity('businesses')
+export class BusinessEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @ApiProperty()
+  @Column()
+  name: string;
+
+  @ApiProperty({ enum: BusinessType })
+  @Column({ type: 'enum', enum: BusinessType, default: BusinessType.RETAIL })
+  businessType: BusinessType;
+
+  @ApiProperty()
+  @Column({ nullable: true })
+  address?: string;
+
+  @ApiProperty()
+  @Column({ nullable: true })
+  phone?: string;
+
+  @ApiProperty()
+  @Column({ nullable: true })
+  email?: string;
+
+  @ApiProperty()
+  @Column({ nullable: true })
+  website?: string;
+
+  @ApiProperty()
+  @Column({ nullable: true })
+  logo?: string;
+
+  @ApiProperty()
+  @Column({ nullable: true })
+  taxNumber?: string;
+
+  @ApiProperty()
+  @Column({ nullable: true })
+  currency?: string;
+
+  @ApiProperty()
+  @Column({ default: 'BDT' })
+  currencyCode: string;
+
+  @ApiProperty()
+  @Column({ default: 'Asia/Dhaka' })
+  timezone: string;
+
+  @ApiProperty()
+  @Column({ default: true })
+  isActive: boolean;
+
+  @OneToOne(() => UserEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'owner_id' })
+  owner: UserEntity;
+
+  @Column({ name: 'owner_id' })
+  ownerId: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+}

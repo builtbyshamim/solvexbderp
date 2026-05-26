@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -57,12 +58,13 @@ export class AuthService {
    * @param user - User entity
    * @returns object containing accessToken and refreshToken
    */
-  public async generateTokens(user: UserEntity) {
+  public async generateTokens(user: UserEntity, businessId?: string) {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
       name: user.name,
+      businessId: businessId ?? undefined,
     };
 
     const secret = this.configService.get<string>('jwt.secret');
@@ -114,10 +116,12 @@ export class AuthService {
       expiresAt: new Date(Date.now() + refreshTokenTTL * 1000),
     });
     return {
+      success: true,
       message: 'Login successful',
-      user: {
+      data: {
         id: user.id,
         email: user.email,
+        name: user.name,
         role: user.role,
       },
       ...tokens,
@@ -125,6 +129,11 @@ export class AuthService {
   }
   async adminLogin(req: Request, email: string, password: string) {
     const user = await this.validateUser(email, password);
+
+    if (user.role !== 'admin' && user.role !== 'super_admin') {
+      throw new ForbiddenException('Access denied. Admin accounts only.');
+    }
+
     const tokens = await this.generateTokens(user);
     const refreshTokenHash = this.hashToken(tokens.refreshToken);
     const userAgent = req.headers['user-agent'] || '';
@@ -145,14 +154,25 @@ export class AuthService {
       expiresAt: new Date(Date.now() + refreshTokenTTL * 1000),
     });
     return {
+      success: true,
       message: 'Login successful',
-      user: {
+      data: {
         id: user.id,
         email: user.email,
+        name: user.name,
         role: user.role,
       },
       ...tokens,
     };
+  }
+
+  async logout(userId: string, refreshToken: string) {
+    const tokenHash = this.hashToken(refreshToken);
+    await this.dataSource.getRepository(RefreshTokenEntity).update(
+      { token: tokenHash, user: { id: userId } },
+      { isRevoked: true },
+    );
+    return { message: 'Logged out successfully' };
   }
   async refreshTokens(req: Request, refreshToken: string) {
     const payload = await this.jwtService.verifyAsync<JwtPayload>(

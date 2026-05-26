@@ -73,7 +73,7 @@ BizCore is a **Multi-tenant SaaS ERP** where each registered business gets an is
 | Layer | Technology |
 |---|---|
 | Framework | React.js 18 (App Router) |
-| State | Zustand + React Query (TanStack v5) |
+| State |  Redux toolkit + Axios |
 | UI | Tailwind CSS + custom css |
 | Forms | React Hook Form + Zod |
 | i18n | next-intl (EN / BN toggle) |
@@ -1174,10 +1174,7 @@ The project is structured so each module is independently runnable. To continue 
 ### 🔜 Phase 2 — Future
 - [ ] Multi-language invoice PDF (EN/BN)
 - [ ] Mobile app (React Native / PWA)
-- [ ] Delivery / Logistics module
-- [ ] E-commerce storefront integration
 - [ ] Bank reconciliation
-- [ ] Manufacturing / BOM module
 - [ ] Advanced analytics & BI dashboard
 - [ ] Webhook & third-party API integrations
 - [ ] Offline POS (PWA + IndexedDB sync)
@@ -1190,7 +1187,7 @@ The project is structured so each module is independently runnable. To continue 
 2. Follow the DTO + Service + Controller + Module pattern
 3. Add Swagger decorators to every endpoint
 4. Write Prisma transactions wherever multiple tables are touched
-5. Update `messages/en.json` and `messages/bn.json` for any new UI text
+5. Update `messages/en.json` and `messages/bn.json` for any new UI text , just frontend
 6. Submit PR with a clear description of the change
 
 ---
