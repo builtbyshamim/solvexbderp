@@ -3,7 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AccountingService } from '../services/accounting.service';
 import {
   AccountTransferDto, CreateAccountDto, CreateExpenseDto, CreateIncomeDto,
-  GetAccountsDto, GetLedgerDto, UpdateAccountDto,
+  GetAccountsDto, GetLedgerDto, GetReportDto, GetTransactionsDto, UpdateAccountDto,
 } from '../dto/accounting.dto';
 import { BusinessId } from 'src/common/decorators/business-id.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -14,23 +14,24 @@ import { UserEntity } from 'src/modules/users/entities/user.entity';
 export class AccountingController {
   constructor(private readonly accountingService: AccountingService) {}
 
-  // ── Accounts ──
+  // ── Accounts ──────────────────────────────────────────────────────────────
+
   @Post('accounts')
   @ApiOperation({ summary: 'Create account (cash/bank/mobile banking)' })
   createAccount(@BusinessId() biz: string, @Body() dto: CreateAccountDto) {
     return this.accountingService.createAccount(biz, dto);
   }
 
-  @Get('accounts')
-  @ApiOperation({ summary: 'Get all accounts' })
-  getAccounts(@BusinessId() biz: string, @Query() q: GetAccountsDto) {
-    return this.accountingService.findAllAccounts(biz, q);
-  }
-
   @Get('accounts/summary')
   @ApiOperation({ summary: 'Get financial summary (totals per type)' })
   getSummary(@BusinessId() biz: string) {
     return this.accountingService.getSummary(biz);
+  }
+
+  @Get('accounts')
+  @ApiOperation({ summary: 'Get all accounts' })
+  getAccounts(@BusinessId() biz: string, @Query() q: GetAccountsDto) {
+    return this.accountingService.findAllAccounts(biz, q);
   }
 
   @Get('accounts/:id')
@@ -51,7 +52,8 @@ export class AccountingController {
     return this.accountingService.deleteAccount(biz, id);
   }
 
-  // ── Transactions ──
+  // ── Income ────────────────────────────────────────────────────────────────
+
   @Post('income')
   @ApiOperation({ summary: 'Record income' })
   recordIncome(
@@ -61,6 +63,14 @@ export class AccountingController {
   ) {
     return this.accountingService.recordIncome(biz, user.id, dto);
   }
+
+  @Get('income')
+  @ApiOperation({ summary: 'List income transactions' })
+  getIncomes(@BusinessId() biz: string, @Query() q: GetTransactionsDto) {
+    return this.accountingService.getIncomes(biz, q);
+  }
+
+  // ── Expense ───────────────────────────────────────────────────────────────
 
   @Post('expense')
   @ApiOperation({ summary: 'Record expense' })
@@ -72,6 +82,14 @@ export class AccountingController {
     return this.accountingService.recordExpense(biz, user.id, dto);
   }
 
+  @Get('expense')
+  @ApiOperation({ summary: 'List expense transactions' })
+  getExpenses(@BusinessId() biz: string, @Query() q: GetTransactionsDto) {
+    return this.accountingService.getExpenses(biz, q);
+  }
+
+  // ── Transfer ──────────────────────────────────────────────────────────────
+
   @Post('transfer')
   @ApiOperation({ summary: 'Transfer funds between accounts' })
   transfer(
@@ -82,10 +100,51 @@ export class AccountingController {
     return this.accountingService.transferFunds(biz, user.id, dto);
   }
 
-  // ── Ledger ──
+  // ── Transactions (unified) ────────────────────────────────────────────────
+
+  @Get('transactions')
+  @ApiOperation({ summary: 'Get all transactions with filters' })
+  getTransactions(@BusinessId() biz: string, @Query() q: GetTransactionsDto) {
+    return this.accountingService.getTransactions(biz, q);
+  }
+
+  @Delete('transactions/:id')
+  @ApiOperation({ summary: 'Delete a transaction and reverse its balance effect' })
+  deleteTransaction(@BusinessId() biz: string, @Param('id') id: string) {
+    return this.accountingService.deleteTransaction(biz, id);
+  }
+
+  // ── Ledger ────────────────────────────────────────────────────────────────
+
   @Get('ledger')
   @ApiOperation({ summary: 'Get account ledger with filters' })
   getLedger(@BusinessId() biz: string, @Query() q: GetLedgerDto) {
     return this.accountingService.getLedger(biz, q);
+  }
+
+  // ── Reports ───────────────────────────────────────────────────────────────
+
+  @Get('reports/profit-loss')
+  @ApiOperation({ summary: 'Profit & Loss statement' })
+  getProfitLoss(@BusinessId() biz: string, @Query() q: GetReportDto) {
+    return this.accountingService.getProfitLoss(biz, q);
+  }
+
+  @Get('reports/balance-sheet')
+  @ApiOperation({ summary: 'Balance sheet' })
+  getBalanceSheet(@BusinessId() biz: string) {
+    return this.accountingService.getBalanceSheet(biz);
+  }
+
+  @Get('reports/trial-balance')
+  @ApiOperation({ summary: 'Trial balance' })
+  getTrialBalance(@BusinessId() biz: string) {
+    return this.accountingService.getTrialBalance(biz);
+  }
+
+  @Get('reports/cash-flow')
+  @ApiOperation({ summary: 'Cash flow statement' })
+  getCashFlow(@BusinessId() biz: string, @Query() q: GetReportDto) {
+    return this.accountingService.getCashFlow(biz, q);
   }
 }

@@ -25,6 +25,9 @@ export const tagTypes = {
   payroll: "payroll",
   report: "report",
   productImage: "productImage",
+  smsTemplate: "smsTemplate",
+  smsCampaign: "smsCampaign",
+  smsLog: "smsLog",
 };
 
 export const tagTypesList = Object.values(tagTypes);

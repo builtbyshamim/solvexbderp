@@ -86,6 +86,32 @@ export const authApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [tagTypes.auth],
     }),
+
+    mobileSendOtp: build.mutation({
+      query: (data) => ({
+        url: `${AUTH_URL}/mobile/send-otp`,
+        method: "POST",
+        data,
+      }),
+    }),
+
+    mobileVerifyOtp: build.mutation({
+      query: (data) => ({
+        url: `${AUTH_URL}/mobile/verify-otp`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: [tagTypes.auth],
+    }),
+
+    mobileRegister: build.mutation({
+      query: (data) => ({
+        url: `${AUTH_URL}/mobile/register`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: [tagTypes.auth],
+    }),
   }),
 });
 
@@ -99,4 +125,7 @@ export const {
   useCreateCompanyMutation,
   useChangeNewPasswordMutation,
   useLogoutMutation,
+  useMobileSendOtpMutation,
+  useMobileVerifyOtpMutation,
+  useMobileRegisterMutation,
 } = authApi;

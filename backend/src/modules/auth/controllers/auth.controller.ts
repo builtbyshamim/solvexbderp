@@ -10,6 +10,7 @@ import { VerifyOtpDto } from '../dto/verify-otp.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { UserEntity } from 'src/modules/users/entities/user.entity';
+import { SendMobileOtpDto, VerifyMobileOtpDto, MobileRegisterDto } from '../dto/mobile-auth.dto';
 
 @ApiTags('auth') // Swagger tag for grouping authentication routes
 @Controller('auth') // Base route for all auth endpoints: /auth
@@ -77,5 +78,26 @@ export class AuthController {
   @Post('reset-password')
   async reset(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
+  }
+
+  @PublicRoute()
+  @Post('mobile/send-otp')
+  @ApiOperation({ summary: 'Send OTP to mobile number' })
+  async mobileSendOtp(@Body() dto: SendMobileOtpDto) {
+    return this.authService.sendMobileOtp(dto.mobile);
+  }
+
+  @PublicRoute()
+  @Post('mobile/verify-otp')
+  @ApiOperation({ summary: 'Verify mobile OTP — returns tokens (existing user) or tempToken (new user)' })
+  async mobileVerifyOtp(@Body() dto: VerifyMobileOtpDto) {
+    return this.authService.verifyMobileOtp(dto.mobile, dto.code);
+  }
+
+  @PublicRoute()
+  @Post('mobile/register')
+  @ApiOperation({ summary: 'Complete mobile registration with name and password' })
+  async mobileRegister(@Body() dto: MobileRegisterDto) {
+    return this.authService.mobileRegister(dto.tempToken, dto.name, dto.password);
   }
 }

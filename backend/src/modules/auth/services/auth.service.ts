@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   UnauthorizedException,
@@ -20,6 +21,8 @@ import { OtpEntity } from '../entities/auth-otp.entity';
 import { MailService } from 'src/modules/mail/mail.service';
 import { baseEmailTemplate } from 'src/utilits/email-template-builder/base-email-template';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
+import { UserRole } from 'src/common/shared/enums/user-role.enum';
+import { BusinessEntity } from 'src/modules/business/entities/business.entity';
 
 @Injectable()
 export class AuthService {
@@ -348,6 +351,135 @@ export class AuthService {
     await this.refreshTokenRepo.delete({ user: { id: user.id } });
 
     return { status: true };
+  }
+
+  async sendMobileOtp(mobile: string) {
+    await this.otpRepo.delete({ email: mobile, purpose: 'login', used: false });
+
+    const otp = '123456'; // fixed OTP for development
+    const codeHash = await bcrypt.hash(otp, 10);
+
+    await this.otpRepo.save({
+      email: mobile,
+      codeHash,
+      purpose: 'login',
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+
+    return { message: 'OTP sent successfully' };
+  }
+
+  async verifyMobileOtp(mobile: string, code: string) {
+    const otpRow = await this.otpRepo.findOne({
+      where: { email: mobile, purpose: 'login', used: false },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!otpRow) throw new BadRequestException('Invalid OTP. Please request a new one.');
+    if (otpRow.expiresAt < new Date()) throw new BadRequestException('OTP expired');
+    if (otpRow.attempts >= 5) throw new BadRequestException('Too many attempts');
+
+    const match = await bcrypt.compare(code, otpRow.codeHash);
+    if (!match) {
+      otpRow.attempts += 1;
+      await this.otpRepo.save(otpRow);
+      throw new BadRequestException('Invalid OTP');
+    }
+
+    otpRow.used = true;
+    await this.otpRepo.save(otpRow);
+
+    const user = await this.userRepository.findOne({ where: { mobile } });
+
+    if (user) {
+      const business = await this.dataSource
+        .getRepository(BusinessEntity)
+        .findOne({ where: { ownerId: user.id } });
+      const tokens = await this.generateTokens(user, business?.id);
+      const refreshTokenTTL = Number(process.env.JWT_REFRESH_TOKEN_TTL || 604800);
+      await this.dataSource.getRepository(RefreshTokenEntity).save({
+        token: this.hashToken(tokens.refreshToken),
+        user,
+        ip: 'mobile',
+        device: 'Mobile Auth',
+        userAgent: 'mobile-otp',
+        expiresAt: new Date(Date.now() + refreshTokenTTL * 1000),
+      });
+
+      return {
+        isNewUser: false,
+        user: { id: user.id, name: user.name, role: user.role },
+        ...tokens,
+      };
+    }
+
+    const tempToken = this.jwtService.sign(
+      { mobile, scope: 'mobile_register' },
+      { expiresIn: '15m' },
+    );
+
+    return { isNewUser: true, tempToken };
+  }
+
+  async mobileRegister(tempToken: string, name: string, password: string) {
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(tempToken);
+    } catch {
+      throw new BadRequestException('Invalid or expired registration token');
+    }
+
+    if (payload.scope !== 'mobile_register')
+      throw new BadRequestException('Invalid token');
+
+    const mobile = payload.mobile as string;
+
+    const existing = await this.userRepository.findOne({ where: { mobile } });
+    if (existing) throw new ConflictException('Account already exists. Please sign in.');
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const emailPlaceholder = `m.${mobile}@bizcore.local`;
+
+    return this.dataSource.transaction(async (tx) => {
+      const userRepo = tx.getRepository(UserEntity);
+      const bizRepo = tx.getRepository(BusinessEntity);
+      const rtRepo = tx.getRepository(RefreshTokenEntity);
+
+      const user = userRepo.create({
+        mobile,
+        email: emailPlaceholder,
+        name,
+        password: hashedPassword,
+        role: UserRole.ADMIN,
+        isVerified: true,
+      });
+      const savedUser = await userRepo.save(user);
+
+      const business = bizRepo.create({
+        name: `${name}'s Business`,
+        ownerId: savedUser.id,
+        currencyCode: 'BDT',
+      });
+      const savedBusiness = await bizRepo.save(business);
+
+      const tokens = await this.generateTokens(savedUser, savedBusiness.id);
+      const refreshTokenTTL = Number(process.env.JWT_REFRESH_TOKEN_TTL || 604800);
+
+      await rtRepo.save({
+        token: this.hashToken(tokens.refreshToken),
+        user: savedUser,
+        ip: 'mobile',
+        device: 'Mobile Auth',
+        userAgent: 'mobile-otp',
+        expiresAt: new Date(Date.now() + refreshTokenTTL * 1000),
+      });
+
+      return {
+        isNewUser: true,
+        user: { id: savedUser.id, name: savedUser.name, role: savedUser.role },
+        ...tokens,
+      };
+    });
   }
 
   // common class

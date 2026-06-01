@@ -1,28 +1,41 @@
-import { Download } from 'lucide-react';
+import { useState } from 'react';
+import { Download, Loader2, RefreshCw } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
+import { useGetCashFlowQuery } from './accountingApi';
 
 const CashFlow = () => {
-  const operating = [
-    { label: 'Cash received from customers', amount: 157000 },
-    { label: 'Cash paid to suppliers', amount: -90500 },
-    { label: 'Cash paid for expenses', amount: -56300 },
-  ];
-  const investing = [
-    { label: 'Purchase of equipment', amount: -15000 },
-  ];
-  const financing = [
-    { label: 'Capital invested', amount: 50000 },
-    { label: 'Loan repayments', amount: 0 },
-  ];
+  const now = new Date();
+  const [dateFrom, setDateFrom] = useState(
+    new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0],
+  );
+  const [dateTo, setDateTo] = useState(now.toISOString().split('T')[0]);
 
-  const operatingTotal = operating.reduce((s, o) => s + o.amount, 0);
-  const investingTotal = investing.reduce((s, i) => s + i.amount, 0);
-  const financingTotal = financing.reduce((s, f) => s + f.amount, 0);
-  const netCashFlow = operatingTotal + investingTotal + financingTotal;
+  const { data, isLoading, refetch } = useGetCashFlowQuery(
+    { dateFrom, dateTo },
+    { skip: !dateFrom || !dateTo },
+  );
 
-  const Section = ({ title, items, total, color }: { title: string; items: { label: string; amount: number }[]; total: number; color: string }) => (
+  const d = data ?? {
+    operating: [],
+    operatingTotal: 0,
+    openingBalance: 0,
+    closingBalance: 0,
+    netCashFlow: 0,
+  };
+
+  const Section = ({
+    title,
+    items,
+    total,
+    colorClass,
+  }: {
+    title: string;
+    items: { label: string; amount: number }[];
+    total: number;
+    colorClass: string;
+  }) => (
     <div className="bg-white border border-[#DBDFE9] rounded-lg overflow-hidden">
-      <div className={`px-5 py-4 border-b border-[#DBDFE9] ${color}`}>
+      <div className={`px-5 py-4 border-b border-[#DBDFE9] ${colorClass}`}>
         <h3 className="font-semibold text-sm">{title}</h3>
       </div>
       <div className="p-5 space-y-2">
@@ -30,14 +43,14 @@ const CashFlow = () => {
           <div key={item.label} className="flex justify-between text-sm">
             <span className="text-gray-600">{item.label}</span>
             <span className={`font-medium ${item.amount >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-              {item.amount >= 0 ? '+' : ''}৳{item.amount.toLocaleString()}
+              {item.amount >= 0 ? '+' : ''}৳{Number(item.amount).toLocaleString()}
             </span>
           </div>
         ))}
         <div className="border-t border-[#DBDFE9] pt-2 flex justify-between font-bold">
           <span>Net Cash Flow</span>
           <span className={total >= 0 ? 'text-green-600' : 'text-red-500'}>
-            {total >= 0 ? '+' : ''}৳{total.toLocaleString()}
+            {total >= 0 ? '+' : ''}৳{Number(total).toLocaleString()}
           </span>
         </div>
       </div>
@@ -49,26 +62,75 @@ const CashFlow = () => {
       <PageHeader
         title="Cash Flow Statement"
         subtitle="Track cash inflows and outflows"
-        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'Accounting', path: '/admin/accounting/accounts' }, { label: 'Cash Flow' }]}
+        breadcrumbs={[
+          { label: 'Home', path: '/admin' },
+          { label: 'Accounting', path: '/admin/accounting/accounts' },
+          { label: 'Cash Flow' },
+        ]}
         actions={
-          <button className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
-            <Download className="h-4 w-4" /> Export
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none"
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none"
+            />
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-2 px-3 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
+              <Download className="h-4 w-4" /> Export
+            </button>
+          </div>
         }
       />
 
-      <div className={`mb-6 border rounded-lg p-5 ${netCashFlow >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-        <p className={`text-sm font-medium ${netCashFlow >= 0 ? 'text-green-600' : 'text-red-500'}`}>Net Change in Cash</p>
-        <p className={`text-3xl font-bold mt-1 ${netCashFlow >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-          {netCashFlow >= 0 ? '+' : ''}৳{netCashFlow.toLocaleString()}
-        </p>
-      </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-[#ff6d29]" />
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gray-50 border border-[#DBDFE9] rounded-lg p-5">
+              <p className="text-xs text-gray-500">Opening Balance</p>
+              <p className="text-2xl font-bold text-[#26272F] mt-1">
+                ৳{Number(d.openingBalance).toLocaleString()}
+              </p>
+            </div>
+            <div className={`border rounded-lg p-5 ${d.netCashFlow >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+              <p className={`text-xs ${d.netCashFlow >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                Net Change in Cash
+              </p>
+              <p className={`text-2xl font-bold mt-1 ${d.netCashFlow >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                {d.netCashFlow >= 0 ? '+' : ''}৳{Number(d.netCashFlow).toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+              <p className="text-xs text-blue-600">Closing Balance</p>
+              <p className="text-2xl font-bold text-blue-700 mt-1">
+                ৳{Number(d.closingBalance).toLocaleString()}
+              </p>
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <Section title="Operating Activities" items={operating} total={operatingTotal} color="bg-blue-50 text-blue-700" />
-        <Section title="Investing Activities" items={investing} total={investingTotal} color="bg-purple-50 text-purple-700" />
-        <Section title="Financing Activities" items={financing} total={financingTotal} color="bg-orange-50 text-orange-700" />
-      </div>
+          <Section
+            title="Operating Activities"
+            items={d.operating}
+            total={d.operatingTotal}
+            colorClass="bg-blue-50 text-blue-700"
+          />
+        </>
+      )}
     </div>
   );
 };

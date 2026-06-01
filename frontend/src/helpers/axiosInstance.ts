@@ -68,10 +68,12 @@ instance.interceptors.request.use(
 // Response interceptor (login response থেকে token নিয়ে cookie তে save করা + error handle + token refresh)
 instance.interceptors.response.use(
   (response) => {
-    // যদি login বা admin-login বা refresh endpoint থেকে response আসে
+    // যদি login বা admin-login বা refresh বা mobile auth endpoint থেকে response আসে
     const isAuthEndpoint =
       response.config.url?.includes("/auth/admin-login") ||
-      response.config.url?.includes("/auth/refresh");
+      response.config.url?.includes("/auth/refresh") ||
+      response.config.url?.includes("/auth/mobile/verify-otp") ||
+      response.config.url?.includes("/auth/mobile/register");
 
     if (isAuthEndpoint && response.data?.data) {
       const { accessToken, refreshToken } = response.data.data;
@@ -94,6 +96,9 @@ instance.interceptors.response.use(
       "/auth/admin-login",
       "/auth/register",
       "/auth/refresh",
+      "/auth/mobile/send-otp",
+      "/auth/mobile/verify-otp",
+      "/auth/mobile/register",
     ];
     // If error is 401 and we haven't already tried to refresh the token
     if (

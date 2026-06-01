@@ -182,6 +182,19 @@ KPI           → Evaluation criteria · Rating
 Exit          → Resignation · Clearance · Final settlement
 ```
 
+
+### Phase 8 - SMS Marketing
+```
+SMS Overview      → Analytics · Credit balance · Recent campaign metrics
+Quick Send        → Instant direct SMS to specific mobile numbers
+Group Send        → Bulk campaign broadcasting to targeted segments
+Group             → Manage audience segments (Customers, Employees, Custom)
+EMI Reminder      → Automated cron-triggered SMS for due payments & loan installments
+SMS Templates     → Pre-defined messages with dynamic variables (e.g., {{name}}, {{due_amount}})
+Packages          → SMS credit top-up plans · Gateway routing
+SMS History       → Delivery reports · Status tracking (Sent/Delivered/Failed) · Cost logs
+SMS Configuration → Gateway credentials (SSL Wireless, Twilio, etc.) · Sender ID setup
+```
 ---
 
 ## Database Design
@@ -305,6 +318,17 @@ employees (id, business_id, employee_code, name, mobile, department_id,
 payrolls (id, business_id, employee_id, month, year, gross_salary,
           total_deduction, net_salary, status, ...)
 attendances (id, business_id, employee_id, date, check_in, check_out, status, ...)
+
+
+-- SMS Marketing
+sms_configurations (id, business_id, provider, api_key, sender_id, is_active, ...)
+sms_packages (id, name, credit_amount, price, validity_days, status, ...)
+business_sms_credits (business_id PK, available_credits, total_used, last_recharge, ...)
+sms_groups (id, business_id, name, description, is_dynamic, ...)
+sms_group_members (id, group_id, mobile, name, reference_type, reference_id, ...)
+sms_templates (id, business_id, title, content, variables, status, ...)
+sms_history (id, business_id, campaign_id, sender_id, recipient_number, message_body, 
+             status, gateway_response, credits_used, sent_at, ...)
 ```
 
 > Full Prisma schema is in `backend/prisma/schema.prisma`
@@ -607,6 +631,10 @@ async set(key: string, value: unknown, ttlSeconds: number): Promise<void> {
 async del(key: string): Promise<void> {
   await this.redis.del(key);
 }
+
+Key Pattern,TTL,Purpose
+business:{id}:sms_config,1 hour,SMS Gateway credentials lookup
+business:{id}:sms_balance,5 min,Quick check before sending campaigns
 ```
 
 ---
@@ -1179,6 +1207,7 @@ The project is structured so each module is independently runnable. To continue 
 - [ ] Webhook & third-party API integrations
 - [ ] Offline POS (PWA + IndexedDB sync)
 
+[ ] Phase 8: SMS Marketing (Quick Send · Bulk Campaigns · Automated EMI Reminders)
 ---
 
 ## Contributing

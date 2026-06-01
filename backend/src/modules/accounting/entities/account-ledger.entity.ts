@@ -54,6 +54,9 @@ export class AccountLedgerEntity {
   balanceAfter: number;
 
   @Column({ nullable: true })
+  category?: string;
+
+  @Column({ nullable: true })
   note?: string;
 
   @Column({ nullable: true, name: 'created_by' })
