@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Pencil, Trash2, Search } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface Designation {
   id: number;
@@ -19,6 +20,7 @@ const initialDesignations: Designation[] = [
 ];
 
 const Designations = () => {
+  const { t } = useLanguage();
   const [designations, setDesignations] = useState<Designation[]>(initialDesignations);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -42,15 +44,27 @@ const Designations = () => {
     setShowModal(false);
   };
 
+  const tableHeaders = [
+    '#',
+    t('hrm.designations.colDesig'),
+    t('hrm.departments.colDept'),
+    t('hrm.departments.colEmployees'),
+    t('common.actions'),
+  ];
+
   return (
     <div>
       <PageHeader
-        title="Designations"
-        subtitle="Manage employee job titles and designations"
-        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'HRM', path: '/admin/hrm/employees' }, { label: 'Designations' }]}
+        title={t('hrm.designations.title')}
+        subtitle={t('hrm.designations.subtitle')}
+        breadcrumbs={[
+          { label: t('common.home'), path: '/admin' },
+          { label: t('nav.hrm'), path: '/admin/hrm/employees' },
+          { label: t('hrm.designations.title') },
+        ]}
         actions={
           <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]">
-            <Plus className="h-4 w-4" /> Add Designation
+            <Plus className="h-4 w-4" /> {t('hrm.designations.addDesig')}
           </button>
         }
       />
@@ -58,7 +72,7 @@ const Designations = () => {
         <div className="p-4 border-b border-[#DBDFE9]">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Search designations..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="text" placeholder={t('hrm.designations.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
         </div>
@@ -66,7 +80,7 @@ const Designations = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['#', 'Designation', 'Department', 'Employees', 'Actions'].map((h) => (
+                {tableHeaders.map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -94,20 +108,30 @@ const Designations = () => {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-semibold text-[#26272F] mb-4">{editItem ? 'Edit Designation' : 'Add Designation'}</h2>
+            <h2 className="text-lg font-semibold text-[#26272F] mb-4">
+              {editItem ? t('hrm.designations.editTitle') : t('hrm.designations.addTitle')}
+            </h2>
             <div className="space-y-3">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Designation Name <span className="text-red-500">*</span></label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('hrm.designations.desigName')} <span className="text-red-500">*</span>
+                </label>
                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Sales Executive"
-                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('hrm.departments.colDept')}</label>
                 <select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
                   {['Sales', 'Accounts', 'Warehouse', 'Management', 'IT', 'HR'].map((d) => <option key={d}>{d}</option>)}
-                </select></div>
+                </select>
+              </div>
             </div>
             <div className="flex gap-3 mt-5 justify-end">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
-              <button onClick={handleSave} className="px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]">{editItem ? 'Update' : 'Add'}</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">{t('common.cancel')}</button>
+              <button onClick={handleSave} className="px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]">
+                {editItem ? t('common.update') : t('common.add')}
+              </button>
             </div>
           </div>
         </div>

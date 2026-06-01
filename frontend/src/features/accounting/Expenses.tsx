@@ -8,8 +8,18 @@ import {
   useRecordExpenseMutation,
   useDeleteTransactionMutation,
 } from './accountingApi';
+import { useLanguage } from '../../context/LanguageContext';
 
-const EXPENSE_CATEGORIES = ['Utility', 'Salary', 'Rent', 'Transport', 'Marketing', 'Maintenance', 'Supplies', 'Other'];
+const EXPENSE_CATEGORIES = [
+  'Utility',
+  'Salary',
+  'Rent',
+  'Transport',
+  'Marketing',
+  'Maintenance',
+  'Supplies',
+  'Other',
+];
 
 const categoryColorMap: Record<string, string> = {
   Utility: 'bg-yellow-50 text-yellow-700',
@@ -31,6 +41,7 @@ const emptyForm = {
 };
 
 const Expenses = () => {
+  const { t } = useLanguage();
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm);
@@ -38,13 +49,13 @@ const Expenses = () => {
   const [page, setPage] = useState(1);
 
   const { data: accountsData = [] } = useGetAllAccountsQuery({});
-  const cashAccounts = accountsData.filter((a: any) =>
+  const cashAccounts = accountsData?.data?.filter((a: any) =>
     ['cash', 'bank', 'mobile_banking'].includes(a.accountType),
   );
 
   const { data: expensesRes, isLoading } = useGetExpensesQuery({ search, page, limit: 20 });
-  const expenses = expensesRes?.data ?? [];
-  const meta = expensesRes?.meta;
+  const expenses = expensesRes?.data?.data ?? [];
+  const meta = expensesRes?.data?.meta;
 
   const [recordExpense, { isLoading: saving }] = useRecordExpenseMutation();
   const [deleteTransaction, { isLoading: deleting }] = useDeleteTransactionMutation();
@@ -53,12 +64,20 @@ const Expenses = () => {
 
   const categoryTotals = EXPENSE_CATEGORIES.slice(0, 4).map((cat) => ({
     cat,
-    amt: expenses.filter((e: any) => e.category === cat).reduce((s: number, e: any) => s + Number(e.credit), 0),
+    amt: expenses
+      .filter((e: any) => e.category === cat)
+      .reduce((s: number, e: any) => s + Number(e.credit), 0),
   }));
 
   const handleSave = async () => {
-    if (!form.amount || Number(form.amount) <= 0) { toast.error('Amount must be greater than 0'); return; }
-    if (!form.accountId) { toast.error('Please select an account'); return; }
+    if (!form.amount || Number(form.amount) <= 0) {
+      toast.error('Amount must be greater than 0');
+      return;
+    }
+    if (!form.accountId) {
+      toast.error('Please select an account');
+      return;
+    }
     try {
       await recordExpense({
         accountId: form.accountId,
@@ -88,22 +107,31 @@ const Expenses = () => {
 
   const f = (key: string, val: string) => setForm((p) => ({ ...p, [key]: val }));
 
+  const tableHeaders = [
+    t('common.date'),
+    t('common.category'),
+    t('common.account'),
+    t('common.amount'),
+    t('common.note'),
+    t('common.action'),
+  ];
+
   return (
     <div>
       <PageHeader
-        title="Expenses"
-        subtitle="Record and track all business expenses"
+        title={t('accounting.expenses.title')}
+        subtitle={t('accounting.expenses.subtitle')}
         breadcrumbs={[
-          { label: 'Home', path: '/admin' },
-          { label: 'Accounting', path: '/admin/accounting/accounts' },
-          { label: 'Expenses' },
+          { label: t('common.home'), path: '/admin' },
+          { label: t('nav.accounting'), path: '/admin/accounting/accounts' },
+          { label: t('accounting.expenses.title') },
         ]}
         actions={
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]"
           >
-            <Plus className="h-4 w-4" /> Add Expense
+            <Plus className="h-4 w-4" /> {t('accounting.expenses.addExpense')}
           </button>
         }
       />
@@ -123,16 +151,19 @@ const Expenses = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search expenses..."
+              placeholder={t('accounting.expenses.searchPlaceholder')}
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
             />
           </div>
           <div className="flex items-center gap-2">
             <TrendingDown className="h-4 w-4 text-red-500" />
             <span className="text-sm font-semibold text-red-500">
-              Total: ৳{totalExpense.toLocaleString()}
+              {t('common.total')}: ৳{totalExpense.toLocaleString()}
             </span>
           </div>
         </div>
@@ -141,8 +172,13 @@ const Expenses = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Date', 'Category', 'Account', 'Amount', 'Note', 'Action'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
+                {tableHeaders.map((h) => (
+                  <th
+                    key={h}
+                    className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide"
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -156,7 +192,7 @@ const Expenses = () => {
               ) : expenses.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
-                    No expense records found.
+                    {t('accounting.expenses.noRecords')}
                   </td>
                 </tr>
               ) : (
@@ -166,13 +202,19 @@ const Expenses = () => {
                       {new Date(item.transactionDate).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2.5 py-1 rounded text-xs font-medium ${categoryColorMap[item.category] ?? 'bg-gray-100 text-gray-600'}`}>
+                      <span
+                        className={`px-2.5 py-1 rounded text-xs font-medium ${categoryColorMap[item.category] ?? 'bg-gray-100 text-gray-600'}`}
+                      >
                         {item.category || 'Other'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-600 text-xs">{item.account?.name ?? '—'}</td>
-                    <td className="px-4 py-3 font-bold text-red-600">৳{Number(item.credit).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate">{item.note || '—'}</td>
+                    <td className="px-4 py-3 font-bold text-red-600">
+                      ৳{Number(item.credit).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 max-w-[180px] truncate">
+                      {item.note || '—'}
+                    </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setDeleteItem(item)}
@@ -191,7 +233,8 @@ const Expenses = () => {
         {meta && meta.totalPages > 1 && (
           <div className="p-4 border-t border-[#DBDFE9] flex items-center justify-between">
             <span className="text-xs text-gray-500">
-              Page {meta.currentPage} of {meta.totalPages} ({meta.totalItems} records)
+              {t('common.page')} {meta.currentPage} {t('common.of')} {meta.totalPages} (
+              {meta.totalItems} {t('common.records')})
             </span>
             <div className="flex gap-2">
               <button
@@ -199,14 +242,14 @@ const Expenses = () => {
                 disabled={page === 1}
                 className="px-3 py-1 border border-[#DBDFE9] rounded text-xs disabled:opacity-40 hover:bg-gray-50"
               >
-                Prev
+                {t('common.prev')}
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
                 disabled={page === meta.totalPages}
                 className="px-3 py-1 border border-[#DBDFE9] rounded text-xs disabled:opacity-40 hover:bg-gray-50"
               >
-                Next
+                {t('common.next')}
               </button>
             </div>
           </div>
@@ -216,11 +259,15 @@ const Expenses = () => {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-semibold text-[#26272F] mb-4">Record Expense</h2>
+            <h2 className="text-lg font-semibold text-[#26272F] mb-4">
+              {t('accounting.expenses.recordExpense')}
+            </h2>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Date <span className="text-red-500">*</span></label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {t('common.date')} <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="date"
                     value={form.transactionDate}
@@ -229,31 +276,41 @@ const Expenses = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {t('common.category')}
+                  </label>
                   <select
                     value={form.category}
                     onChange={(e) => f('category', e.target.value)}
                     className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
                   >
-                    {EXPENSE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                    {EXPENSE_CATEGORIES.map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Account <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  {t('common.account')} <span className="text-red-500">*</span>
+                </label>
                 <select
                   value={form.accountId}
                   onChange={(e) => f('accountId', e.target.value)}
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
                 >
-                  <option value="">Select account</option>
+                  <option value="">{t('common.selectAccount')}</option>
                   {cashAccounts.map((a: any) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Amount <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  {t('common.amount')} <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="number"
                   value={form.amount}
@@ -265,7 +322,9 @@ const Expenses = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Note</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  {t('common.note')}
+                </label>
                 <input
                   type="text"
                   value={form.note}
@@ -280,15 +339,15 @@ const Expenses = () => {
                 onClick={() => setShowModal(false)}
                 className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
                 className="px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-60 flex items-center gap-2"
               >
-                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                Save Expense
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}{' '}
+                {t('accounting.expenses.saveExpense')}
               </button>
             </div>
           </div>
@@ -301,23 +360,21 @@ const Expenses = () => {
             <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
               <Trash2 className="h-6 w-6 text-red-500" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Delete Expense Record?</h3>
-            <p className="text-sm text-gray-500 mb-6">
-              This will reverse the balance effect on the account. This action cannot be undone.
-            </p>
+            <h3 className="text-lg font-semibold mb-2">{t('accounting.expenses.deleteTitle')}</h3>
+            <p className="text-sm text-gray-500 mb-6">{t('accounting.expenses.deleteWarning')}</p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setDeleteItem(null)}
                 className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
                 className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 disabled:opacity-60 flex items-center gap-2"
               >
-                {deleting && <Loader2 className="h-4 w-4 animate-spin" />} Delete
+                {deleting && <Loader2 className="h-4 w-4 animate-spin" />} {t('common.delete')}
               </button>
             </div>
           </div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Search, TrendingUp, TrendingDown } from 'lucide-react';
 import PageHeader from '../../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../../context/LanguageContext';
 
 interface Adjustment {
   id: number;
@@ -22,6 +23,7 @@ const initialData: Adjustment[] = [
 ];
 
 const StockAdjustment = () => {
+  const { t } = useLanguage();
   const [adjustments, setAdjustments] = useState<Adjustment[]>(initialData);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -58,16 +60,16 @@ const StockAdjustment = () => {
   return (
     <div>
       <PageHeader
-        title="Stock Adjustment"
-        subtitle="Add or remove stock quantities with reason"
+        title={t('inventory.stockAdj.title')}
+        subtitle={t('inventory.stockAdj.subtitle')}
         breadcrumbs={[
-          { label: 'Home', path: '/admin' },
-          { label: 'Inventory', path: '/admin/inventory/products' },
-          { label: 'Stock Adjustment' },
+          { label: t('common.home'), path: '/admin' },
+          { label: t('nav.inventory'), path: '/admin/inventory/products' },
+          { label: t('inventory.stockAdj.title') },
         ]}
         actions={
           <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] transition-colors">
-            <Plus className="h-4 w-4" /> New Adjustment
+            <Plus className="h-4 w-4" /> {t('inventory.stockAdj.newAdjustment')}
           </button>
         }
       />
@@ -78,7 +80,7 @@ const StockAdjustment = () => {
             <TrendingUp className="h-5 w-5 text-green-600" />
           </div>
           <div>
-            <p className="text-xs text-green-600 font-medium">Total Additions</p>
+            <p className="text-xs text-green-600 font-medium">{t('inventory.stockAdj.totalAdditions')}</p>
             <p className="text-xl font-bold text-green-700">+{totalAdditions}</p>
           </div>
         </div>
@@ -87,7 +89,7 @@ const StockAdjustment = () => {
             <TrendingDown className="h-5 w-5 text-red-500" />
           </div>
           <div>
-            <p className="text-xs text-red-500 font-medium">Total Deductions</p>
+            <p className="text-xs text-red-500 font-medium">{t('inventory.stockAdj.totalDeductions')}</p>
             <p className="text-xl font-bold text-red-600">-{totalDeductions}</p>
           </div>
         </div>
@@ -97,24 +99,24 @@ const StockAdjustment = () => {
         <div className="p-4 border-b border-[#DBDFE9] flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Search product or reference..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="text" placeholder={t('inventory.stockAdj.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
-          <span className="text-sm text-gray-500">{filtered.length} records</span>
+          <span className="text-sm text-gray-500">{filtered.length} {t('common.records')}</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Reference', 'Date', 'Product', 'Warehouse', 'Type', 'Qty', 'Reason'].map((h) => (
+                {[t('inventory.stockAdj.colReference'), t('common.date'), t('common.name'), t('inventory.stockAdj.colWarehouse'), t('inventory.stockAdj.colType'), t('inventory.stockAdj.colQty'), t('inventory.stockAdj.colReason')].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">No adjustments found</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">{t('inventory.stockAdj.noAdjustments')}</td></tr>
               ) : (
                 filtered.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">
@@ -128,7 +130,7 @@ const StockAdjustment = () => {
                     <td className="px-4 py-3">
                       <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium w-fit ${item.type === 'addition' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
                         {item.type === 'addition' ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                        {item.type === 'addition' ? 'Addition' : 'Deduction'}
+                        {item.type === 'addition' ? t('inventory.stockAdj.typeAddition') : t('inventory.stockAdj.typeDeduction')}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-semibold">
@@ -148,30 +150,30 @@ const StockAdjustment = () => {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-semibold text-[#26272F] mb-4">New Stock Adjustment</h2>
+            <h2 className="text-lg font-semibold text-[#26272F] mb-4">{t('inventory.stockAdj.modalTitle')}</h2>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Product Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventory.stockAdj.productName')} <span className="text-red-500">*</span></label>
                 <input type="text" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} placeholder="Search product..."
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Adjustment Type</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventory.stockAdj.adjustmentType')}</label>
                   <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
                     className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
-                    <option value="addition">Addition (+)</option>
-                    <option value="deduction">Deduction (-)</option>
+                    <option value="addition">{t('inventory.stockAdj.typeAddition')} (+)</option>
+                    <option value="deduction">{t('inventory.stockAdj.typeDeduction')} (-)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventory.stockAdj.quantity')} <span className="text-red-500">*</span></label>
                   <input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} min="1" placeholder="0"
                     className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Warehouse</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventory.stockAdj.warehouse')}</label>
                 <select value={form.warehouse} onChange={(e) => setForm({ ...form, warehouse: e.target.value })}
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
                   <option>Main Warehouse</option>
@@ -179,14 +181,14 @@ const StockAdjustment = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventory.stockAdj.reason')}</label>
                 <textarea value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} rows={2} placeholder="Reason for adjustment..."
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] resize-none" />
               </div>
             </div>
             <div className="flex gap-3 mt-5 justify-end">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
-              <button onClick={handleSave} className="px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]">Save Adjustment</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">{t('common.cancel')}</button>
+              <button onClick={handleSave} className="px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]">{t('inventory.stockAdj.saveAdjustment')}</button>
             </div>
           </div>
         </div>

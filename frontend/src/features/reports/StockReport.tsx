@@ -1,11 +1,15 @@
 import ComingSoon from '../../components/shared/ComingSoon';
+import { useLanguage } from '../../context/LanguageContext';
 
-const StockReportPage = () => (
-  <ComingSoon
-    title="Stock Report"
-    subtitle="Detailed stock movement and valuation reports"
-    breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'Reports' }, { label: 'Stock Report' }]}
-  />
-);
+const StockReportPage = () => {
+  const { t } = useLanguage();
+  return (
+    <ComingSoon
+      title={t('reports.stockReport.title')}
+      subtitle={t('reports.stockReport.subtitle')}
+      breadcrumbs={[{ label: t('common.home'), path: '/admin' }, { label: t('nav.reports') }, { label: t('reports.stockReport.title') }]}
+    />
+  );
+};
 
 export default StockReportPage;

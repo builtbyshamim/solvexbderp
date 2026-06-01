@@ -4,21 +4,23 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useDashboardMenuData } from '../../../utils/DashboardMenuData';
 import { asideToggle } from '../../../redux/features/toggleSlice';
+import { useLanguage } from '../../../context/LanguageContext';
 
-const Brand = () => (
+const Brand = ({ tagline }: { tagline: string }) => (
   <div className="flex items-center gap-3">
     <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#ff6d29] to-[#ff8d57] flex items-center justify-center shadow-sm flex-shrink-0">
       <span className="text-white font-black text-sm tracking-tight">BC</span>
     </div>
     <div>
       <h1 className="text-[15px] font-bold text-[#26272F] leading-tight">BizCore ERP</h1>
-      <p className="text-[10px] text-gray-400 leading-tight">Business Management</p>
+      <p className="text-[10px] text-gray-400 leading-tight">{tagline}</p>
     </div>
   </div>
 );
 
 const Sidebar = () => {
   const dispatch = useDispatch();
+  const { t } = useLanguage();
   const menuData = useDashboardMenuData();
   const location = useLocation();
   const { aside } = useSelector((state: any) => state.toggle);
@@ -138,7 +140,7 @@ const Sidebar = () => {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col bg-white h-full w-64 border-r border-[#DBDFE9] fixed left-0 top-0 bottom-0 z-30">
         <div className="px-5 py-4 border-b border-[#DBDFE9] flex-shrink-0">
-          <Link to="/admin"><Brand /></Link>
+          <Link to="/admin"><Brand tagline={t('sidebar.businessManagement')} /></Link>
         </div>
 
         <div className="flex-1 overflow-y-auto sidebarScroll px-3 py-4 space-y-4">
@@ -151,8 +153,8 @@ const Sidebar = () => {
               <span className="text-[#ff6d29] font-bold text-xs">AD</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[#26272F] truncate">Admin</p>
-              <p className="text-xs text-gray-400 truncate">Administrator</p>
+              <p className="text-sm font-semibold text-[#26272F] truncate">{t('sidebar.admin')}</p>
+              <p className="text-xs text-gray-400 truncate">{t('sidebar.administrator')}</p>
             </div>
           </div>
         </div>
@@ -168,7 +170,7 @@ const Sidebar = () => {
         }`}
       >
         <div className="px-4 py-4 border-b border-[#DBDFE9] flex items-center justify-between flex-shrink-0">
-          <Link to="/admin" onClick={handleLinkClick}><Brand /></Link>
+          <Link to="/admin" onClick={handleLinkClick}><Brand tagline={t('sidebar.businessManagement')} /></Link>
           <button
             onClick={() => dispatch(asideToggle())}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
@@ -189,8 +191,8 @@ const Sidebar = () => {
               <span className="text-[#ff6d29] font-bold text-xs">AD</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-[#26272F] truncate">Admin</p>
-              <p className="text-xs text-gray-400 truncate">Administrator</p>
+              <p className="text-sm font-semibold text-[#26272F] truncate">{t('sidebar.admin')}</p>
+              <p className="text-xs text-gray-400 truncate">{t('sidebar.administrator')}</p>
             </div>
           </div>
         </div>

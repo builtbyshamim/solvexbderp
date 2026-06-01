@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Star } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
 
 const kpiData = [
   { id: 1, employee: 'Ahmed Raza', code: 'EMP-001', period: 'Q1 2025', sales_target: 500000, sales_actual: 485000, attendance: 95, quality: 4.2, overall: 4.0, status: 'evaluated' },
@@ -19,18 +20,33 @@ const RatingStars = ({ value }: { value: number }) => (
 );
 
 const KPI = () => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const filtered = kpiData.filter((k) => k.employee.toLowerCase().includes(search.toLowerCase()));
+
+  const tableHeaders = [
+    t('hrm.attendance.colEmployee'),
+    t('hrm.kpi.colPeriod'),
+    t('hrm.kpi.colAttendance'),
+    t('hrm.kpi.colSalesAchievement'),
+    t('hrm.kpi.colQualityRating'),
+    t('hrm.kpi.colOverallScore'),
+    t('common.status'),
+  ];
 
   return (
     <div>
       <PageHeader
-        title="KPI Evaluation"
-        subtitle="Employee performance tracking and evaluation"
-        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'HRM', path: '/admin/hrm/employees' }, { label: 'KPI' }]}
+        title={t('hrm.kpi.title')}
+        subtitle={t('hrm.kpi.subtitle')}
+        breadcrumbs={[
+          { label: t('common.home'), path: '/admin' },
+          { label: t('nav.hrm'), path: '/admin/hrm/employees' },
+          { label: t('hrm.kpi.title') },
+        ]}
         actions={
           <button onClick={() => toast.success('KPI evaluation form coming soon')} className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]">
-            <Plus className="h-4 w-4" /> New Evaluation
+            <Plus className="h-4 w-4" /> {t('hrm.kpi.newEvaluation')}
           </button>
         }
       />
@@ -40,7 +56,7 @@ const KPI = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Employee', 'Period', 'Attendance %', 'Sales Achievement', 'Quality Rating', 'Overall Score', 'Status'].map((h) => (
+                {tableHeaders.map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>

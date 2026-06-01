@@ -2,44 +2,74 @@ import { useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
 
 const loansData = [
   { id: 1, employee: 'Ahmed Raza', code: 'EMP-001', type: 'Loan', amount: 50000, paid: 20000, remaining: 30000, installment: 5000, date: '2025-03-01', status: 'active' },
   { id: 2, employee: 'Kamal Hossain', code: 'EMP-003', type: 'Advance', amount: 10000, paid: 10000, remaining: 0, installment: 5000, date: '2025-04-15', status: 'completed' },
 ];
 
-const statusColors = { active: 'bg-yellow-100 text-yellow-700', completed: 'bg-green-100 text-green-700', rejected: 'bg-red-100 text-red-500' };
+const statusColors = {
+  active: 'bg-yellow-100 text-yellow-700',
+  completed: 'bg-green-100 text-green-700',
+  rejected: 'bg-red-100 text-red-500',
+};
 
 const Loans = () => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const filtered = loansData.filter((l) => l.employee.toLowerCase().includes(search.toLowerCase()));
   const totalLoans = loansData.reduce((s, l) => s + l.amount, 0);
   const totalRemaining = loansData.reduce((s, l) => s + l.remaining, 0);
 
+  const tableHeaders = [
+    t('hrm.attendance.colEmployee'),
+    t('common.type'),
+    t('common.amount'),
+    t('common.paid'),
+    t('hrm.loans.colRemaining'),
+    t('hrm.loans.colInstallment'),
+    t('common.date'),
+    t('common.status'),
+  ];
+
   return (
     <div>
       <PageHeader
-        title="Loans & Advance"
-        subtitle="Manage employee loans and salary advances"
-        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'HRM', path: '/admin/hrm/employees' }, { label: 'Loans & Advance' }]}
+        title={t('hrm.loans.title')}
+        subtitle={t('hrm.loans.subtitle')}
+        breadcrumbs={[
+          { label: t('common.home'), path: '/admin' },
+          { label: t('nav.hrm'), path: '/admin/hrm/employees' },
+          { label: t('hrm.loans.title') },
+        ]}
         actions={
           <button onClick={() => toast.success('Loan application form coming soon')} className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]">
-            <Plus className="h-4 w-4" /> New Loan
+            <Plus className="h-4 w-4" /> {t('hrm.loans.newLoan')}
           </button>
         }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-[#DBDFE9] rounded-lg p-4"><p className="text-xs text-gray-500">Total Loans Given</p><p className="text-2xl font-bold text-[#26272F] mt-1">৳{totalLoans.toLocaleString()}</p></div>
-        <div className="bg-white border border-[#DBDFE9] rounded-lg p-4"><p className="text-xs text-gray-500">Total Paid</p><p className="text-2xl font-bold text-green-600 mt-1">৳{(totalLoans - totalRemaining).toLocaleString()}</p></div>
-        <div className="bg-white border border-[#DBDFE9] rounded-lg p-4"><p className="text-xs text-gray-500">Outstanding</p><p className="text-2xl font-bold text-orange-500 mt-1">৳{totalRemaining.toLocaleString()}</p></div>
+        <div className="bg-white border border-[#DBDFE9] rounded-lg p-4">
+          <p className="text-xs text-gray-500">{t('hrm.loans.totalLoansGiven')}</p>
+          <p className="text-2xl font-bold text-[#26272F] mt-1">৳{totalLoans.toLocaleString()}</p>
+        </div>
+        <div className="bg-white border border-[#DBDFE9] rounded-lg p-4">
+          <p className="text-xs text-gray-500">{t('hrm.payroll.paid')}</p>
+          <p className="text-2xl font-bold text-green-600 mt-1">৳{(totalLoans - totalRemaining).toLocaleString()}</p>
+        </div>
+        <div className="bg-white border border-[#DBDFE9] rounded-lg p-4">
+          <p className="text-xs text-gray-500">{t('hrm.loans.outstanding')}</p>
+          <p className="text-2xl font-bold text-orange-500 mt-1">৳{totalRemaining.toLocaleString()}</p>
+        </div>
       </div>
 
       <div className="bg-white border border-[#DBDFE9] rounded-lg shadow-sm">
         <div className="p-4 border-b border-[#DBDFE9]">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Search employee..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="text" placeholder={t('hrm.loans.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
         </div>
@@ -47,7 +77,7 @@ const Loans = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Employee', 'Type', 'Amount', 'Paid', 'Remaining', 'Installment/Month', 'Date', 'Status'].map((h) => (
+                {tableHeaders.map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>

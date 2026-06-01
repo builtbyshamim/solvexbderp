@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Download, Search } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
+import { useLanguage } from '../../context/LanguageContext';
 
 const reportData = [
   { date: '2025-05-20', invoice: 'INV-001', customer: 'Abdullah Al Mamun', items: 3, subtotal: 12000, discount: 500, total: 11500, paid: 11500, due: 0, profit: 3200 },
@@ -10,6 +11,7 @@ const reportData = [
 ];
 
 const SalesReport = () => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [from, setFrom] = useState('2025-05-01');
   const [to, setTo] = useState('2025-05-31');
@@ -23,43 +25,43 @@ const SalesReport = () => {
   return (
     <div>
       <PageHeader
-        title="Sales Report"
-        subtitle="Detailed sales analysis by date range"
-        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'Reports' }, { label: 'Sales Report' }]}
+        title={t('reports.salesReport.title')}
+        subtitle={t('reports.salesReport.subtitle')}
+        breadcrumbs={[{ label: t('common.home'), path: '/admin' }, { label: t('nav.reports') }, { label: t('reports.salesReport.title') }]}
         actions={
           <button className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
-            <Download className="h-4 w-4" /> Export
+            <Download className="h-4 w-4" /> {t('common.export')}
           </button>
         }
       />
 
       <div className="bg-white border border-[#DBDFE9] rounded-lg p-4 mb-5 flex flex-col sm:flex-row gap-3">
         <div>
-          <label className="block text-xs text-gray-600 mb-1">From</label>
+          <label className="block text-xs text-gray-600 mb-1">{t('common.fromDate')}</label>
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
             className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
         </div>
         <div>
-          <label className="block text-xs text-gray-600 mb-1">To</label>
+          <label className="block text-xs text-gray-600 mb-1">{t('common.toDate')}</label>
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
             className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
         </div>
         <div className="relative flex-1 sm:max-w-xs self-end">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)}
+          <input type="text" placeholder={t('common.search')} value={search} onChange={(e) => setSearch(e.target.value)}
             className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
         </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {[
-          { label: 'Total Sales', value: totals.total, cls: 'text-[#26272F]' },
-          { label: 'Total Paid', value: totals.paid, cls: 'text-green-600' },
-          { label: 'Total Due', value: totals.due, cls: 'text-red-500' },
-          { label: 'Total Profit', value: totals.profit, cls: 'text-blue-600' },
+          { labelKey: 'reports.salesReport.totalSales' as const, value: totals.total, cls: 'text-[#26272F]' },
+          { labelKey: 'reports.salesReport.totalPaid' as const, value: totals.paid, cls: 'text-green-600' },
+          { labelKey: 'reports.salesReport.totalDue' as const, value: totals.due, cls: 'text-red-500' },
+          { labelKey: 'reports.salesReport.totalProfit' as const, value: totals.profit, cls: 'text-blue-600' },
         ].map((s) => (
-          <div key={s.label} className="bg-white border border-[#DBDFE9] rounded-lg p-4">
-            <p className="text-xs text-gray-500">{s.label}</p>
+          <div key={s.labelKey} className="bg-white border border-[#DBDFE9] rounded-lg p-4">
+            <p className="text-xs text-gray-500">{t(s.labelKey)}</p>
             <p className={`text-xl font-bold mt-1 ${s.cls}`}>৳{s.value.toLocaleString()}</p>
           </div>
         ))}
@@ -70,7 +72,15 @@ const SalesReport = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Date', 'Invoice', 'Customer', 'Total', 'Paid', 'Due', 'Profit'].map((h) => (
+                {[
+                  t('common.date'),
+                  t('reports.salesReport.colInvoice'),
+                  t('reports.salesReport.colCustomer'),
+                  t('common.total'),
+                  t('common.paid'),
+                  t('common.due'),
+                  t('reports.salesReport.colProfit'),
+                ].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -90,7 +100,7 @@ const SalesReport = () => {
             </tbody>
             <tfoot>
               <tr className="bg-gray-50 border-t-2 border-[#DBDFE9] font-bold">
-                <td colSpan={3} className="px-4 py-3">Total</td>
+                <td colSpan={3} className="px-4 py-3">{t('common.total')}</td>
                 <td className="px-4 py-3">৳{totals.total.toLocaleString()}</td>
                 <td className="px-4 py-3 text-green-600">৳{totals.paid.toLocaleString()}</td>
                 <td className="px-4 py-3 text-red-500">৳{totals.due.toLocaleString()}</td>

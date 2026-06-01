@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Search, ArrowRightLeft, CheckCircle2, XCircle } from 'lucide-react';
 import PageHeader from '../../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../../context/LanguageContext';
 
 interface Transfer {
   id: number;
@@ -28,20 +29,21 @@ const statusColors = {
 };
 
 const StockTransfer = () => {
+  const { t } = useLanguage();
   const [transfers, setTransfers] = useState<Transfer[]>(initialData);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ product: '', sku: '', from_warehouse: 'Main Warehouse', to_warehouse: 'Branch Store', quantity: '', note: '' });
 
   const updateStatus = (id: number, status: Transfer['status']) => {
-    setTransfers((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+    setTransfers((prev) => prev.map((tr) => (tr.id === id ? { ...tr, status } : tr)));
     toast.success(`Transfer ${status}`);
   };
 
   const filtered = transfers.filter(
-    (t) =>
-      t.product.toLowerCase().includes(search.toLowerCase()) ||
-      t.reference.toLowerCase().includes(search.toLowerCase()),
+    (tr) =>
+      tr.product.toLowerCase().includes(search.toLowerCase()) ||
+      tr.reference.toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleSave = () => {
@@ -68,16 +70,16 @@ const StockTransfer = () => {
   return (
     <div>
       <PageHeader
-        title="Stock Transfer"
-        subtitle="Transfer stock between warehouses"
+        title={t('inventory.stockTrf.title')}
+        subtitle={t('inventory.stockTrf.subtitle')}
         breadcrumbs={[
-          { label: 'Home', path: '/admin' },
-          { label: 'Inventory', path: '/admin/inventory/products' },
-          { label: 'Stock Transfer' },
+          { label: t('common.home'), path: '/admin' },
+          { label: t('nav.inventory'), path: '/admin/inventory/products' },
+          { label: t('inventory.stockTrf.title') },
         ]}
         actions={
           <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] transition-colors">
-            <Plus className="h-4 w-4" /> New Transfer
+            <Plus className="h-4 w-4" /> {t('inventory.stockTrf.newTransfer')}
           </button>
         }
       />
@@ -86,17 +88,17 @@ const StockTransfer = () => {
         <div className="p-4 border-b border-[#DBDFE9] flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Search product or reference..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="text" placeholder={t('inventory.stockTrf.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
-          <span className="text-sm text-gray-500">{filtered.length} transfers</span>
+          <span className="text-sm text-gray-500">{filtered.length} {t('inventory.stockTrf.transfersCount')}</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Reference', 'Date', 'Product', 'From → To', 'Qty', 'Status', 'Actions'].map((h) => (
+                {[t('inventory.stockAdj.colReference'), t('common.date'), t('common.name'), t('inventory.stockTrf.colFromTo'), t('inventory.stockAdj.colQty'), t('common.status'), t('common.action')].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -104,7 +106,7 @@ const StockTransfer = () => {
             <tbody className="divide-y divide-gray-100">
               {filtered.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                  <ArrowRightLeft className="h-10 w-10 mx-auto mb-2 text-gray-300" />No transfers found
+                  <ArrowRightLeft className="h-10 w-10 mx-auto mb-2 text-gray-300" />{t('inventory.stockTrf.noTransfers')}
                 </td></tr>
               ) : (
                 filtered.map((item) => (
@@ -132,10 +134,10 @@ const StockTransfer = () => {
                       {item.status === 'pending' && (
                         <div className="flex items-center gap-1.5">
                           <button onClick={() => updateStatus(item.id, 'completed')} className="flex items-center gap-1 px-2 py-1 text-xs bg-green-50 text-green-700 rounded hover:bg-green-100 transition-colors">
-                            <CheckCircle2 className="h-3 w-3" /> Approve
+                            <CheckCircle2 className="h-3 w-3" /> {t('inventory.stockTrf.approve')}
                           </button>
                           <button onClick={() => updateStatus(item.id, 'cancelled')} className="flex items-center gap-1 px-2 py-1 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors">
-                            <XCircle className="h-3 w-3" /> Cancel
+                            <XCircle className="h-3 w-3" /> {t('inventory.stockTrf.cancel')}
                           </button>
                         </div>
                       )}
@@ -151,16 +153,16 @@ const StockTransfer = () => {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-semibold text-[#26272F] mb-4">New Stock Transfer</h2>
+            <h2 className="text-lg font-semibold text-[#26272F] mb-4">{t('inventory.stockTrf.modalTitle')}</h2>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Product Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventory.stockTrf.productName')} <span className="text-red-500">*</span></label>
                 <input type="text" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} placeholder="Search product..."
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">From Warehouse</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventory.stockTrf.fromWarehouse')}</label>
                   <select value={form.from_warehouse} onChange={(e) => setForm({ ...form, from_warehouse: e.target.value })}
                     className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
                     <option>Main Warehouse</option>
@@ -168,7 +170,7 @@ const StockTransfer = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">To Warehouse</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventory.stockTrf.toWarehouse')}</label>
                   <select value={form.to_warehouse} onChange={(e) => setForm({ ...form, to_warehouse: e.target.value })}
                     className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
                     <option>Main Warehouse</option>
@@ -177,19 +179,19 @@ const StockTransfer = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Quantity <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventory.stockTrf.quantity')} <span className="text-red-500">*</span></label>
                 <input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} min="1" placeholder="0"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('inventory.stockTrf.note')}</label>
                 <textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} rows={2} placeholder="Optional note..."
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] resize-none" />
               </div>
             </div>
             <div className="flex gap-3 mt-5 justify-end">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
-              <button onClick={handleSave} className="px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]">Create Transfer</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">{t('common.cancel')}</button>
+              <button onClick={handleSave} className="px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]">{t('inventory.stockTrf.createTransfer')}</button>
             </div>
           </div>
         </div>

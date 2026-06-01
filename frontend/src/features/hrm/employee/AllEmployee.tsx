@@ -8,6 +8,7 @@ import {
   useUpdateEmployeeMutation,
   useTerminateEmployeeMutation,
 } from '../hrmApi';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const typeColors: Record<string, string> = {
   full_time: 'bg-blue-100 text-blue-700',
@@ -30,6 +31,7 @@ const emptyForm = {
 };
 
 const AllEmployee = () => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -39,8 +41,8 @@ const AllEmployee = () => {
   const [terminateItem, setTerminateItem] = useState<any>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 400);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
   }, [search]);
 
   const { data, isLoading, isFetching } = useGetAllEmployeesQuery({ search: debouncedSearch, page, limit: 15 });
@@ -103,28 +105,44 @@ const AllEmployee = () => {
 
   const f = (key: keyof typeof form, val: string) => setForm(prev => ({ ...prev, [key]: val }));
 
+  const summaryCards = [
+    { labelKey: 'hrm.employees.totalEmployees', value: meta?.totalItems ?? 0, color: 'text-[#26272F]' },
+    { labelKey: 'hrm.employees.active', value: employees.filter((e: any) => e.status === 'active').length, color: 'text-green-600' },
+    { labelKey: 'hrm.employees.onLeave', value: employees.filter((e: any) => e.status === 'on_leave').length, color: 'text-yellow-600' },
+    { labelKey: 'hrm.employees.terminated', value: employees.filter((e: any) => e.status === 'terminated').length, color: 'text-red-600' },
+  ] as const;
+
+  const tableHeaders = [
+    t('hrm.employees.colCode'),
+    t('hrm.employees.colEmployee'),
+    t('hrm.departments.colDept'),
+    t('hrm.employees.colSalary'),
+    t('common.type'),
+    t('common.status'),
+    t('common.actions'),
+  ];
+
   return (
     <div>
       <PageHeader
-        title="Employees"
-        subtitle="Manage your workforce"
-        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'HRM', path: '/admin/hrm' }, { label: 'Employees' }]}
+        title={t('hrm.employees.title')}
+        subtitle={t('hrm.employees.subtitle')}
+        breadcrumbs={[
+          { label: t('common.home'), path: '/admin' },
+          { label: t('nav.hrm'), path: '/admin/hrm' },
+          { label: t('hrm.employees.title') },
+        ]}
         actions={
           <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] transition-colors">
-            <Plus className="h-4 w-4" /> Add Employee
+            <Plus className="h-4 w-4" /> {t('hrm.employees.addEmployee')}
           </button>
         }
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'Total Employees', value: meta?.totalItems ?? 0, color: 'text-[#26272F]' },
-          { label: 'Active', value: employees.filter((e: any) => e.status === 'active').length, color: 'text-green-600' },
-          { label: 'On Leave', value: employees.filter((e: any) => e.status === 'on_leave').length, color: 'text-yellow-600' },
-          { label: 'Terminated', value: employees.filter((e: any) => e.status === 'terminated').length, color: 'text-red-600' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-white border border-[#DBDFE9] rounded-lg p-4">
-            <p className="text-xs text-gray-500">{label}</p>
+        {summaryCards.map(({ labelKey, value, color }) => (
+          <div key={labelKey} className="bg-white border border-[#DBDFE9] rounded-lg p-4">
+            <p className="text-xs text-gray-500">{t(labelKey)}</p>
             <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
           </div>
         ))}
@@ -134,17 +152,19 @@ const AllEmployee = () => {
         <div className="p-4 border-b border-[#DBDFE9] flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Search employee..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="text" placeholder={t('hrm.employees.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
-          <span className="text-sm text-gray-500">{isFetching ? 'Loading...' : `${meta?.totalItems ?? 0} employees`}</span>
+          <span className="text-sm text-gray-500">
+            {isFetching ? t('inventory.products.loading') : `${meta?.totalItems ?? 0} ${t('hrm.employees.title').toLowerCase()}`}
+          </span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Code', 'Employee', 'Department', 'Salary', 'Type', 'Status', 'Actions'].map((h) => (
+                {tableHeaders.map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -153,7 +173,7 @@ const AllEmployee = () => {
               {isLoading ? (
                 <tr><td colSpan={7} className="px-4 py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#ff6d29]" /></td></tr>
               ) : employees.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">No employees found</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">{t('hrm.employees.noEmployees')}</td></tr>
               ) : (
                 employees.map((item: any) => (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">
@@ -201,12 +221,12 @@ const AllEmployee = () => {
 
         {meta && meta.totalPages > 1 && (
           <div className="p-4 border-t border-[#DBDFE9] flex items-center justify-between">
-            <span className="text-sm text-gray-500">Page {meta.currentPage} of {meta.totalPages}</span>
+            <span className="text-sm text-gray-500">{t('common.page')} {meta.currentPage} {t('common.of')} {meta.totalPages}</span>
             <div className="flex gap-2">
               <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1.5 text-sm border border-[#DBDFE9] rounded-lg disabled:opacity-40 hover:bg-gray-50">Prev</button>
+                className="px-3 py-1.5 text-sm border border-[#DBDFE9] rounded-lg disabled:opacity-40 hover:bg-gray-50">{t('common.prev')}</button>
               <button disabled={page >= meta.totalPages} onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1.5 text-sm border border-[#DBDFE9] rounded-lg disabled:opacity-40 hover:bg-gray-50">Next</button>
+                className="px-3 py-1.5 text-sm border border-[#DBDFE9] rounded-lg disabled:opacity-40 hover:bg-gray-50">{t('common.next')}</button>
             </div>
           </div>
         )}
@@ -215,74 +235,76 @@ const AllEmployee = () => {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-semibold text-[#26272F] mb-4">{editItem ? 'Edit Employee' : 'Add Employee'}</h2>
+            <h2 className="text-lg font-semibold text-[#26272F] mb-4">
+              {editItem ? t('hrm.employees.editTitle') : t('hrm.employees.addTitle')}
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('hrm.employees.fullName')} <span className="text-red-500">*</span></label>
                 <input value={form.name} onChange={e => f('name', e.target.value)} placeholder="Full name"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('hrm.employees.mobile')}</label>
                 <input value={form.mobile} onChange={e => f('mobile', e.target.value)} placeholder="01XXXXXXXXX"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('hrm.employees.email')}</label>
                 <input type="email" value={form.email} onChange={e => f('email', e.target.value)} placeholder="email@example.com"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('hrm.employees.department')}</label>
                 <input value={form.department} onChange={e => f('department', e.target.value)} placeholder="e.g. Sales"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('hrm.employees.designation')}</label>
                 <input value={form.designation} onChange={e => f('designation', e.target.value)} placeholder="e.g. Manager"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Joining Date <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('hrm.employees.joiningDate')} <span className="text-red-500">*</span></label>
                 <input type="date" value={form.joiningDate} onChange={e => f('joiningDate', e.target.value)}
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('hrm.employees.employmentType')}</label>
                 <select value={form.employmentType} onChange={e => f('employmentType', e.target.value)}
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
-                  <option value="full_time">Full Time</option>
-                  <option value="part_time">Part Time</option>
-                  <option value="contract">Contract</option>
-                  <option value="intern">Intern</option>
+                  <option value="full_time">{t('hrm.employees.fullTime')}</option>
+                  <option value="part_time">{t('hrm.employees.partTime')}</option>
+                  <option value="contract">{t('hrm.employees.contract')}</option>
+                  <option value="intern">{t('hrm.employees.intern')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Basic Salary</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('hrm.employees.basicSalary')}</label>
                 <input type="number" min="0" value={form.basicSalary} onChange={e => f('basicSalary', e.target.value)} placeholder="0"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">House Rent</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('hrm.employees.houseRent')}</label>
                 <input type="number" min="0" value={form.houseRent} onChange={e => f('houseRent', e.target.value)} placeholder="0"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Medical Allowance</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('hrm.employees.medicalAllowance')}</label>
                 <input type="number" min="0" value={form.medicalAllowance} onChange={e => f('medicalAllowance', e.target.value)} placeholder="0"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Transport Allowance</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('hrm.employees.transportAllowance')}</label>
                 <input type="number" min="0" value={form.transportAllowance} onChange={e => f('transportAllowance', e.target.value)} placeholder="0"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
             </div>
             <div className="flex gap-3 mt-5 justify-end">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">{t('common.cancel')}</button>
               <button onClick={handleSave} disabled={creating || updating} className="px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-60 flex items-center gap-2">
                 {(creating || updating) && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editItem ? 'Update' : 'Add Employee'}
+                {editItem ? t('common.update') : t('hrm.employees.addEmployee')}
               </button>
             </div>
           </div>
@@ -293,12 +315,14 @@ const AllEmployee = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
             <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4"><Trash2 className="h-6 w-6 text-red-500" /></div>
-            <h3 className="text-lg font-semibold mb-2">Terminate Employee?</h3>
-            <p className="text-sm text-gray-500 mb-6"><span className="font-medium">{terminateItem.name}</span> will be marked as terminated.</p>
+            <h3 className="text-lg font-semibold mb-2">{t('hrm.employees.terminateTitle')}</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              <span className="font-medium">{terminateItem.name}</span> {t('hrm.employees.terminateWarning')}
+            </p>
             <div className="flex gap-3 justify-center">
-              <button onClick={() => setTerminateItem(null)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm">Cancel</button>
+              <button onClick={() => setTerminateItem(null)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm">{t('common.cancel')}</button>
               <button onClick={handleTerminate} disabled={terminating} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 disabled:opacity-60 flex items-center gap-2">
-                {terminating && <Loader2 className="h-4 w-4 animate-spin" />} Terminate
+                {terminating && <Loader2 className="h-4 w-4 animate-spin" />} {t('hrm.employees.terminate')}
               </button>
             </div>
           </div>

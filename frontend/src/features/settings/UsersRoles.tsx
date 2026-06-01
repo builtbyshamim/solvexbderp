@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Pencil, Trash2, Shield } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
 
 const usersData = [
   { id: 1, name: 'Admin User', mobile: '01711-000000', role: 'ADMIN', status: 'active', joined: '2025-01-01' },
@@ -17,34 +18,35 @@ const roleBadge: Record<string, string> = {
 };
 
 const UsersRoles = () => {
+  const { t } = useLanguage();
   const [users] = useState(usersData);
 
   return (
     <div>
       <PageHeader
-        title="Users & Roles"
-        subtitle="Manage team members and their access permissions"
-        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'Settings' }, { label: 'Users & Roles' }]}
+        title={t('settings.users.title')}
+        subtitle={t('settings.users.subtitle')}
+        breadcrumbs={[{ label: t('common.home'), path: '/admin' }, { label: t('nav.settings') }, { label: t('settings.users.title') }]}
         actions={
           <button
             onClick={() => toast.success('Invite user form coming soon')}
             className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]"
           >
-            <Plus className="h-4 w-4" /> Invite User
+            <Plus className="h-4 w-4" /> {t('settings.users.inviteUser')}
           </button>
         }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
         {[
-          { label: 'Total Users', value: users.length, icon: Shield, cls: 'text-[#26272F]' },
-          { label: 'Active Users', value: users.filter((u) => u.status === 'active').length, icon: Shield, cls: 'text-green-600' },
-          { label: 'Inactive Users', value: users.filter((u) => u.status === 'inactive').length, icon: Shield, cls: 'text-gray-400' },
+          { labelKey: 'settings.users.totalUsers' as const, value: users.length, cls: 'text-[#26272F]' },
+          { labelKey: 'settings.users.activeUsers' as const, value: users.filter((u) => u.status === 'active').length, cls: 'text-green-600' },
+          { labelKey: 'settings.users.inactiveUsers' as const, value: users.filter((u) => u.status === 'inactive').length, cls: 'text-gray-400' },
         ].map((s) => (
-          <div key={s.label} className="bg-white border border-[#DBDFE9] rounded-lg p-4 flex items-center gap-3">
-            <div className="p-2 bg-gray-100 rounded-lg"><s.icon className="h-5 w-5 text-gray-500" /></div>
+          <div key={s.labelKey} className="bg-white border border-[#DBDFE9] rounded-lg p-4 flex items-center gap-3">
+            <div className="p-2 bg-gray-100 rounded-lg"><Shield className="h-5 w-5 text-gray-500" /></div>
             <div>
-              <p className="text-xs text-gray-500">{s.label}</p>
+              <p className="text-xs text-gray-500">{t(s.labelKey)}</p>
               <p className={`text-2xl font-bold ${s.cls}`}>{s.value}</p>
             </div>
           </div>
@@ -56,7 +58,7 @@ const UsersRoles = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Name', 'Mobile', 'Role', 'Status', 'Joined', 'Actions'].map((h) => (
+                {[t('common.name'), t('settings.users.colMobile'), t('settings.users.colRole'), t('common.status'), t('settings.users.colJoined'), t('common.actions')].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -102,13 +104,13 @@ const UsersRoles = () => {
 
       <div className="mt-6 bg-white border border-[#DBDFE9] rounded-lg shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-[#DBDFE9] bg-gray-50">
-          <h3 className="text-sm font-semibold text-[#26272F]">Role Permissions</h3>
+          <h3 className="text-sm font-semibold text-[#26272F]">{t('settings.users.rolePermissions')}</h3>
         </div>
         <div className="p-5 overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-[#DBDFE9]">
-                {['Module', 'Admin', 'Employee', 'Cashier'].map((h) => (
+                {[t('settings.users.colModule'), 'Admin', 'Employee', 'Cashier'].map((h) => (
                   <th key={h} className="pb-2 text-left font-semibold text-gray-600 pr-6">{h}</th>
                 ))}
               </tr>

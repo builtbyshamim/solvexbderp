@@ -6,6 +6,7 @@ import {
 import PageHeader from '../../components/shared/PageHeader';
 import { smsMarketingApi } from './smsMarketingApi';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
 
 const {
   useGetSmsGroupsQuery, useCreateSmsGroupMutation, useUpdateSmsGroupMutation,
@@ -16,6 +17,7 @@ const {
 const emptyGroup = { name: '', description: '' };
 
 const SmsGroups = () => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -23,7 +25,6 @@ const SmsGroups = () => {
   const [groupForm, setGroupForm] = useState(emptyGroup);
   const [deleteGroupId, setDeleteGroupId] = useState<string | null>(null);
 
-  // Members panel
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
   const [memberSearch, setMemberSearch] = useState('');
   const [memberPage, setMemberPage] = useState(1);
@@ -120,29 +121,29 @@ const SmsGroups = () => {
   return (
     <div>
       <PageHeader
-        title="SMS Groups"
-        subtitle="Organize contacts into groups for targeted campaigns"
+        title={t('sms.groups.title')}
+        subtitle={t('sms.groups.subtitle')}
         breadcrumbs={[
-          { label: 'Home', path: '/admin' },
-          { label: 'SMS Marketing', path: '/admin/sms-marketing' },
-          { label: 'Groups' },
+          { label: t('common.home'), path: '/admin' },
+          { label: t('sms.overview.title'), path: '/admin/sms-marketing' },
+          { label: t('sms.groups.title') },
         ]}
         actions={
           <button onClick={openCreate}
             className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] transition-colors">
-            <Plus className="h-4 w-4" /> New Group
+            <Plus className="h-4 w-4" /> {t('sms.groups.newGroup')}
           </button>
         }
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Groups List (left) */}
+        {/* Groups List */}
         <div className="lg:col-span-2">
           <div className="bg-white border border-[#DBDFE9] rounded-xl shadow-sm">
             <div className="p-4 border-b border-[#DBDFE9]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input type="text" placeholder="Search groups..." value={search}
+                <input type="text" placeholder={t('sms.groups.searchGroups')} value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                   className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
@@ -155,10 +156,10 @@ const SmsGroups = () => {
             ) : !groups.length ? (
               <div className="p-10 text-center">
                 <Users className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500 text-sm font-medium">No groups yet</p>
+                <p className="text-gray-500 text-sm font-medium">{t('sms.groups.noGroups')}</p>
                 <button onClick={openCreate}
                   className="mt-3 px-3 py-1.5 bg-[#ff6d29] text-white rounded-lg text-xs font-medium hover:bg-[#e65a1f]">
-                  + Create Group
+                  {t('sms.groups.createGroup')}
                 </button>
               </div>
             ) : (
@@ -187,42 +188,41 @@ const SmsGroups = () => {
             {groupMeta && groupMeta.totalPages > 1 && (
               <div className="p-3 border-t border-[#DBDFE9] flex justify-center gap-2">
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                  className="px-2 py-1 text-xs border border-[#DBDFE9] rounded hover:bg-gray-50 disabled:opacity-40">Prev</button>
+                  className="px-2 py-1 text-xs border border-[#DBDFE9] rounded hover:bg-gray-50 disabled:opacity-40">{t('common.prev')}</button>
                 <span className="px-2 py-1 text-xs bg-[#ff6d29] text-white rounded">{page}</span>
                 <button onClick={() => setPage(p => Math.min(groupMeta.totalPages, p + 1))} disabled={page === groupMeta.totalPages}
-                  className="px-2 py-1 text-xs border border-[#DBDFE9] rounded hover:bg-gray-50 disabled:opacity-40">Next</button>
+                  className="px-2 py-1 text-xs border border-[#DBDFE9] rounded hover:bg-gray-50 disabled:opacity-40">{t('common.next')}</button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Members Panel (right) */}
+        {/* Members Panel */}
         <div className="lg:col-span-3">
           {!selectedGroup ? (
             <div className="bg-white border border-[#DBDFE9] rounded-xl shadow-sm p-16 text-center">
               <div className="bg-gray-50 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Users className="h-8 w-8 text-gray-300" />
               </div>
-              <p className="text-gray-500 font-medium">Select a group to view members</p>
-              <p className="text-gray-400 text-sm mt-1">Click any group on the left to manage its members</p>
+              <p className="text-gray-500 font-medium">{t('sms.groups.selectGroupPrompt')}</p>
+              <p className="text-gray-400 text-sm mt-1">{t('sms.groups.selectGroupHint')}</p>
             </div>
           ) : (
             <div className="bg-white border border-[#DBDFE9] rounded-xl shadow-sm">
-              {/* Panel Header */}
               <div className="p-4 border-b border-[#DBDFE9]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h2 className="font-bold text-[#26272F]">{selectedGroup.name}</h2>
-                    <p className="text-xs text-gray-400 mt-0.5">{selectedGroup.memberCount} members</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{selectedGroup.memberCount} {t('sms.groups.members')}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => setImportConfirm(true)}
                       className="flex items-center gap-1.5 px-3 py-1.5 border border-[#DBDFE9] text-gray-600 rounded-lg text-xs hover:bg-gray-50 transition-colors">
-                      <Upload className="h-3.5 w-3.5" /> Import Customers
+                      <Upload className="h-3.5 w-3.5" /> {t('sms.groups.importCustomers')}
                     </button>
                     <button onClick={() => setShowAddMember(true)}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ff6d29] text-white rounded-lg text-xs font-medium hover:bg-[#e65a1f] transition-colors">
-                      <UserPlus className="h-3.5 w-3.5" /> Add Members
+                      <UserPlus className="h-3.5 w-3.5" /> {t('sms.groups.addMembers')}
                     </button>
                     <button onClick={() => openEdit(selectedGroup)}
                       className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
@@ -236,13 +236,12 @@ const SmsGroups = () => {
                 </div>
                 <div className="mt-3 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input type="text" placeholder="Search members..." value={memberSearch}
+                  <input type="text" placeholder={t('sms.groups.searchMembers')} value={memberSearch}
                     onChange={(e) => { setMemberSearch(e.target.value); setMemberPage(1); }}
                     className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
                 </div>
               </div>
 
-              {/* Members Table */}
               {membersLoading ? (
                 <div className="p-8 text-center">
                   <div className="animate-spin h-5 w-5 border-2 border-[#ff6d29] border-t-transparent rounded-full mx-auto" />
@@ -250,8 +249,8 @@ const SmsGroups = () => {
               ) : !members.length ? (
                 <div className="p-10 text-center">
                   <Phone className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-gray-500 text-sm font-medium">No members yet</p>
-                  <p className="text-gray-400 text-xs mt-1">Add members manually or import from customers</p>
+                  <p className="text-gray-500 text-sm font-medium">{t('sms.groups.noMembers')}</p>
+                  <p className="text-gray-400 text-xs mt-1">{t('sms.groups.noMembersHint')}</p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-50">
@@ -279,13 +278,13 @@ const SmsGroups = () => {
 
               {memberMeta && memberMeta.totalPages > 1 && (
                 <div className="p-3 border-t border-[#DBDFE9] flex items-center justify-between text-xs text-gray-500">
-                  <span>{memberMeta.totalItems} members</span>
+                  <span>{memberMeta.totalItems} {t('sms.groups.members')}</span>
                   <div className="flex gap-2">
                     <button onClick={() => setMemberPage(p => Math.max(1, p - 1))} disabled={memberPage === 1}
-                      className="px-2 py-1 border border-[#DBDFE9] rounded hover:bg-gray-50 disabled:opacity-40">Prev</button>
+                      className="px-2 py-1 border border-[#DBDFE9] rounded hover:bg-gray-50 disabled:opacity-40">{t('common.prev')}</button>
                     <span className="px-2 py-1 bg-[#ff6d29] text-white rounded">{memberPage}</span>
                     <button onClick={() => setMemberPage(p => Math.min(memberMeta.totalPages, p + 1))} disabled={memberPage === memberMeta.totalPages}
-                      className="px-2 py-1 border border-[#DBDFE9] rounded hover:bg-gray-50 disabled:opacity-40">Next</button>
+                      className="px-2 py-1 border border-[#DBDFE9] rounded hover:bg-gray-50 disabled:opacity-40">{t('common.next')}</button>
                   </div>
                 </div>
               )}
@@ -299,18 +298,18 @@ const SmsGroups = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-bold text-[#26272F]">{editGroupId ? 'Edit Group' : 'New Group'}</h2>
+              <h2 className="font-bold text-[#26272F]">{editGroupId ? t('sms.groups.modalEditTitle') : t('sms.groups.modalCreateTitle')}</h2>
               <button onClick={() => setShowGroupModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Group Name <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{t('sms.groups.groupName')} <span className="text-red-500">*</span></label>
                 <input type="text" placeholder="e.g. VIP Customers" value={groupForm.name}
                   onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{t('common.description')}</label>
                 <textarea rows={2} placeholder="Optional description" value={groupForm.description}
                   onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })}
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] resize-none" />
@@ -318,10 +317,10 @@ const SmsGroups = () => {
             </div>
             <div className="p-5 border-t border-gray-100 flex justify-end gap-3">
               <button onClick={() => setShowGroupModal(false)}
-                className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+                className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">{t('common.cancel')}</button>
               <button onClick={handleGroupSubmit} disabled={isCreating || isUpdating}
                 className="px-5 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-50">
-                {(isCreating || isUpdating) ? 'Saving...' : (editGroupId ? 'Update' : 'Create')}
+                {(isCreating || isUpdating) ? t('sms.campaigns.saving') : (editGroupId ? t('common.update') : t('common.add'))}
               </button>
             </div>
           </div>
@@ -333,7 +332,7 @@ const SmsGroups = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white">
-              <h2 className="font-bold text-[#26272F]">Add Members to {selectedGroup?.name}</h2>
+              <h2 className="font-bold text-[#26272F]">{t('sms.groups.addMembers')} — {selectedGroup?.name}</h2>
               <button onClick={() => setShowAddMember(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
             </div>
             <div className="p-5 space-y-3">
@@ -365,15 +364,15 @@ const SmsGroups = () => {
               ))}
               <button onClick={addMemberInput}
                 className="flex items-center gap-1.5 text-sm text-[#ff6d29] hover:text-[#e65a1f] font-medium">
-                <Plus className="h-4 w-4" /> Add another
+                <Plus className="h-4 w-4" /> {t('sms.groups.addAnother')}
               </button>
             </div>
             <div className="p-5 border-t border-gray-100 flex justify-end gap-3">
               <button onClick={() => setShowAddMember(false)}
-                className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+                className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">{t('common.cancel')}</button>
               <button onClick={handleAddMembers} disabled={isAdding}
                 className="px-5 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-50">
-                {isAdding ? 'Adding...' : 'Add Members'}
+                {isAdding ? t('sms.groups.adding') : t('sms.groups.addMembers')}
               </button>
             </div>
           </div>
@@ -386,17 +385,17 @@ const SmsGroups = () => {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="bg-blue-50 p-2 rounded-full"><Upload className="h-5 w-5 text-blue-600" /></div>
-              <h2 className="font-bold text-[#26272F]">Import Customers</h2>
+              <h2 className="font-bold text-[#26272F]">{t('sms.groups.importTitle')}</h2>
             </div>
             <p className="text-sm text-gray-500 mb-5">
-              All customers with phone numbers will be imported into <strong>{selectedGroup?.name}</strong>. Existing members will not be duplicated.
+              {t('sms.groups.importMsg')} <strong>{selectedGroup?.name}</strong>. {t('sms.groups.importHint')}
             </p>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setImportConfirm(false)}
-                className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+                className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">{t('common.cancel')}</button>
               <button onClick={handleImport} disabled={isImporting}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-                {isImporting ? 'Importing...' : 'Import'}
+                {isImporting ? t('sms.groups.importing') : t('sms.groups.import')}
               </button>
             </div>
           </div>
@@ -409,15 +408,15 @@ const SmsGroups = () => {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="bg-red-50 p-2 rounded-full"><Trash2 className="h-5 w-5 text-red-500" /></div>
-              <h2 className="font-bold text-[#26272F]">Delete Group?</h2>
+              <h2 className="font-bold text-[#26272F]">{t('sms.groups.deleteTitle')}</h2>
             </div>
-            <p className="text-sm text-gray-500 mb-5">All members will also be removed. This cannot be undone.</p>
+            <p className="text-sm text-gray-500 mb-5">{t('sms.groups.deleteMsg')}</p>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setDeleteGroupId(null)}
-                className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+                className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">{t('common.cancel')}</button>
               <button onClick={handleDeleteGroup} disabled={isDeleting}
                 className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 disabled:opacity-50">
-                {isDeleting ? 'Deleting...' : 'Delete'}
+                {isDeleting ? t('sms.campaigns.deleting') : t('common.delete')}
               </button>
             </div>
           </div>

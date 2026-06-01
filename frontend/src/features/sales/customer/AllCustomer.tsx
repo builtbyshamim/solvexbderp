@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Search, Phone, Mail, Loader2 } from 'lucide-react';
 import PageHeader from '../../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../../context/LanguageContext';
 import {
   useGetAllCustomersQuery,
   useCreateCustomerMutation,
@@ -12,6 +13,7 @@ import {
 const emptyForm = { name: '', phone: '', email: '', address: '', openingBalance: '' };
 
 const AllCustomer = () => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -21,8 +23,8 @@ const AllCustomer = () => {
   const [deleteItem, setDeleteItem] = useState<any>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 400);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
   }, [search]);
 
   const { data, isLoading, isFetching } = useGetAllCustomersQuery({ search: debouncedSearch, page, limit: 15 });
@@ -72,27 +74,27 @@ const AllCustomer = () => {
   return (
     <div>
       <PageHeader
-        title="Customers"
-        subtitle="Manage your customer contacts and balances"
-        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'Sales', path: '/admin/sales/list' }, { label: 'Customers' }]}
+        title={t('sales.customers.title')}
+        subtitle={t('sales.customers.subtitle')}
+        breadcrumbs={[{ label: t('common.home'), path: '/admin' }, { label: t('nav.sales'), path: '/admin/sales/list' }, { label: t('sales.customers.title') }]}
         actions={
           <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] transition-colors">
-            <Plus className="h-4 w-4" /> Add Customer
+            <Plus className="h-4 w-4" /> {t('sales.customers.addCustomer')}
           </button>
         }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white border border-[#DBDFE9] rounded-lg p-4">
-          <p className="text-xs text-gray-500">Total Customers</p>
+          <p className="text-xs text-gray-500">{t('sales.customers.totalCustomers')}</p>
           <p className="text-2xl font-bold text-[#26272F] mt-1">{meta?.totalItems ?? 0}</p>
         </div>
         <div className="bg-white border border-[#DBDFE9] rounded-lg p-4">
-          <p className="text-xs text-gray-500">This Page</p>
+          <p className="text-xs text-gray-500">{t('sales.customers.thisPage')}</p>
           <p className="text-2xl font-bold text-green-600 mt-1">{customers.length}</p>
         </div>
         <div className="bg-white border border-[#DBDFE9] rounded-lg p-4">
-          <p className="text-xs text-gray-500">Total Receivable</p>
+          <p className="text-xs text-gray-500">{t('sales.customers.totalReceivable')}</p>
           <p className="text-2xl font-bold text-orange-500 mt-1">৳{totalReceivable.toLocaleString()}</p>
         </div>
       </div>
@@ -101,17 +103,17 @@ const AllCustomer = () => {
         <div className="p-4 border-b border-[#DBDFE9] flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Search customer..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="text" placeholder={t('sales.customers.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
-          <span className="text-sm text-gray-500">{isFetching ? 'Loading...' : `${meta?.totalItems ?? 0} customers`}</span>
+          <span className="text-sm text-gray-500">{isFetching ? t('inventory.products.loading') : `${meta?.totalItems ?? 0} ${t('sales.customers.customersCount')}`}</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['#', 'Customer', 'Contact', 'Address', 'Balance', 'Actions'].map((h) => (
+                {['#', t('common.customer'), t('sales.customers.colContact'), t('sales.customers.colAddress'), t('sales.customers.colBalance'), t('common.actions')].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -120,7 +122,7 @@ const AllCustomer = () => {
               {isLoading ? (
                 <tr><td colSpan={6} className="px-4 py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#ff6d29]" /></td></tr>
               ) : customers.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400">No customers found</td></tr>
+                <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400">{t('sales.customers.noCustomers')}</td></tr>
               ) : (
                 customers.map((item: any, idx: number) => (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">
@@ -151,12 +153,12 @@ const AllCustomer = () => {
 
         {meta && meta.totalPages > 1 && (
           <div className="p-4 border-t border-[#DBDFE9] flex items-center justify-between">
-            <span className="text-sm text-gray-500">Page {meta.currentPage} of {meta.totalPages}</span>
+            <span className="text-sm text-gray-500">{t('common.page')} {meta.currentPage} {t('common.of')} {meta.totalPages}</span>
             <div className="flex gap-2">
               <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1.5 text-sm border border-[#DBDFE9] rounded-lg disabled:opacity-40 hover:bg-gray-50">Prev</button>
+                className="px-3 py-1.5 text-sm border border-[#DBDFE9] rounded-lg disabled:opacity-40 hover:bg-gray-50">{t('common.prev')}</button>
               <button disabled={page >= meta.totalPages} onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1.5 text-sm border border-[#DBDFE9] rounded-lg disabled:opacity-40 hover:bg-gray-50">Next</button>
+                className="px-3 py-1.5 text-sm border border-[#DBDFE9] rounded-lg disabled:opacity-40 hover:bg-gray-50">{t('common.next')}</button>
             </div>
           </div>
         )}
@@ -165,41 +167,41 @@ const AllCustomer = () => {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-semibold text-[#26272F] mb-4">{editItem ? 'Edit Customer' : 'Add Customer'}</h2>
+            <h2 className="text-lg font-semibold text-[#26272F] mb-4">{editItem ? t('sales.customers.editTitle') : t('sales.customers.addTitle')}</h2>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.customerName')} <span className="text-red-500">*</span></label>
                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.phone')}</label>
                 <input type="text" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="01XXXXXXXXX"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.email')}</label>
                 <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@example.com"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.address')}</label>
                 <textarea value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} rows={2} placeholder="Address"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] resize-none" />
               </div>
               {!editItem && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Opening Balance</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.openingBalance')}</label>
                   <input type="number" min="0" value={form.openingBalance} onChange={(e) => setForm({ ...form, openingBalance: e.target.value })} placeholder="0"
                     className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
                 </div>
               )}
             </div>
             <div className="flex gap-3 mt-5 justify-end">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">{t('common.cancel')}</button>
               <button onClick={handleSave} disabled={creating || updating} className="px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-60 flex items-center gap-2">
                 {(creating || updating) && <Loader2 className="h-4 w-4 animate-spin" />}
-                {editItem ? 'Update' : 'Add Customer'}
+                {editItem ? t('common.update') : t('sales.customers.addCustomer')}
               </button>
             </div>
           </div>
@@ -210,12 +212,12 @@ const AllCustomer = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
             <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4"><Trash2 className="h-6 w-6 text-red-500" /></div>
-            <h3 className="text-lg font-semibold mb-2">Delete Customer?</h3>
-            <p className="text-sm text-gray-500 mb-6">This will permanently remove <span className="font-medium">{deleteItem.name}</span>.</p>
+            <h3 className="text-lg font-semibold mb-2">{t('sales.customers.deleteTitle')}</h3>
+            <p className="text-sm text-gray-500 mb-6">{t('sales.customers.deleteWarning')} <span className="font-medium">{deleteItem.name}</span>.</p>
             <div className="flex gap-3 justify-center">
-              <button onClick={() => setDeleteItem(null)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm">Cancel</button>
+              <button onClick={() => setDeleteItem(null)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm">{t('common.cancel')}</button>
               <button onClick={handleDelete} disabled={deleting} className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 disabled:opacity-60 flex items-center gap-2">
-                {deleting && <Loader2 className="h-4 w-4 animate-spin" />} Delete
+                {deleting && <Loader2 className="h-4 w-4 animate-spin" />} {t('common.delete')}
               </button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { Construction } from 'lucide-react';
 import PageHeader from './PageHeader';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ComingSoonProps {
   title: string;
@@ -9,6 +10,7 @@ interface ComingSoonProps {
 }
 
 const ComingSoon = ({ title, subtitle, breadcrumbs, actions }: ComingSoonProps) => {
+  const { t } = useLanguage();
   return (
     <div>
       <PageHeader title={title} subtitle={subtitle} breadcrumbs={breadcrumbs} actions={actions} />
@@ -16,13 +18,13 @@ const ComingSoon = ({ title, subtitle, breadcrumbs, actions }: ComingSoonProps) 
         <div className="h-16 w-16 rounded-2xl bg-[#fff3eb] flex items-center justify-center mb-5">
           <Construction className="h-8 w-8 text-[#ff6d29]" />
         </div>
-        <h3 className="text-lg font-semibold text-[#26272F] mb-2">Under Development</h3>
+        <h3 className="text-lg font-semibold text-[#26272F] mb-2">{t('common.underDevelopment')}</h3>
         <p className="text-gray-500 text-sm max-w-sm">
-          This module is currently being built and will be available soon with full functionality.
+          {t('common.underDevelopmentDesc')}
         </p>
         <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-[#fff3eb] text-[#ff6d29] rounded-lg text-xs font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-[#ff6d29] animate-pulse" />
-          Coming Soon
+          {t('common.comingSoon')}
         </div>
       </div>
     </div>

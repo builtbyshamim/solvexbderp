@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, Eye, Plus } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface Return {
   id: number;
@@ -22,18 +23,19 @@ const returns: Return[] = [
 const statusColors = { approved: 'bg-green-100 text-green-700', pending: 'bg-yellow-100 text-yellow-700', rejected: 'bg-red-100 text-red-500' };
 
 const PurchaseReturns = () => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const filtered = returns.filter((r) => r.reference.toLowerCase().includes(search.toLowerCase()) || r.supplier.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div>
       <PageHeader
-        title="Purchase Returns"
-        subtitle="Manage returned items to suppliers"
-        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'Purchase', path: '/admin/purchase/list' }, { label: 'Returns' }]}
+        title={t('purchase.returns.title')}
+        subtitle={t('purchase.returns.subtitle')}
+        breadcrumbs={[{ label: t('common.home'), path: '/admin' }, { label: t('nav.purchase'), path: '/admin/purchase/list' }, { label: t('purchase.returns.title') }]}
         actions={
           <button className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] transition-colors">
-            <Plus className="h-4 w-4" /> New Return
+            <Plus className="h-4 w-4" /> {t('purchase.returns.newReturn')}
           </button>
         }
       />
@@ -41,7 +43,7 @@ const PurchaseReturns = () => {
         <div className="p-4 border-b border-[#DBDFE9] flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Search returns..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="text" placeholder={t('purchase.returns.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
         </div>
@@ -49,14 +51,14 @@ const PurchaseReturns = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Reference', 'Date', 'Purchase Invoice', 'Supplier', 'Items', 'Total', 'Reason', 'Status', 'Action'].map((h) => (
+                {[t('inventory.stockAdj.colReference'), t('common.date'), t('purchase.returns.colPurchaseInvoice'), t('common.supplier'), t('purchase.returns.colItems'), t('common.total'), t('purchase.returns.colReason'), t('common.status'), t('common.action')].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">No returns found</td></tr>
+                <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">{t('purchase.returns.noReturns')}</td></tr>
               ) : (
                 filtered.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">

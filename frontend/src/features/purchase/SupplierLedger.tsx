@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, Download } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface LedgerEntry {
   id: number;
@@ -24,6 +25,7 @@ const ledgerData: LedgerEntry[] = [
 const typeColors = { purchase: 'bg-blue-100 text-blue-700', payment: 'bg-green-100 text-green-700', return: 'bg-orange-100 text-orange-600' };
 
 const SupplierLedger = () => {
+  const { t } = useLanguage();
   const [supplier, setSupplier] = useState('Rahim Trading');
   const [search, setSearch] = useState('');
 
@@ -33,12 +35,12 @@ const SupplierLedger = () => {
   return (
     <div>
       <PageHeader
-        title="Supplier Ledger"
-        subtitle="Track all transactions with suppliers"
-        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'Purchase', path: '/admin/purchase/list' }, { label: 'Supplier Ledger' }]}
+        title={t('purchase.supplierLedger.title')}
+        subtitle={t('purchase.supplierLedger.subtitle')}
+        breadcrumbs={[{ label: t('common.home'), path: '/admin' }, { label: t('nav.purchase'), path: '/admin/purchase/list' }, { label: t('purchase.supplierLedger.title') }]}
         actions={
           <button className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
-            <Download className="h-4 w-4" /> Export
+            <Download className="h-4 w-4" /> {t('common.export')}
           </button>
         }
       />
@@ -46,7 +48,7 @@ const SupplierLedger = () => {
       <div className="bg-white border border-[#DBDFE9] rounded-lg p-5 mb-5">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">Select Supplier</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('purchase.supplierLedger.selectSupplier')}</label>
             <select value={supplier} onChange={(e) => setSupplier(e.target.value)}
               className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
               <option>Rahim Trading</option>
@@ -55,18 +57,18 @@ const SupplierLedger = () => {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">From Date</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('common.fromDate')}</label>
             <input type="date" className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">To Date</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('common.toDate')}</label>
             <input type="date" className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
         </div>
         <div className="mt-4 flex items-center justify-between">
           <div>
             <span className="text-sm font-semibold text-[#26272F]">{supplier}</span>
-            <span className="text-xs text-gray-500 ml-2">Current Balance:</span>
+            <span className="text-xs text-gray-500 ml-2">{t('purchase.supplierLedger.currentBalance')}</span>
             <span className={`ml-1 text-sm font-bold ${currentBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
               {currentBalance > 0 ? `-৳${currentBalance.toLocaleString()}` : `৳${Math.abs(currentBalance).toLocaleString()}`}
             </span>
@@ -78,7 +80,7 @@ const SupplierLedger = () => {
         <div className="p-4 border-b border-[#DBDFE9]">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Search transactions..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="text" placeholder={t('purchase.supplierLedger.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
         </div>
@@ -86,7 +88,7 @@ const SupplierLedger = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Date', 'Reference', 'Type', 'Debit (Payable)', 'Credit (Paid)', 'Balance', 'Note'].map((h) => (
+                {[t('common.date'), t('common.reference'), t('common.type'), t('purchase.supplierLedger.colDebitPayable'), t('purchase.supplierLedger.colCreditPaid'), t('common.balance'), t('common.note')].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -108,7 +110,7 @@ const SupplierLedger = () => {
             </tbody>
             <tfoot>
               <tr className="bg-gray-50 border-t-2 border-[#DBDFE9]">
-                <td colSpan={3} className="px-4 py-3 font-semibold text-gray-700">Total</td>
+                <td colSpan={3} className="px-4 py-3 font-semibold text-gray-700">{t('common.total')}</td>
                 <td className="px-4 py-3 font-bold text-red-600">৳{filtered.reduce((s, e) => s + e.debit, 0).toLocaleString()}</td>
                 <td className="px-4 py-3 font-bold text-green-600">৳{filtered.reduce((s, e) => s + e.credit, 0).toLocaleString()}</td>
                 <td className="px-4 py-3 font-bold text-[#26272F]">৳{currentBalance.toLocaleString()}</td>
