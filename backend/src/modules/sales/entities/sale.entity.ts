@@ -70,6 +70,9 @@ export class SaleEntity {
   paymentStatus: PaymentStatus;
 
   @Column({ nullable: true })
+  paymentMethod?: string;
+
+  @Column({ nullable: true })
   note?: string;
 
   @Column({ nullable: true })

@@ -6,7 +6,7 @@ const ACC_URL = "/accounting";
 
 export const accountingApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    // Accounts
+    // ── Accounts ─────────────────────────────────────────────────────────
     getAllAccounts: build.query({
       query: (params) => ({ url: ACCOUNT_URL, method: "GET", params }),
       providesTags: [{ type: tagTypes.account, id: "LIST" }],
@@ -21,7 +21,10 @@ export const accountingApi = baseApi.injectEndpoints({
     }),
     createAccount: build.mutation({
       query: (data) => ({ url: ACCOUNT_URL, method: "POST", data }),
-      invalidatesTags: [{ type: tagTypes.account, id: "LIST" }, { type: tagTypes.account, id: "SUMMARY" }],
+      invalidatesTags: [
+        { type: tagTypes.account, id: "LIST" },
+        { type: tagTypes.account, id: "SUMMARY" },
+      ],
     }),
     updateAccount: build.mutation({
       query: ({ id, data }: { id: string; data: any }) => ({
@@ -37,23 +40,37 @@ export const accountingApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: tagTypes.account, id: "LIST" }],
     }),
 
-    // Transactions
+    // ── Income ────────────────────────────────────────────────────────────
     recordIncome: build.mutation({
       query: (data) => ({ url: `${ACC_URL}/income`, method: "POST", data }),
       invalidatesTags: [
         { type: tagTypes.account, id: "LIST" },
         { type: tagTypes.account, id: "SUMMARY" },
         { type: tagTypes.transaction, id: "LIST" },
+        { type: tagTypes.transaction, id: "INCOME" },
       ],
     }),
+    getIncomes: build.query({
+      query: (params) => ({ url: `${ACC_URL}/income`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.transaction, id: "INCOME" }],
+    }),
+
+    // ── Expense ───────────────────────────────────────────────────────────
     recordExpense: build.mutation({
       query: (data) => ({ url: `${ACC_URL}/expense`, method: "POST", data }),
       invalidatesTags: [
         { type: tagTypes.account, id: "LIST" },
         { type: tagTypes.account, id: "SUMMARY" },
         { type: tagTypes.transaction, id: "LIST" },
+        { type: tagTypes.transaction, id: "EXPENSE" },
       ],
     }),
+    getExpenses: build.query({
+      query: (params) => ({ url: `${ACC_URL}/expense`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.transaction, id: "EXPENSE" }],
+    }),
+
+    // ── Transfer ──────────────────────────────────────────────────────────
     transferFunds: build.mutation({
       query: (data) => ({ url: `${ACC_URL}/transfer`, method: "POST", data }),
       invalidatesTags: [
@@ -63,10 +80,44 @@ export const accountingApi = baseApi.injectEndpoints({
       ],
     }),
 
-    // Ledger
+    // ── Transactions ──────────────────────────────────────────────────────
+    getTransactions: build.query({
+      query: (params) => ({ url: `${ACC_URL}/transactions`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.transaction, id: "LIST" }],
+    }),
+    deleteTransaction: build.mutation({
+      query: (id: string) => ({ url: `${ACC_URL}/transactions/${id}`, method: "DELETE" }),
+      invalidatesTags: [
+        { type: tagTypes.account, id: "LIST" },
+        { type: tagTypes.account, id: "SUMMARY" },
+        { type: tagTypes.transaction, id: "LIST" },
+        { type: tagTypes.transaction, id: "INCOME" },
+        { type: tagTypes.transaction, id: "EXPENSE" },
+      ],
+    }),
+
+    // ── Ledger ────────────────────────────────────────────────────────────
     getAccountLedger: build.query({
       query: (params) => ({ url: `${ACC_URL}/ledger`, method: "GET", params }),
-      providesTags: [{ type: tagTypes.transaction, id: "LIST" }],
+      providesTags: [{ type: tagTypes.transaction, id: "LEDGER" }],
+    }),
+
+    // ── Reports ───────────────────────────────────────────────────────────
+    getProfitLoss: build.query({
+      query: (params) => ({ url: `${ACC_URL}/reports/profit-loss`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.report, id: "PL" }],
+    }),
+    getBalanceSheet: build.query({
+      query: () => ({ url: `${ACC_URL}/reports/balance-sheet`, method: "GET" }),
+      providesTags: [{ type: tagTypes.report, id: "BS" }],
+    }),
+    getTrialBalance: build.query({
+      query: () => ({ url: `${ACC_URL}/reports/trial-balance`, method: "GET" }),
+      providesTags: [{ type: tagTypes.report, id: "TB" }],
+    }),
+    getCashFlow: build.query({
+      query: (params) => ({ url: `${ACC_URL}/reports/cash-flow`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.report, id: "CF" }],
     }),
   }),
 });
@@ -79,7 +130,15 @@ export const {
   useUpdateAccountMutation,
   useDeleteAccountMutation,
   useRecordIncomeMutation,
+  useGetIncomesQuery,
   useRecordExpenseMutation,
+  useGetExpensesQuery,
   useTransferFundsMutation,
+  useGetTransactionsQuery,
+  useDeleteTransactionMutation,
   useGetAccountLedgerQuery,
+  useGetProfitLossQuery,
+  useGetBalanceSheetQuery,
+  useGetTrialBalanceQuery,
+  useGetCashFlowQuery,
 } = accountingApi;

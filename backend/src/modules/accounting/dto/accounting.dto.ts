@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString,
-  IsUUID, IsDateString, Min, IsArray, ValidateNested,
+  IsUUID, IsDateString, Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AccountType } from '../entities/account.entity';
@@ -79,6 +79,11 @@ export class CreateIncomeDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  category?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   referenceType?: string;
 
   @ApiPropertyOptional()
@@ -106,6 +111,11 @@ export class CreateExpenseDto {
   @IsNumber()
   @Min(0.01)
   amount: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  category?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -189,4 +199,52 @@ export class GetAccountsDto {
   @IsOptional()
   @IsString()
   search?: string;
+}
+
+export class GetTransactionsDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  transactionType?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  dateFrom?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  dateTo?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  limit?: number;
+}
+
+export class GetReportDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  dateFrom?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  dateTo?: string;
 }

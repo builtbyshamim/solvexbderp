@@ -30,8 +30,8 @@ const AllCustomer = () => {
   const [updateCustomer, { isLoading: updating }] = useUpdateCustomerMutation();
   const [deleteCustomer, { isLoading: deleting }] = useDeleteCustomerMutation();
 
-  const customers = data?.data ?? [];
-  const meta = data?.meta;
+  const customers = data?.data.data ?? [];
+  const meta = data?.data.meta;
 
   const openAdd = () => { setEditItem(null); setForm(emptyForm); setShowModal(true); };
   const openEdit = (item: any) => {

@@ -1,79 +1,126 @@
-import { useState } from 'react';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, RotateCcw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Printer, RotateCcw, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useCreateSaleMutation } from '../sales/salesApi';
+import { useGetAllCustomersQuery } from '../sales/salesApi';
+import { useGetAllWarehouseQuery } from '../inventory/warehouse/warehouseApi';
+import { useGetAllProductsQuery } from '../inventory/products/productApi';
 
-interface Product {
-  id: number;
+interface CartItem {
+  id: string;
   name: string;
   sku: string;
   price: number;
   stock: number;
-  category: string;
-}
-
-interface CartItem extends Product {
   qty: number;
   total: number;
 }
 
-const products: Product[] = [
-  { id: 1, name: 'Laptop Stand', sku: 'SKU-001', price: 1200, stock: 45, category: 'Accessories' },
-  { id: 2, name: 'USB-C Cable', sku: 'SKU-002', price: 250, stock: 120, category: 'Cables' },
-  { id: 3, name: 'Wireless Mouse', sku: 'SKU-003', price: 1500, stock: 32, category: 'Peripherals' },
-  { id: 4, name: 'Mechanical Keyboard', sku: 'SKU-004', price: 3200, stock: 18, category: 'Peripherals' },
-  { id: 5, name: 'Monitor Stand', sku: 'SKU-005', price: 850, stock: 25, category: 'Accessories' },
-  { id: 6, name: 'HDMI Cable', sku: 'SKU-006', price: 350, stock: 80, category: 'Cables' },
-  { id: 7, name: 'Webcam HD', sku: 'SKU-007', price: 2800, stock: 12, category: 'Peripherals' },
-  { id: 8, name: 'USB Hub 4-Port', sku: 'SKU-008', price: 750, stock: 55, category: 'Accessories' },
-];
-
 const POSTerminal = () => {
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [customer, setCustomer] = useState('');
-  const [discount, setDiscount] = useState('0');
+  const [customerId, setCustomerId] = useState('');
+  const [warehouseId, setWarehouseId] = useState('');
+  const [discountPct, setDiscountPct] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paidAmount, setPaidAmount] = useState('');
   const [category, setCategory] = useState('All');
 
-  const categories = ['All', ...Array.from(new Set(products.map((p) => p.category)))];
+  const { data: productsData } = useGetAllProductsQuery({ search, limit: 50 });
+  const products: any[] = productsData?.data?.data ?? [];
 
-  const filteredProducts = products.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase());
-    const matchCategory = category === 'All' || p.category === category;
-    return matchSearch && matchCategory;
-  });
+  const { data: customersData } = useGetAllCustomersQuery({ limit: 200 });
+  const customers: any[] = customersData?.data?.data ?? [];
 
-  const addToCart = (product: Product) => {
+  const { data: warehousesData } = useGetAllWarehouseQuery({});
+  const warehouses: any[] = warehousesData?.data?.data ?? warehousesData?.data ?? [];
+  const defaultWarehouse = warehouses.find((w: any) => w.isDefault) ?? warehouses[0];
+
+  const [createSale, { isLoading: isCheckingOut }] = useCreateSaleMutation();
+
+  useEffect(() => {
+    if (defaultWarehouse && !warehouseId) setWarehouseId(defaultWarehouse.id);
+  }, [defaultWarehouse]);
+
+  const getStock = (p: any) => {
+    if (!warehouseId) return p.stocks?.[0]?.currentQty ?? 0;
+    return p.stocks?.find((s: any) => s.warehouseId === warehouseId)?.currentQty ?? p.stocks?.[0]?.currentQty ?? 0;
+  };
+
+  const addToCart = (product: any) => {
+    const stock = getStock(product);
     setCart((prev) => {
       const existing = prev.find((i) => i.id === product.id);
       if (existing) {
-        if (existing.qty >= product.stock) { toast.error('Insufficient stock'); return prev; }
-        return prev.map((i) => i.id === product.id ? { ...i, qty: i.qty + 1, total: (i.qty + 1) * i.price } : i);
+        if (existing.qty >= stock) { toast.error('Insufficient stock'); return prev; }
+        return prev.map((i) => i.id === product.id
+          ? { ...i, qty: i.qty + 1, total: (i.qty + 1) * i.price }
+          : i);
       }
-      return [...prev, { ...product, qty: 1, total: product.price }];
+      if (stock <= 0) { toast.error('Out of stock'); return prev; }
+      return [...prev, {
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        price: Number(product.sellingPrice),
+        stock,
+        qty: 1,
+        total: Number(product.sellingPrice),
+      }];
     });
   };
 
-  const updateQty = (id: number, qty: number) => {
+  const updateQty = (id: string, qty: number) => {
     if (qty <= 0) { setCart((prev) => prev.filter((i) => i.id !== id)); return; }
     setCart((prev) => prev.map((i) => i.id === id ? { ...i, qty, total: qty * i.price } : i));
   };
 
   const subtotal = cart.reduce((s, i) => s + i.total, 0);
-  const discountAmt = (subtotal * Number(discount)) / 100;
-  const grandTotal = subtotal - discountAmt;
-  const change = Number(paidAmount) > grandTotal ? Number(paidAmount) - grandTotal : 0;
-  const due = Number(paidAmount) < grandTotal ? grandTotal - Number(paidAmount) : 0;
+  const discountAmt = Math.round((subtotal * Number(discountPct)) / 100);
+  const grandTotal = Math.max(0, subtotal - discountAmt);
+  const paid = Number(paidAmount) || 0;
+  const change = paid > grandTotal ? paid - grandTotal : 0;
+  const due = paid < grandTotal ? grandTotal - paid : 0;
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) { toast.error('Cart is empty'); return; }
-    toast.success('Sale completed!');
-    setCart([]);
-    setPaidAmount('');
-    setDiscount('0');
-    setCustomer('');
+    if (!warehouseId) { toast.error('No warehouse available'); return; }
+
+    try {
+      await createSale({
+        customerId: customerId || undefined,
+        warehouseId,
+        saleDate: new Date().toISOString().split('T')[0],
+        items: cart.map((i) => ({
+          productId: i.id,
+          quantity: i.qty,
+          unitPrice: i.price,
+          discountAmount: 0,
+        })),
+        discountAmount: discountAmt,
+        paidAmount: paid || grandTotal,
+        paymentMethod,
+      }).unwrap();
+
+      toast.success('Sale completed!');
+      setCart([]);
+      setPaidAmount('');
+      setDiscountPct('0');
+      setCustomerId('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Checkout failed');
+    }
   };
+
+  // Get unique category names from products
+  const categories = ['All', ...Array.from(new Set(
+    products.map((p: any) => p.category?.name).filter(Boolean)
+  ))] as string[];
+
+  const filteredProducts = products.filter((p: any) => {
+    const matchCat = category === 'All' || p.category?.name === category;
+    return matchCat;
+  });
 
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col lg:flex-row gap-4 overflow-hidden">
@@ -83,35 +130,61 @@ const POSTerminal = () => {
           <div className="flex gap-2 mb-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input type="text" placeholder="Search product or scan barcode..." value={search} onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-4 py-2.5 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" autoFocus />
+              <input
+                type="text" placeholder="Search product or scan barcode..."
+                value={search} onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 pr-4 py-2.5 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
+                autoFocus
+              />
             </div>
+            {warehouses.length > 1 && (
+              <select
+                value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}
+                className="px-2 py-2 border border-[#DBDFE9] rounded-lg text-xs focus:outline-none focus:border-[#ff6d29] shrink-0"
+              >
+                {warehouses.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+            )}
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {categories.map((cat) => (
-              <button key={cat} onClick={() => setCategory(cat)}
-                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${category === cat ? 'bg-[#ff6d29] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                {cat}
-              </button>
-            ))}
-          </div>
+          {categories.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {categories.map((cat) => (
+                <button
+                  key={cat} onClick={() => setCategory(cat)}
+                  className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${category === cat ? 'bg-[#ff6d29] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+
         <div className="flex-1 overflow-y-auto p-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
-            {filteredProducts.map((product) => (
-              <button key={product.id} onClick={() => addToCart(product)}
-                className="bg-white border border-[#DBDFE9] rounded-lg p-3 text-left hover:border-[#ff6d29] hover:shadow-sm transition-all group">
-                <div className="h-10 w-10 rounded-lg bg-[#fff3eb] flex items-center justify-center mb-2 group-hover:bg-[#ff6d29] transition-colors">
-                  <ShoppingCart className="h-5 w-5 text-[#ff6d29] group-hover:text-white" />
-                </div>
-                <p className="font-medium text-xs text-[#26272F] leading-tight line-clamp-2">{product.name}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{product.sku}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="font-bold text-sm text-[#ff6d29]">৳{product.price.toLocaleString()}</span>
-                  <span className={`text-xs ${product.stock <= 10 ? 'text-red-500' : 'text-gray-400'}`}>Stk: {product.stock}</span>
-                </div>
-              </button>
-            ))}
+            {filteredProducts.map((product: any) => {
+              const stock = getStock(product);
+              return (
+                <button
+                  key={product.id}
+                  onClick={() => addToCart(product)}
+                  disabled={stock <= 0}
+                  className="bg-white border border-[#DBDFE9] rounded-lg p-3 text-left hover:border-[#ff6d29] hover:shadow-sm transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="h-10 w-10 rounded-lg bg-[#fff3eb] flex items-center justify-center mb-2 group-hover:bg-[#ff6d29] transition-colors">
+                    <ShoppingCart className="h-5 w-5 text-[#ff6d29] group-hover:text-white" />
+                  </div>
+                  <p className="font-medium text-xs text-[#26272F] leading-tight line-clamp-2">{product.name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{product.sku}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="font-bold text-sm text-[#ff6d29]">৳{Number(product.sellingPrice).toLocaleString()}</span>
+                    <span className={`text-xs ${stock <= 5 ? 'text-red-500' : 'text-gray-400'}`}>
+                      {stock <= 0 ? 'Out' : `Stk: ${stock}`}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
             {filteredProducts.length === 0 && (
               <div className="col-span-full flex flex-col items-center justify-center py-16 text-gray-400">
                 <Search className="h-10 w-10 mb-2 text-gray-300" />
@@ -136,12 +209,12 @@ const POSTerminal = () => {
               </button>
             )}
           </div>
-          <select value={customer} onChange={(e) => setCustomer(e.target.value)}
-            className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
+          <select
+            value={customerId} onChange={(e) => setCustomerId(e.target.value)}
+            className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
+          >
             <option value="">Walk-in Customer</option>
-            <option>Abdullah Al Mamun</option>
-            <option>Fatema Begum</option>
-            <option>Karim Enterprise</option>
+            {customers.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
 
@@ -168,11 +241,18 @@ const POSTerminal = () => {
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => updateQty(item.id, item.qty - 1)} className="h-7 w-7 rounded-lg border border-[#DBDFE9] flex items-center justify-center hover:bg-gray-50">
+                      <button
+                        onClick={() => updateQty(item.id, item.qty - 1)}
+                        className="h-7 w-7 rounded-lg border border-[#DBDFE9] flex items-center justify-center hover:bg-gray-50"
+                      >
                         <Minus className="h-3 w-3" />
                       </button>
                       <span className="w-8 text-center text-sm font-semibold">{item.qty}</span>
-                      <button onClick={() => updateQty(item.id, item.qty + 1)} className="h-7 w-7 rounded-lg border border-[#DBDFE9] flex items-center justify-center hover:bg-gray-50">
+                      <button
+                        onClick={() => updateQty(item.id, item.qty + 1)}
+                        disabled={item.qty >= item.stock}
+                        className="h-7 w-7 rounded-lg border border-[#DBDFE9] flex items-center justify-center hover:bg-gray-50 disabled:opacity-40"
+                      >
                         <Plus className="h-3 w-3" />
                       </button>
                     </div>
@@ -187,13 +267,22 @@ const POSTerminal = () => {
         {/* Totals & Payment */}
         <div className="p-4 border-t border-[#DBDFE9] space-y-3">
           <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>৳{subtotal.toLocaleString()}</span></div>
+            <div className="flex justify-between text-gray-600">
+              <span>Subtotal</span><span>৳{subtotal.toLocaleString()}</span>
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Discount %</span>
-              <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} min="0" max="100"
-                className="w-16 px-2 py-1 border border-[#DBDFE9] rounded text-xs text-center focus:outline-none focus:border-[#ff6d29]" />
+              <input
+                type="number" value={discountPct}
+                onChange={(e) => setDiscountPct(e.target.value)} min="0" max="100"
+                className="w-16 px-2 py-1 border border-[#DBDFE9] rounded text-xs text-center focus:outline-none focus:border-[#ff6d29]"
+              />
             </div>
-            {discountAmt > 0 && <div className="flex justify-between text-red-500"><span>Discount</span><span>-৳{discountAmt.toLocaleString()}</span></div>}
+            {discountAmt > 0 && (
+              <div className="flex justify-between text-red-500">
+                <span>Discount</span><span>-৳{discountAmt.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between font-bold text-[#26272F] text-base border-t border-[#DBDFE9] pt-2">
               <span>Total</span><span>৳{grandTotal.toLocaleString()}</span>
             </div>
@@ -201,15 +290,21 @@ const POSTerminal = () => {
 
           <div className="grid grid-cols-3 gap-1.5">
             {['cash', 'card', 'mobile'].map((m) => (
-              <button key={m} onClick={() => setPaymentMethod(m)}
-                className={`py-1.5 rounded text-xs font-medium capitalize transition-colors ${paymentMethod === m ? 'bg-[#ff6d29] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+              <button
+                key={m} onClick={() => setPaymentMethod(m)}
+                className={`py-1.5 rounded text-xs font-medium capitalize transition-colors ${paymentMethod === m ? 'bg-[#ff6d29] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
                 {m}
               </button>
             ))}
           </div>
 
-          <input type="number" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} placeholder={`Paid ৳${grandTotal.toLocaleString()}`}
-            className="w-full px-3 py-2.5 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] text-center font-semibold text-lg" />
+          <input
+            type="number" value={paidAmount}
+            onChange={(e) => setPaidAmount(e.target.value)}
+            placeholder={`Paid ৳${grandTotal.toLocaleString()}`}
+            className="w-full px-3 py-2.5 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] text-center font-semibold text-lg"
+          />
 
           {change > 0 && <p className="text-green-600 text-sm font-medium text-center">Change: ৳{change.toLocaleString()}</p>}
           {due > 0 && <p className="text-red-500 text-sm font-medium text-center">Due: ৳{due.toLocaleString()}</p>}
@@ -218,8 +313,15 @@ const POSTerminal = () => {
             <button className="flex items-center justify-center gap-1.5 py-2.5 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
               <Printer className="h-4 w-4" /> Print
             </button>
-            <button onClick={handleCheckout} className="flex items-center justify-center gap-1.5 py-2.5 bg-[#ff6d29] text-white rounded-lg text-sm font-semibold hover:bg-[#e65a1f] transition-colors">
-              Charge ৳{grandTotal.toLocaleString()}
+            <button
+              onClick={handleCheckout}
+              disabled={isCheckingOut || cart.length === 0}
+              className="flex items-center justify-center gap-1.5 py-2.5 bg-[#ff6d29] text-white rounded-lg text-sm font-semibold hover:bg-[#e65a1f] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isCheckingOut
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : `Charge ৳${grandTotal.toLocaleString()}`
+              }
             </button>
           </div>
         </div>

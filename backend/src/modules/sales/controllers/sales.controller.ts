@@ -2,8 +2,9 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SalesService } from '../services/sales.service';
 import {
-  CreateCustomerDto, CreateSaleDto, GetCustomersDto,
-  GetSalesDto, UpdateCustomerDto,
+  CreateCustomerDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
+  CollectPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
+  ConvertQuotationDto, CreateSaleReturnDto, GetSaleReturnsDto, GetCustomerStatementDto,
 } from '../dto/sales.dto';
 import { BusinessId } from 'src/common/decorators/business-id.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -14,7 +15,8 @@ import { UserEntity } from 'src/modules/users/entities/user.entity';
 export class SalesController {
   constructor(private readonly salesService: SalesService) {}
 
-  // ── Customers ──
+  // ── Customers ──────────────────────────────────────────────────────────────
+
   @Post('customers')
   @ApiOperation({ summary: 'Create customer' })
   createCustomer(@BusinessId() biz: string, @Body() dto: CreateCustomerDto) {
@@ -33,6 +35,12 @@ export class SalesController {
     return this.salesService.findCustomer(biz, id);
   }
 
+  @Get('customers/:id/statement')
+  @ApiOperation({ summary: 'Get customer statement / ledger' })
+  getCustomerStatement(@BusinessId() biz: string, @Param('id') id: string, @Query() q: GetCustomerStatementDto) {
+    return this.salesService.getCustomerStatement(biz, id, q);
+  }
+
   @Patch('customers/:id')
   @ApiOperation({ summary: 'Update customer' })
   updateCustomer(@BusinessId() biz: string, @Param('id') id: string, @Body() dto: UpdateCustomerDto) {
@@ -45,21 +53,12 @@ export class SalesController {
     return this.salesService.deleteCustomer(biz, id);
   }
 
-  // ── Sales ──
+  // ── Sales ──────────────────────────────────────────────────────────────────
+
   @Post()
   @ApiOperation({ summary: 'Create sale / invoice' })
-  create(
-    @BusinessId() biz: string,
-    @CurrentUser() user: UserEntity,
-    @Body() dto: CreateSaleDto,
-  ) {
+  create(@BusinessId() biz: string, @CurrentUser() user: UserEntity, @Body() dto: CreateSaleDto) {
     return this.salesService.createSale(biz, user.id, dto);
-  }
-
-  @Get()
-  @ApiOperation({ summary: 'Get all sales' })
-  findAll(@BusinessId() biz: string, @Query() q: GetSalesDto) {
-    return this.salesService.findAllSales(biz, q);
   }
 
   @Get('dashboard-stats')
@@ -68,9 +67,78 @@ export class SalesController {
     return this.salesService.getDashboardStats(biz);
   }
 
+  @Get()
+  @ApiOperation({ summary: 'Get all sales' })
+  findAll(@BusinessId() biz: string, @Query() q: GetSalesDto) {
+    return this.salesService.findAllSales(biz, q);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get sale by ID' })
   findOne(@BusinessId() biz: string, @Param('id') id: string) {
     return this.salesService.findSale(biz, id);
+  }
+
+  @Patch(':id/cancel')
+  @ApiOperation({ summary: 'Cancel a sale and reverse stock' })
+  cancelSale(@BusinessId() biz: string, @Param('id') id: string) {
+    return this.salesService.cancelSale(biz, id);
+  }
+
+  @Post(':id/collect-payment')
+  @ApiOperation({ summary: 'Collect payment against a due sale' })
+  collectPayment(@BusinessId() biz: string, @Param('id') id: string, @Body() dto: CollectPaymentDto) {
+    return this.salesService.collectPayment(biz, id, dto);
+  }
+
+  // ── Quotations ─────────────────────────────────────────────────────────────
+
+  @Post('quotations')
+  @ApiOperation({ summary: 'Create quotation' })
+  createQuotation(@BusinessId() biz: string, @Body() dto: CreateQuotationDto) {
+    return this.salesService.createQuotation(biz, dto);
+  }
+
+  @Get('quotations')
+  @ApiOperation({ summary: 'Get all quotations' })
+  getQuotations(@BusinessId() biz: string, @Query() q: GetQuotationsDto) {
+    return this.salesService.findAllQuotations(biz, q);
+  }
+
+  @Patch('quotations/:id/status')
+  @ApiOperation({ summary: 'Update quotation status' })
+  updateQuotationStatus(@BusinessId() biz: string, @Param('id') id: string, @Body() dto: UpdateQuotationStatusDto) {
+    return this.salesService.updateQuotationStatus(biz, id, dto);
+  }
+
+  @Post('quotations/:id/convert')
+  @ApiOperation({ summary: 'Convert accepted quotation to sale' })
+  convertQuotation(
+    @BusinessId() biz: string,
+    @CurrentUser() user: UserEntity,
+    @Param('id') id: string,
+    @Body() dto: ConvertQuotationDto,
+  ) {
+    return this.salesService.convertQuotationToSale(biz, id, user.id, dto);
+  }
+
+  // ── Sale Returns ───────────────────────────────────────────────────────────
+
+  @Post('returns')
+  @ApiOperation({ summary: 'Create sale return' })
+  createReturn(@BusinessId() biz: string, @CurrentUser() user: UserEntity, @Body() dto: CreateSaleReturnDto) {
+    return this.salesService.createSaleReturn(biz, user.id, dto);
+  }
+
+  @Get('returns')
+  @ApiOperation({ summary: 'Get all sale returns' })
+  getReturns(@BusinessId() biz: string, @Query() q: GetSaleReturnsDto) {
+    return this.salesService.findAllSaleReturns(biz, q);
+  }
+
+  @Patch('returns/:id/approve')
+  @ApiOperation({ summary: 'Approve a sale return and restore stock' })
+  approveReturn(@BusinessId() biz: string, @Param('id') id: string) {
+    return this.salesService.approveReturn(biz, id);
   }
 }

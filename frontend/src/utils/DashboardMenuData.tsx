@@ -12,6 +12,7 @@ import {
   MdOutlineWarehouse,
   MdOutlineCategory,
   MdOutlineLocalShipping,
+  MdOutlineSms,
 } from 'react-icons/md';
 import { FaUsers, FaMoneyBillWave } from 'react-icons/fa';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
@@ -133,6 +134,23 @@ export const useDashboardMenuData = () => {
     },
     {
       id: 9,
+      name: 'SMS Marketing',
+      path: '/admin/sms-marketing',
+      icon: <MdOutlineSms size={18} />,
+      subMenu: [
+        { id: 1, name: 'Overview', path: '/admin/sms-marketing' },
+        { id: 2, name: 'Campaigns', path: '/admin/sms-marketing/campaigns' },
+        { id: 3, name: 'Groups', path: '/admin/sms-marketing/groups' },
+        { id: 4, name: 'Templates', path: '/admin/sms-marketing/templates' },
+        { id: 5, name: 'Send SMS', path: '/admin/sms-marketing/send' },
+        { id: 6, name: 'Due Reminder', path: '/admin/sms-marketing/due-reminder' },
+        { id: 7, name: 'SMS Logs', path: '/admin/sms-marketing/logs' },
+        { id: 8, name: 'Packages', path: '/admin/sms-marketing/packages' },
+        { id: 9, name: 'Configuration', path: '/admin/sms-marketing/configuration' },
+      ],
+    },
+    {
+      id: 10,
       name: 'Settings',
       path: '/admin/settings',
       icon: <MdOutlineSettings size={18} />,

@@ -71,6 +71,17 @@ import CustomerReport from '../features/reports/CustomerReport';
 import SupplierReport from '../features/reports/SupplierReport';
 import HRMReport from '../features/reports/HRMReport';
 
+// SMS Marketing
+import SmsOverview from '../features/sms-marketing/SmsOverview';
+import SmsTemplates from '../features/sms-marketing/SmsTemplates';
+import SmsCampaigns from '../features/sms-marketing/SmsCampaigns';
+import SmsGroups from '../features/sms-marketing/SmsGroups';
+import SendSms from '../features/sms-marketing/SendSms';
+import SmsLogs from '../features/sms-marketing/SmsLogs';
+import SmsConfiguration from '../features/sms-marketing/SmsConfiguration';
+import SmsPackages from '../features/sms-marketing/SmsPackages';
+import DueReminder from '../features/sms-marketing/DueReminder';
+
 // Settings
 import BusinessProfile from '../features/settings/BusinessProfile';
 import UsersRoles from '../features/settings/UsersRoles';
@@ -168,6 +179,17 @@ const router = createBrowserRouter([
       { path: 'reports/customers', element: <CustomerReport /> },
       { path: 'reports/suppliers', element: <SupplierReport /> },
       { path: 'reports/hrm', element: <HRMReport /> },
+
+      // SMS Marketing
+      { path: 'sms-marketing', element: <SmsOverview /> },
+      { path: 'sms-marketing/campaigns', element: <SmsCampaigns /> },
+      { path: 'sms-marketing/templates', element: <SmsTemplates /> },
+      { path: 'sms-marketing/groups', element: <SmsGroups /> },
+      { path: 'sms-marketing/send', element: <SendSms /> },
+      { path: 'sms-marketing/logs', element: <SmsLogs /> },
+      { path: 'sms-marketing/configuration', element: <SmsConfiguration /> },
+      { path: 'sms-marketing/packages', element: <SmsPackages /> },
+      { path: 'sms-marketing/due-reminder', element: <DueReminder /> },
 
       // Settings
       { path: 'settings/business', element: <BusinessProfile /> },
