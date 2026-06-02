@@ -5,8 +5,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useCreateSaleMutation } from './salesApi';
 import { useGetAllCustomersQuery } from './salesApi';
-import { useGetAllWarehouseQuery } from '../inventory/warehouse/warehouseApi';
 import { useGetAllProductsQuery } from '../inventory/products/productApi';
+import { useActiveWarehouse } from '../../hooks/useActiveWarehouse';
 
 interface SaleItem {
   id: number;
@@ -34,7 +34,7 @@ const ProductSearch = ({
     { search: query, limit: 10 },
     { skip: query.length < 1 },
   );
-  const products: any[] = productsData?.data?.data ?? [];
+  const products: any[] = productsData?.data ?? [];
 
   useEffect(() => { setQuery(productName); }, [productName]);
 
@@ -96,15 +96,13 @@ const AddSale = () => {
   const [createSale, { isLoading }] = useCreateSaleMutation();
 
   const { data: customersData } = useGetAllCustomersQuery({ limit: 200 });
-  const { data: warehousesData } = useGetAllWarehouseQuery({});
-  const customers: any[] = customersData?.data?.data ?? [];
-  const warehouses: any[] = warehousesData?.data?.data ?? warehousesData?.data ?? [];
+  const customers: any[] = customersData?.data ?? [];
 
-  const defaultWarehouse = warehouses.find((w: any) => w.isDefault) ?? warehouses[0];
+  const { warehouseId: activeWarehouseId, warehouses, hasWarehouses } = useActiveWarehouse();
 
   const [form, setForm] = useState({
     customerId: '',
-    warehouseId: '',
+    warehouseId: activeWarehouseId ?? '',
     date: new Date().toISOString().split('T')[0],
     paymentMethod: 'cash',
     paidAmount: '',
@@ -116,11 +114,10 @@ const AddSale = () => {
     { id: 1, productId: '', productName: '', qty: 1, unitPrice: 0, discountAmount: 0, total: 0, maxStock: 9999 },
   ]);
 
+  // Sync warehouse when global selection changes (e.g. switched in header)
   useEffect(() => {
-    if (defaultWarehouse && !form.warehouseId) {
-      setForm((f) => ({ ...f, warehouseId: defaultWarehouse.id }));
-    }
-  }, [defaultWarehouse]);
+    if (activeWarehouseId) setForm((f) => ({ ...f, warehouseId: activeWarehouseId }));
+  }, [activeWarehouseId]);
 
   const updateItem = (id: number, patch: Partial<SaleItem>) => {
     setItems((prev) => prev.map((item) => {
@@ -207,14 +204,24 @@ const AddSale = () => {
                   {customers.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Warehouse <span className="text-red-500">*</span></label>
-                <select value={form.warehouseId} onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
-                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
-                  <option value="">Select Warehouse</option>
-                  {warehouses.map((w: any) => <option key={w.id} value={w.id}>{w.name}{w.isDefault ? ' (Default)' : ''}</option>)}
-                </select>
-              </div>
+              {hasWarehouses && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Warehouse {warehouses.length > 1 && <span className="text-red-500">*</span>}
+                  </label>
+                  {warehouses.length === 1 ? (
+                    <div className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm text-gray-600 bg-gray-50">
+                      {warehouses[0].name}
+                    </div>
+                  ) : (
+                    <select value={form.warehouseId} onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
+                      className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
+                      <option value="">Select Warehouse</option>
+                      {warehouses.map((w: any) => <option key={w.id} value={w.id}>{w.name}{w.isDefault ? ' ★' : ''}</option>)}
+                    </select>
+                  )}
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Sale Date</label>
                 <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}

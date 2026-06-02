@@ -11,7 +11,7 @@ import {
 } from './salesApi';
 import { useGetAllCustomersQuery } from './salesApi';
 import { useGetAllProductsQuery } from '../inventory/products/productApi';
-import { useGetAllWarehouseQuery } from '../inventory/warehouse/warehouseApi';
+import { useActiveWarehouse } from '../../hooks/useActiveWarehouse';
 
 const statusColors: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-600',
@@ -33,7 +33,7 @@ const ProductSearch = ({ value, warehouseId, onSelect }: {
   const ref = useRef<HTMLDivElement>(null);
 
   const { data } = useGetAllProductsQuery({ search: query, limit: 10 }, { skip: query.length < 1 });
-  const products: any[] = data?.data?.data ?? [];
+  const products: any[] = data?.data ?? [];
 
   useEffect(() => { setQuery(value); }, [value]);
   useEffect(() => {
@@ -100,7 +100,7 @@ const NewQuotationModal = ({ onClose }: { onClose: () => void }) => {
   ]);
 
   const { data: customersData } = useGetAllCustomersQuery({ limit: 200 });
-  const customers: any[] = customersData?.data?.data ?? [];
+  const customers: any[] = customersData?.data ?? [];
   const [createQuotation, { isLoading }] = useCreateQuotationMutation();
 
   const updateItem = (id: number, patch: Partial<QuoteItem>) => {
@@ -273,19 +273,16 @@ const NewQuotationModal = ({ onClose }: { onClose: () => void }) => {
 
 const ConvertModal = ({ quotation, onClose }: { quotation: any; onClose: () => void }) => {
   const { t } = useLanguage();
-  const [warehouseId, setWarehouseId] = useState('');
+  const { warehouseId: activeWarehouseId, warehouses, hasWarehouses } = useActiveWarehouse();
+  const [warehouseId, setWarehouseId] = useState(activeWarehouseId ?? '');
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
   const [paidAmount, setPaidAmount] = useState(String(quotation.grandTotal ?? 0));
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [convert, { isLoading }] = useConvertQuotationMutation();
 
-  const { data: warehousesData } = useGetAllWarehouseQuery({});
-  const warehouses: any[] = warehousesData?.data?.data ?? warehousesData?.data ?? [];
-  const defaultWarehouse = warehouses.find((w: any) => w.isDefault) ?? warehouses[0];
-
   useEffect(() => {
-    if (defaultWarehouse && !warehouseId) setWarehouseId(defaultWarehouse.id);
-  }, [defaultWarehouse]);
+    if (activeWarehouseId && !warehouseId) setWarehouseId(activeWarehouseId);
+  }, [activeWarehouseId]);
 
   const handleConvert = async () => {
     if (!warehouseId) { toast.error('Select a warehouse'); return; }
@@ -319,14 +316,24 @@ const ConvertModal = ({ quotation, onClose }: { quotation: any; onClose: () => v
             <input type="date" value={saleDate} onChange={(e) => setSaleDate(e.target.value)}
               className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:border-[#ff6d29]" />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('sales.quotations.warehouse')} *</label>
-            <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}
-              className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:border-[#ff6d29]">
-              <option value="">Select Warehouse</option>
-              {warehouses.map((w: any) => <option key={w.id} value={w.id}>{w.name}{w.isDefault ? ' (Default)' : ''}</option>)}
-            </select>
-          </div>
+          {hasWarehouses && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                {t('sales.quotations.warehouse')} {warehouses.length > 1 && '*'}
+              </label>
+              {warehouses.length === 1 ? (
+                <div className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm text-gray-600 bg-gray-50">
+                  {warehouses[0].name}
+                </div>
+              ) : (
+                <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:border-[#ff6d29]">
+                  <option value="">Select Warehouse</option>
+                  {warehouses.map((w: any) => <option key={w.id} value={w.id}>{w.name}{w.isDefault ? ' ★' : ''}</option>)}
+                </select>
+              )}
+            </div>
+          )}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('sales.quotations.paymentMethod')}</label>
             <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}
@@ -378,8 +385,8 @@ const Quotations = () => {
   const { data, isLoading, isFetching } = useGetAllQuotationsQuery({ search, page, limit: 15 });
   const [updateStatus] = useUpdateQuotationStatusMutation();
 
-  const quotations: any[] = data?.data?.data ?? [];
-  const meta = data?.data?.meta;
+  const quotations: any[] = data?.data ?? [];
+  const meta = data?.meta;
 
   const handleStatusChange = async (id: string, status: string, ref: string) => {
     setUpdatingId(id);

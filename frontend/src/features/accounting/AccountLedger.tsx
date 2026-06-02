@@ -24,7 +24,7 @@ const AccountLedger = () => {
   const [page, setPage] = useState(1);
 
   const { data = [] } = useGetAllAccountsQuery({});
-  const accountsData = data?.data || [];
+  const accountsData = data || [];
   const cashAccounts = accountsData?.filter((a: any) =>
     ['cash', 'bank', 'mobile_banking'].includes(a.accountType),
   );
@@ -36,8 +36,8 @@ const AccountLedger = () => {
     page,
     limit: 25,
   });
-  const entries = ledgerRes?.data?.data ?? [];
-  const meta = ledgerRes?.data?.meta;
+  const entries = ledgerRes?.data ?? [];
+  const meta = ledgerRes?.meta;
 
   const selectedAccount = cashAccounts.find((a: any) => a.id === accountId);
 

@@ -1,5 +1,6 @@
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { TenantBaseEntity } from 'src/common/entities/tenant-base.entity';
+import { EmployeeEntity } from './employee.entity';
 
 export enum PayrollStatus {
   DRAFT = 'draft',
@@ -11,6 +12,10 @@ export enum PayrollStatus {
 export class PayrollEntity extends TenantBaseEntity {
   @Column({ name: 'employee_id' })
   employeeId: string;
+
+  @ManyToOne(() => EmployeeEntity, { nullable: true, onDelete: 'SET NULL', eager: false })
+  @JoinColumn({ name: 'employee_id' })
+  employee?: EmployeeEntity;
 
   @Column({ type: 'int' })
   month: number;

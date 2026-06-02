@@ -15,6 +15,7 @@ import {
   GetSuppliersDto, UpdateSupplierDto,
 } from '../dto/purchase.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { StockLocationService } from 'src/modules/inventory/warehouse/services/stock-location.service';
 
 @Injectable()
 export class PurchaseService {
@@ -29,6 +30,7 @@ export class PurchaseService {
     private readonly stockRepo: Repository<ProductStockEntity>,
     @InjectRepository(StockLedgerEntity)
     private readonly ledgerRepo: Repository<StockLedgerEntity>,
+    private readonly locationService: StockLocationService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -99,6 +101,9 @@ export class PurchaseService {
       const paid = dto.paidAmount ?? 0;
       const due = grandTotal - paid;
 
+      // Resolve location for all stock operations in this purchase
+      const location = await this.locationService.resolve(businessId, dto.warehouseId, tx);
+
       const purchase = tx.create(PurchaseEntity, {
         businessId,
         supplierId: dto.supplierId,
@@ -131,16 +136,17 @@ export class PurchaseService {
           total: lineTotal,
         });
 
-        // Update or create stock
+        // Update or create stock using resolved location
         let stock = await tx.findOne(ProductStockEntity, {
-          where: { businessId, productId: item.productId, warehouseId: dto.warehouseId },
+          where: { businessId, productId: item.productId, locationId: location.id },
         });
         if (!stock) {
           stock = tx.create(ProductStockEntity, {
             businessId,
             productId: item.productId,
-            warehouseId: dto.warehouseId,
-            openingQty: 0, inQty: 0, outQty: 0, currentQty: 0, avgCost: item.unitCost,
+            locationId: location.id,
+            openingQty: 0, inQty: 0, outQty: 0, currentQty: 0, reservedQty: 0, avgCost: item.unitCost,
+            isActive: true,
           });
         }
 
@@ -159,7 +165,7 @@ export class PurchaseService {
         await tx.save(StockLedgerEntity, {
           businessId,
           productId: item.productId,
-          warehouseId: dto.warehouseId,
+          locationId: location.id,
           transactionType: StockTransactionType.PURCHASE,
           referenceType: 'purchase',
           referenceId: savedPurchase.id,
@@ -209,5 +215,52 @@ export class PurchaseService {
     });
     if (!p) throw new NotFoundException('Purchase not found');
     return p;
+  }
+
+  async getSupplierLedger(
+    businessId: string,
+    supplierId: string,
+    query: { page?: number; limit?: number },
+  ) {
+    const supplier = await this.findSupplier(businessId, supplierId);
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+
+    const [purchases, totalItems] = await this.purchaseRepo.findAndCount({
+      where: { businessId, supplierId },
+      order: { purchaseDate: 'DESC', createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    // Build ledger rows from purchases (each purchase = debit row)
+    let runningBalance = Number(supplier.openingBalance);
+    const allPurchases = await this.purchaseRepo.find({
+      where: { businessId, supplierId },
+      order: { purchaseDate: 'ASC', createdAt: 'ASC' },
+    });
+    const balanceMap: Record<string, number> = {};
+    let bal = Number(supplier.openingBalance);
+    for (const p of allPurchases) {
+      bal += Number(p.dueAmount);
+      balanceMap[p.id] = bal;
+    }
+
+    const entries = purchases.map((p) => ({
+      id: p.id,
+      date: p.purchaseDate,
+      referenceId: p.invoiceNo,
+      transactionType: 'purchase',
+      debit: Number(p.grandTotal),
+      credit: Number(p.paidAmount),
+      balanceAfter: balanceMap[p.id] ?? 0,
+      note: p.note,
+    }));
+
+    return {
+      supplier,
+      data: entries,
+      meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: Number(page) },
+    };
   }
 }

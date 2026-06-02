@@ -7,6 +7,7 @@ import { Type } from 'class-transformer';
 import { EmploymentType, EmployeeStatus } from '../entities/employee.entity';
 import { AttendanceStatus } from '../entities/attendance.entity';
 import { LeaveType } from '../entities/leave.entity';
+import { LoanType } from '../entities/loan.entity';
 
 // ── Employee ──
 export class CreateEmployeeDto {
@@ -105,4 +106,56 @@ export class GetPayrollsDto {
   @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(1) page?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(1) limit?: number;
+}
+
+// ── Department ──
+export class CreateDepartmentDto {
+  @ApiProperty() @IsString() @IsNotEmpty() name: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() head?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+}
+
+export class UpdateDepartmentDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() name?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() head?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+}
+
+// ── Designation ──
+export class CreateDesignationDto {
+  @ApiProperty() @IsString() @IsNotEmpty() name: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() department?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+}
+
+export class UpdateDesignationDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() name?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() department?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+}
+
+// ── Loan ──
+export class CreateLoanDto {
+  @ApiProperty() @IsUUID() employeeId: string;
+  @ApiPropertyOptional({ enum: LoanType }) @IsOptional() @IsEnum(LoanType) loanType?: LoanType;
+  @ApiProperty() @Type(() => Number) @IsNumber() @Min(1) amount: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) monthlyInstallment?: number;
+  @ApiProperty() @IsDateString() issueDate: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
+}
+
+export class UpdateLoanDto {
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) remainingAmount?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) monthlyInstallment?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
+}
+
+// ── KPI ──
+export class CreateKpiDto {
+  @ApiProperty() @IsUUID() employeeId: string;
+  @ApiProperty() @IsString() period: string;
+  @ApiProperty() @Type(() => Number) @IsInt() @Min(2000) year: number;
+  @ApiProperty() @Type(() => Number) @IsNumber() @Min(0) @Max(5) rating: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() comment?: string;
 }

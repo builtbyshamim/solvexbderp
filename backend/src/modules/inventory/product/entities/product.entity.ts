@@ -7,8 +7,9 @@ import { WarrantyEntity } from '../../warranty/entities/warranty.entity';
 import { ProductStockEntity } from './product-stock.entity';
 
 export enum ProductType {
-  SINGLE = 'single',
-  VARIANT = 'variant',
+  PHYSICAL = 'physical',
+  DIGITAL  = 'digital',
+  SERVICE  = 'service',
 }
 
 @Entity('products')
@@ -24,7 +25,7 @@ export class ProductEntity extends TenantBaseEntity {
   @Column({ nullable: true })
   barcode?: string;
 
-  @Column({ type: 'enum', enum: ProductType, default: ProductType.SINGLE })
+  @Column({ type: 'enum', enum: ProductType, default: ProductType.PHYSICAL })
   productType: ProductType;
 
   @Column({ nullable: true })

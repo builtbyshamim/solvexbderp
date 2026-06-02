@@ -1,20 +1,25 @@
 import { Entity, Column, Index, CreateDateColumn, PrimaryGeneratedColumn } from 'typeorm';
 
 export enum StockTransactionType {
-  OPENING = 'OPENING',
-  PURCHASE = 'PURCHASE',
-  SALE = 'SALE',
-  ADJUSTMENT_IN = 'ADJUSTMENT_IN',
-  ADJUSTMENT_OUT = 'ADJUSTMENT_OUT',
-  TRANSFER_IN = 'TRANSFER_IN',
-  TRANSFER_OUT = 'TRANSFER_OUT',
-  RETURN_IN = 'RETURN_IN',
-  RETURN_OUT = 'RETURN_OUT',
+  OPENING         = 'OPENING',
+  PURCHASE        = 'PURCHASE',
+  PURCHASE_RETURN = 'PURCHASE_RETURN',
+  SALE            = 'SALE',
+  SALE_RETURN     = 'SALE_RETURN',
+  ADJUSTMENT_IN   = 'ADJUSTMENT_IN',
+  ADJUSTMENT_OUT  = 'ADJUSTMENT_OUT',
+  TRANSFER_IN     = 'TRANSFER_IN',
+  TRANSFER_OUT    = 'TRANSFER_OUT',
+  DAMAGED         = 'DAMAGED',
+  LOST            = 'LOST',
+  RETURN_IN       = 'RETURN_IN',
+  RETURN_OUT      = 'RETURN_OUT',
 }
 
 @Entity('stock_ledger')
 @Index(['businessId', 'productId'])
-@Index(['businessId', 'warehouseId'])
+@Index(['businessId', 'locationId'])
+@Index(['businessId', 'referenceType', 'referenceId'])
 export class StockLedgerEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -25,16 +30,20 @@ export class StockLedgerEntity {
   @Column({ name: 'product_id' })
   productId: string;
 
-  @Column({ name: 'warehouse_id' })
-  warehouseId: string;
+  /**
+   * References stock_locations.id — replaces warehouseId.
+   * Every ledger entry belongs to a location (business default or warehouse).
+   */
+  @Column({ name: 'location_id' })
+  locationId: string;
 
   @Column({ type: 'enum', enum: StockTransactionType })
   transactionType: StockTransactionType;
 
-  @Column({ nullable: true })
+  @Column({ name: 'reference_type', nullable: true })
   referenceType?: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'reference_id', nullable: true })
   referenceId?: string;
 
   @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
@@ -43,18 +52,21 @@ export class StockLedgerEntity {
   @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
   qtyOut: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
+  @Column({ name: 'balance_after', type: 'decimal', precision: 15, scale: 4, default: 0 })
   balanceAfter: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
+  @Column({ name: 'unit_cost', type: 'decimal', precision: 15, scale: 2, nullable: true })
   unitCost?: number;
+
+  @Column({ name: 'total_cost', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  totalCost?: number;
 
   @Column({ nullable: true })
   note?: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'created_by', nullable: true })
   createdBy?: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

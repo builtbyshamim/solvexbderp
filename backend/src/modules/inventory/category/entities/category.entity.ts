@@ -12,4 +12,8 @@ export class CategoryEntity extends TenantBaseEntity {
 
   @Column({ nullable: true })
   description?: string;
+
+  /** Optional parent category for tree structure */
+  @Column({ name: 'parent_id', nullable: true, type: 'uuid' })
+  parentId?: string | null;
 }

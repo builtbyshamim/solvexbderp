@@ -1,13 +1,17 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { WarehouseService } from '../services/warehouse.service';
+import { StockLocationService } from '../services/stock-location.service';
 import { CreateWarehouseDto, GetWarehousesDto, UpdateWarehouseDto } from '../dto/warehouse.dto';
 import { BusinessId } from 'src/common/decorators/business-id.decorator';
 
 @ApiTags('Inventory - Warehouses')
 @Controller({ path: 'inventory/warehouses', version: '1' })
 export class WarehouseController {
-  constructor(private readonly warehouseService: WarehouseService) {}
+  constructor(
+    private readonly warehouseService: WarehouseService,
+    private readonly locationService: StockLocationService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new warehouse' })
@@ -43,5 +47,11 @@ export class WarehouseController {
   @ApiOperation({ summary: 'Delete a warehouse' })
   remove(@BusinessId() businessId: string, @Param('id') id: string) {
     return this.warehouseService.remove(businessId, id);
+  }
+
+  @Get('locations/all')
+  @ApiOperation({ summary: 'Get all stock locations (business default + warehouses)' })
+  getLocations(@BusinessId() businessId: string) {
+    return this.locationService.findAllByBusiness(businessId);
   }
 }

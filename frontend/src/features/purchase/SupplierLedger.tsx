@@ -1,125 +1,196 @@
 import { useState } from 'react';
-import { Search, Download } from 'lucide-react';
+import { Search, Download, BookOpen } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import { useLanguage } from '../../context/LanguageContext';
+import { useGetAllSuppliersQuery, useGetSupplierLedgerQuery } from './purchaseApi';
+import CommonPagination from '../../components/ui/paginations/CommonPagination';
 
-interface LedgerEntry {
-  id: number;
-  date: string;
-  reference: string;
-  type: 'purchase' | 'payment' | 'return';
-  debit: number;
-  credit: number;
-  balance: number;
-  note: string;
-}
-
-const ledgerData: LedgerEntry[] = [
-  { id: 1, date: '2025-05-01', reference: 'OPENING', type: 'purchase', debit: 0, credit: 0, balance: 0, note: 'Opening balance' },
-  { id: 2, date: '2025-05-15', reference: 'PUR-2025-001', type: 'purchase', debit: 45000, credit: 0, balance: 45000, note: 'Purchase invoice' },
-  { id: 3, date: '2025-05-16', reference: 'PAY-001', type: 'payment', debit: 0, credit: 45000, balance: 0, note: 'Payment via bank transfer' },
-  { id: 4, date: '2025-05-22', reference: 'PUR-2025-003', type: 'purchase', debit: 72000, credit: 0, balance: 72000, note: 'Purchase invoice' },
-  { id: 5, date: '2025-05-24', reference: 'PRN-001', type: 'return', debit: 0, credit: 4500, balance: 67500, note: 'Return credit' },
-];
-
-const typeColors = { purchase: 'bg-blue-100 text-blue-700', payment: 'bg-green-100 text-green-700', return: 'bg-orange-100 text-orange-600' };
+const typeColors: Record<string, string> = {
+  purchase: 'bg-blue-100 text-blue-700',
+  payment: 'bg-green-100 text-green-700',
+  return: 'bg-yellow-100 text-yellow-700',
+};
 
 const SupplierLedger = () => {
   const { t } = useLanguage();
-  const [supplier, setSupplier] = useState('Rahim Trading');
-  const [search, setSearch] = useState('');
+  const [selectedSupplierId, setSelectedSupplierId] = useState('');
+  const [searchValue, setSearchValue] = useState({ page: 1, limit: 20 });
+  const [supplierSearch, setSupplierSearch] = useState('');
 
-  const filtered = ledgerData.filter((e) => e.reference.toLowerCase().includes(search.toLowerCase()) || e.note.toLowerCase().includes(search.toLowerCase()));
-  const currentBalance = ledgerData[ledgerData.length - 1].balance;
+  const { data: suppliersData, isFetching: loadingSuppliers } = useGetAllSuppliersQuery({
+    limit: 500,
+  });
+  const suppliers = suppliersData?.data || [];
+
+  const { data: ledgerData, isFetching: loadingLedger } = useGetSupplierLedgerQuery(
+    { supplierId: selectedSupplierId, ...searchValue },
+    { skip: !selectedSupplierId },
+  );
+
+  const entries = ledgerData?.data || [];
+  const meta = ledgerData?.meta || { totalItems: 0, totalPages: 1 };
+  // Prefer ledger's embedded supplier info (has live balance), fall back to list
+  const selectedSupplier = ledgerData?.supplier ?? suppliers.find((s: any) => s.id === selectedSupplierId);
+
+  const filteredSuppliers = suppliers.filter((s: any) =>
+    s.name.toLowerCase().includes(supplierSearch.toLowerCase()),
+  );
 
   return (
     <div>
       <PageHeader
-        title={t('purchase.supplierLedger.title')}
-        subtitle={t('purchase.supplierLedger.subtitle')}
-        breadcrumbs={[{ label: t('common.home'), path: '/admin' }, { label: t('nav.purchase'), path: '/admin/purchase/list' }, { label: t('purchase.supplierLedger.title') }]}
+        title="Supplier Ledger"
+        subtitle="View supplier account statement"
+        breadcrumbs={[
+          { label: t('common.home'), path: '/admin' },
+          { label: t('nav.purchase'), path: '/admin/purchase/list' },
+          { label: 'Supplier Ledger' },
+        ]}
         actions={
           <button className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
-            <Download className="h-4 w-4" /> {t('common.export')}
+            <Download className="h-4 w-4" /> Export
           </button>
         }
       />
 
-      <div className="bg-white border border-[#DBDFE9] rounded-lg p-5 mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('purchase.supplierLedger.selectSupplier')}</label>
-            <select value={supplier} onChange={(e) => setSupplier(e.target.value)}
-              className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
-              <option>Rahim Trading</option>
-              <option>Tech Supplies BD</option>
-              <option>Global Imports</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('common.fromDate')}</label>
-            <input type="date" className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('common.toDate')}</label>
-            <input type="date" className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
-          </div>
+      {/* Supplier picker */}
+      <div className="bg-white border border-[#DBDFE9] rounded-lg p-4 mb-5 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search supplier..."
+            value={supplierSearch}
+            onChange={(e) => setSupplierSearch(e.target.value)}
+            className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
+          />
         </div>
-        <div className="mt-4 flex items-center justify-between">
-          <div>
-            <span className="text-sm font-semibold text-[#26272F]">{supplier}</span>
-            <span className="text-xs text-gray-500 ml-2">{t('purchase.supplierLedger.currentBalance')}</span>
-            <span className={`ml-1 text-sm font-bold ${currentBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {currentBalance > 0 ? `-৳${currentBalance.toLocaleString()}` : `৳${Math.abs(currentBalance).toLocaleString()}`}
-            </span>
+        <select
+          value={selectedSupplierId}
+          onChange={(e) => setSelectedSupplierId(e.target.value)}
+          className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm sm:w-64 focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
+        >
+          <option value="">Select a supplier...</option>
+          {filteredSuppliers.map((s: any) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+
+        {selectedSupplier && (
+          <div className="flex items-center gap-4 ml-auto text-sm">
+            <div>
+              <span className="text-gray-400 text-xs">Opening Balance</span>
+              <div className="font-semibold text-[#26272F]">
+                ৳{Number(selectedSupplier.openingBalance).toLocaleString()}
+              </div>
+            </div>
+            <div>
+              <span className="text-gray-400 text-xs">Current Balance</span>
+              <div
+                className={`font-bold ${Number(selectedSupplier.currentBalance) > 0 ? 'text-red-500' : 'text-green-600'}`}
+              >
+                ৳{Number(selectedSupplier.currentBalance).toLocaleString()}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="bg-white border border-[#DBDFE9] rounded-lg shadow-sm">
-        <div className="p-4 border-b border-[#DBDFE9]">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder={t('purchase.supplierLedger.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
+      {!selectedSupplierId ? (
+        <div className="bg-white border border-[#DBDFE9] rounded-lg py-16 text-center text-gray-400">
+          <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-200" />
+          <p>Select a supplier to view their ledger</p>
+        </div>
+      ) : (
+        <div className="bg-white border border-[#DBDFE9] rounded-lg shadow-sm">
+          <div className="px-4 py-3 border-b border-[#DBDFE9] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-[#ff6d29]" />
+              <span className="text-sm font-semibold">{selectedSupplier?.name} — Ledger</span>
+            </div>
+            <span className="text-sm text-gray-500">{meta.totalItems} entries</span>
           </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {[t('common.date'), t('common.reference'), t('common.type'), t('purchase.supplierLedger.colDebitPayable'), t('purchase.supplierLedger.colCreditPaid'), t('common.balance'), t('common.note')].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.map((entry) => (
-                <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-gray-600">{entry.date}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-[#ff6d29]">{entry.reference}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${typeColors[entry.type]}`}>{entry.type}</span>
-                  </td>
-                  <td className="px-4 py-3 font-medium text-red-600">{entry.debit > 0 ? `৳${entry.debit.toLocaleString()}` : '—'}</td>
-                  <td className="px-4 py-3 font-medium text-green-600">{entry.credit > 0 ? `৳${entry.credit.toLocaleString()}` : '—'}</td>
-                  <td className="px-4 py-3 font-bold text-[#26272F]">৳{entry.balance.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-gray-500">{entry.note}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-[#DBDFE9]">
+                  {['Date', 'Reference', 'Type', 'Debit', 'Credit', 'Balance', 'Note'].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="bg-gray-50 border-t-2 border-[#DBDFE9]">
-                <td colSpan={3} className="px-4 py-3 font-semibold text-gray-700">{t('common.total')}</td>
-                <td className="px-4 py-3 font-bold text-red-600">৳{filtered.reduce((s, e) => s + e.debit, 0).toLocaleString()}</td>
-                <td className="px-4 py-3 font-bold text-green-600">৳{filtered.reduce((s, e) => s + e.credit, 0).toLocaleString()}</td>
-                <td className="px-4 py-3 font-bold text-[#26272F]">৳{currentBalance.toLocaleString()}</td>
-                <td />
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {loadingLedger ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-10 text-center">
+                      <div className="flex justify-center">
+                        <div className="w-6 h-6 border-2 border-[#ff6d29] border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    </td>
+                  </tr>
+                ) : entries.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
+                      No ledger entries found
+                    </td>
+                  </tr>
+                ) : (
+                  entries.map((entry: any) => (
+                    <tr key={entry.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-gray-500 text-xs">
+                        {new Date(entry.createdAt ?? entry.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-[#ff6d29]">
+                        {entry.referenceId ?? entry.reference ?? '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${typeColors[entry.transactionType ?? entry.type] ?? 'bg-gray-100 text-gray-600'}`}
+                        >
+                          {entry.transactionType ?? entry.type ?? '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-red-500 font-medium">
+                        {Number(entry.debit ?? 0) > 0
+                          ? `৳${Number(entry.debit).toLocaleString()}`
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-green-600 font-medium">
+                        {Number(entry.credit ?? 0) > 0
+                          ? `৳${Number(entry.credit).toLocaleString()}`
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-3 font-bold text-[#26272F]">
+                        ৳{Number(entry.balanceAfter ?? entry.balance ?? 0).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-gray-400 text-xs truncate max-w-[120px]">
+                        {entry.note ?? '—'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          {meta.totalPages > 1 && (
+            <CommonPagination
+              total={meta.totalItems}
+              totalPage={meta.totalPages}
+              setSearchValue={setSearchValue}
+              searchValue={searchValue}
+              limit={searchValue.limit}
+              page={searchValue.page}
+            />
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 };

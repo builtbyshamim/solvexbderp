@@ -29,9 +29,9 @@ const SaleList = () => {
   const { data, isLoading, isFetching } = useGetAllSalesQuery({ search, paymentStatus: paymentFilter || undefined, page, limit: 15 });
   const [cancelSale] = useCancelSaleMutation();
 
-  const sales: any[] = data?.data?.data ?? [];
-  const meta = data?.data?.meta;
-  const totals = data?.data?.totals ?? { revenue: 0, profit: 0, due: 0 };
+  const sales: any[] = data?.data ?? [];
+  const meta = data?.meta;
+  const totals = data?.totals ?? { revenue: 0, profit: 0, due: 0 };
 
   const handleCancel = async (id: string, invoiceNo: string) => {
     if (!confirm(`Cancel sale ${invoiceNo}? This will reverse stock.`)) return;

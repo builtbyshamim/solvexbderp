@@ -18,14 +18,14 @@ const CustomerLedger = () => {
   const [search, setSearch] = useState('');
 
   const { data: customersData } = useGetAllCustomersQuery({ limit: 200 });
-  const customers: any[] = customersData?.data?.data ?? [];
+  const customers: any[] = customersData?.data ?? [];
 
   const { data: stmtData, isLoading, isFetching } = useGetCustomerStatementQuery(
     { customerId, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined },
     { skip: !customerId },
   );
 
-  const statement = stmtData?.data;
+  const statement = stmtData;
 
   const entries: any[] = statement?.entries ?? [];
   const currentBalance = statement?.customer?.currentBalance ?? 0;

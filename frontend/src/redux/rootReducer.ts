@@ -4,25 +4,19 @@ import storage from "redux-persist/lib/storage";
 import toggleSlice from "./features/toggleSlice.ts";
 import cartSlice from "./features/cartSlice.ts";
 import authSlice from "./features/authSlice.ts";
+import warehouseSlice from "./features/warehouseSlice.ts";
 
-const makePersistConfig = (key: any) => ({
-  key,
-  storage,
-});
+const makePersistConfig = (key: any) => ({ key, storage });
 
-const persistedToggleSlice = persistReducer(
-  makePersistConfig("toggle"),
-  toggleSlice
-);
-const persistedCartSlice = persistReducer(
-  makePersistConfig("carts"),
-  cartSlice
-);
+const persistedToggleSlice = persistReducer(makePersistConfig("toggle"), toggleSlice);
+const persistedCartSlice = persistReducer(makePersistConfig("carts"), cartSlice);
 const persistedAuthSlice = persistReducer(makePersistConfig("auth"), authSlice);
+const persistedWarehouseSlice = persistReducer(makePersistConfig("warehouse"), warehouseSlice);
 
 export const reducer = {
   [baseApi.reducerPath]: baseApi.reducer,
   toggle: persistedToggleSlice,
   carts: persistedCartSlice,
   auth: persistedAuthSlice,
+  warehouse: persistedWarehouseSlice,
 };

@@ -45,9 +45,9 @@ const SmsGroups = () => {
   const [removeMember] = useRemoveGroupMemberMutation();
   const [importCustomers, { isLoading: isImporting }] = useImportCustomersToGroupMutation();
 
-  const groups = groupsData?.data ?? [];
+  const groups = groupsData ?? [];
   const groupMeta = groupsData?.meta;
-  const members = membersData?.data ?? [];
+  const members = membersData ?? [];
   const memberMeta = membersData?.meta;
 
   const openCreate = () => {

@@ -57,7 +57,7 @@ const DueReminder = () => {
   const [toggleReminder] = useToggleDueReminderMutation();
   const [sendReminder, { isLoading: isSending }] = useSendDueReminderMutation();
 
-  const logs = logsData?.data ?? [];
+  const logs = logsData ?? [];
   const logMeta = logsData?.meta;
   const charCount = form.message.length;
 

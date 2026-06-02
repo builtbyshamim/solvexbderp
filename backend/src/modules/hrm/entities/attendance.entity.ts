@@ -1,5 +1,6 @@
-import { Entity, Column, Index } from 'typeorm';
+import { Entity, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { TenantBaseEntity } from 'src/common/entities/tenant-base.entity';
+import { EmployeeEntity } from './employee.entity';
 
 export enum AttendanceStatus {
   PRESENT = 'present',
@@ -15,6 +16,10 @@ export enum AttendanceStatus {
 export class AttendanceEntity extends TenantBaseEntity {
   @Column({ name: 'employee_id' })
   employeeId: string;
+
+  @ManyToOne(() => EmployeeEntity, { nullable: true, onDelete: 'SET NULL', eager: false })
+  @JoinColumn({ name: 'employee_id' })
+  employee?: EmployeeEntity;
 
   @Column({ type: 'date' })
   date: Date;

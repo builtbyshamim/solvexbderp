@@ -49,13 +49,13 @@ const Expenses = () => {
   const [page, setPage] = useState(1);
 
   const { data: accountsData = [] } = useGetAllAccountsQuery({});
-  const cashAccounts = accountsData?.data?.filter((a: any) =>
+  const cashAccounts = accountsData?.filter((a: any) =>
     ['cash', 'bank', 'mobile_banking'].includes(a.accountType),
   );
 
   const { data: expensesRes, isLoading } = useGetExpensesQuery({ search, page, limit: 20 });
-  const expenses = expensesRes?.data?.data ?? [];
-  const meta = expensesRes?.data?.meta;
+  const expenses = expensesRes?.data ?? [];
+  const meta = expensesRes?.meta;
 
   const [recordExpense, { isLoading: saving }] = useRecordExpenseMutation();
   const [deleteTransaction, { isLoading: deleting }] = useDeleteTransactionMutation();

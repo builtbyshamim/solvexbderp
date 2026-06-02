@@ -42,7 +42,12 @@ export class BrandService {
       const conflict = await this.repo.findOne({ where: { businessId, name: ILike(dto.name) } });
       if (conflict) throw new ConflictException('Brand name already exists');
     }
-    Object.assign(brand, dto);
+    // Normalize status alias → isActive
+    const { status, ...rest } = dto as any;
+    if (status !== undefined && rest.isActive === undefined) {
+      rest.isActive = status;
+    }
+    Object.assign(brand, rest);
     return this.repo.save(brand);
   }
 

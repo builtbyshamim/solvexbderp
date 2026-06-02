@@ -67,4 +67,15 @@ export class PurchaseController {
   findOne(@BusinessId() biz: string, @Param('id') id: string) {
     return this.purchaseService.findPurchase(biz, id);
   }
+
+  @Get('suppliers/:id/ledger')
+  @ApiOperation({ summary: 'Get supplier ledger' })
+  getSupplierLedger(
+    @BusinessId() biz: string,
+    @Param('id') id: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.purchaseService.getSupplierLedger(biz, id, { page, limit });
+  }
 }

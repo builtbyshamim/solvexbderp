@@ -47,7 +47,7 @@ const SmsTemplates = () => {
   const [updateTemplate, { isLoading: isUpdating }] = useUpdateSmsTemplateMutation();
   const [deleteTemplate, { isLoading: isDeleting }] = useDeleteSmsTemplateMutation();
 
-  const templates = data?.data ?? [];
+  const templates = data ?? [];
   const meta = data?.meta;
 
   const openCreate = () => {

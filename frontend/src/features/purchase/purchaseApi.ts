@@ -50,6 +50,33 @@ export const purchaseApi = baseApi.injectEndpoints({
         { type: tagTypes.stockLedger, id: "LIST" },
       ],
     }),
+
+    // Purchase Returns
+    getPurchaseReturns: build.query({
+      query: (params) => ({ url: `${PURCHASE_URL}/returns`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.purchaseReturn, id: "LIST" }],
+    }),
+    createPurchaseReturn: build.mutation({
+      query: (data) => ({ url: `${PURCHASE_URL}/returns`, method: "POST", data }),
+      invalidatesTags: [
+        { type: tagTypes.purchaseReturn, id: "LIST" },
+        { type: tagTypes.purchase, id: "LIST" },
+      ],
+    }),
+    approvePurchaseReturn: build.mutation({
+      query: (id: string) => ({ url: `${PURCHASE_URL}/returns/${id}/approve`, method: "PATCH" }),
+      invalidatesTags: [{ type: tagTypes.purchaseReturn, id: "LIST" }],
+    }),
+
+    // Supplier Ledger
+    getSupplierLedger: build.query({
+      query: ({ supplierId, ...params }: { supplierId: string; [k: string]: any }) => ({
+        url: `${SUPPLIER_URL}/${supplierId}/ledger`,
+        method: "GET",
+        params,
+      }),
+      providesTags: (result, error, arg) => [{ type: tagTypes.supplier, id: arg.supplierId }],
+    }),
   }),
 });
 
@@ -62,4 +89,8 @@ export const {
   useGetAllPurchasesQuery,
   useGetPurchaseQuery,
   useCreatePurchaseMutation,
+  useGetPurchaseReturnsQuery,
+  useCreatePurchaseReturnMutation,
+  useApprovePurchaseReturnMutation,
+  useGetSupplierLedgerQuery,
 } = purchaseApi;

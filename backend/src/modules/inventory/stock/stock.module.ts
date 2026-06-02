@@ -5,11 +5,13 @@ import { StockTransferEntity } from './entities/stock-transfer.entity';
 import { StockService } from './services/stock.service';
 import { StockController } from './controllers/stock.controller';
 import { ProductModule } from '../product/product.module';
+import { WarehouseModule } from '../warehouse/warehouse.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([StockAdjustmentEntity, StockTransferEntity]),
     ProductModule,
+    WarehouseModule,
   ],
   controllers: [StockController],
   providers: [StockService],

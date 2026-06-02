@@ -12,16 +12,7 @@ export const categoryApi = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
-      providesTags: (result) =>
-        result?.data?.data
-          ? [
-              { type: tagTypes.category, id: "LIST" },
-              ...result.data.data.map((item: any) => ({
-                type: tagTypes.category,
-                id: item.id,
-              })),
-            ]
-          : [{ type: tagTypes.category, id: "LIST" }],
+      providesTags: [{ type: tagTypes.category, id: "LIST" }],
     }),
 
     // ✅ GET SINGLE

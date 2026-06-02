@@ -17,7 +17,9 @@ export const axiosBaseQuery =
         },
       });
 
-      return { data: result.data };
+      // Unwrap the backend's TransformInterceptor envelope { success, data, ... }
+      // so RTK Query's `data` IS the actual payload
+      return { data: result.data?.data ?? result.data };
     } catch (axiosError) {
       const err = axiosError;
       return {

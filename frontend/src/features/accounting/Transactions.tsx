@@ -36,7 +36,7 @@ const Transactions = () => {
     dateFrom: dateFrom || undefined, dateTo: dateTo || undefined,
     page, limit: 25,
   });
-  const transactions = txRes?.data?.data ?? [];
+  const transactions = txRes?.data ?? [];
   const meta = txRes?.meta;
 
   const { data: summary } = useGetAccountSummaryQuery(undefined);

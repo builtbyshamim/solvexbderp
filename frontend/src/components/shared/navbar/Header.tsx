@@ -8,13 +8,14 @@ import { asideToggle } from '../../../redux/features/toggleSlice';
 import { accessTokenKey, refreshTokenKey } from '../../../contents/token';
 import { useFetchMeQuery } from '../../../redux/api/authApi';
 import { useLanguage } from '../../../context/LanguageContext';
+import WarehouseSelector from '../WarehouseSelector';
 
 const Header = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { data, isLoading } = useFetchMeQuery(null);
   const { lang, toggleLang, t } = useLanguage();
-  const userInfo = data?.data;
+  const userInfo = data;
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -71,8 +72,9 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Right: language toggle + notifications + user */}
+        {/* Right: warehouse selector + language toggle + notifications + user */}
         <div className="flex items-center gap-2">
+          <WarehouseSelector />
 
           {/* Language Toggle */}
           <button

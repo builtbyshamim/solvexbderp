@@ -21,8 +21,8 @@ const AllUnit = () => {
   const [updateUnit, { isLoading: isUpdating }] = useUpdateUnitMutation();
   const [deleteUnit, { isLoading: isDeleting }] = useDeleteUnitMutation();
 
-  const units = data?.data?.data || [];
-  const meta = data?.data?.meta || { totalItems: 0, totalPages: 1 };
+  const units = data?.data || [];
+  const meta = data?.meta || { totalItems: 0, totalPages: 1 };
   const isBusy = isFetching || isCreating || isUpdating || isDeleting;
 
   const openAdd = () => {

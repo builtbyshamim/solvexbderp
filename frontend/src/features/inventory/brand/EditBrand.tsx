@@ -1,232 +1,144 @@
-import { useState, useEffect } from "react";
-import { FiSave, FiUpload, FiX } from "react-icons/fi";
+import { useState, useEffect } from 'react';
+import { Upload, X, Save } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useForm } from 'react-hook-form';
+import { useUpdateBrandMutation } from './brandApi';
 
-import toast from "react-hot-toast";
-import { useForm } from "react-hook-form";
-import InputString from "../../../components/ui/InputString";
-import InputTextarea from "../../../components/ui/InputTextarea";
-import ToggleSwitch from "../../../components/ui/toggle/ToggleSwitch";
-import { useUpdateBrandMutation } from "./brandApi";
-
-const EditBrand = ({ onClose, brand }: any) => {
+const EditBrand = ({ brand, onClose }: { brand: any; onClose: () => void }) => {
   const {
     register,
-    formState: { errors },
     handleSubmit,
-    reset,
+    formState: { errors },
   } = useForm({
     defaultValues: {
-      name: brand?.name || "",
-      description: brand?.description || "",
-      meta_description: brand?.seoMeta?.description || "",
-      meta_title: brand?.seoMeta?.meta_title || "",
-      keywords: brand?.seoMeta?.keywords
-        ? brand.seoMeta.keywords.join(", ")
-        : "",
+      name: brand?.name || '',
+      description: brand?.description || '',
+      isActive: brand?.isActive == 'true' || brand?.isActive || false,
     },
   });
-
-  const [images, setImages] = useState<any>(null);
+  const [logo, setLogo] = useState<{ file: File | null; preview: string } | null>(
+    brand?.logo ? { file: null, preview: brand.logo } : null,
+  );
   const [updateBrand, { isLoading }] = useUpdateBrandMutation();
 
-  // show old image preview in edit mode
   useEffect(() => {
-    if (brand?.logo) {
-      setImages({
-        file: null,
-        preview: brand.logo,
-      });
-    }
+    if (brand?.logo) setLogo({ file: null, preview: brand.logo });
   }, [brand]);
 
   const onSubmit = async (data: any) => {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    if (data.description) formData.append('description', data.description);
+    formData.append('isActive', data.isActive ? 'true' : 'false');
+    if (logo?.file) formData.append('logo', logo.file);
+
     try {
-      const formData = new FormData();
-
-      if (data.keywords) {
-        data.keywords = data.keywords
-          .split(",")
-          .map((k: string) => k.trim())
-          .filter(Boolean);
-      }
-
-      console.log("Processed form data:", data);
-      Object.keys(data).forEach((key) => {
-        const value = data[key];
-        if (value === undefined || value === null) return;
-
-        if (key === "keywords" && Array.isArray(value)) {
-          value.forEach((k: string) => {
-            formData.append("keywords", k);
-          });
-        } else if (key === "status") {
-          formData.append("status", value == true ? "active" : "inactive");
-        } else {
-          formData.append(key, value);
-        }
-      });
-
-      if (images.file) {
-        formData.append("logo", images.file);
-      }
-      console.log(images.file, "images.file");
-
-      const result = await updateBrand({
-        id: brand.id,
-        data: formData,
-      }).unwrap();
-
-      if (result?.success) {
-        toast.success("Brand updated successfully!");
-        reset();
-        onClose();
-      } else {
-        toast.error(result?.message || "Update failed");
-      }
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to update brand");
+      await updateBrand({ id: brand.id, data: formData }).unwrap();
+      toast.success('Brand updated');
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Failed to update brand');
     }
   };
 
-  const handleImageUpload = (e: any) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const preview = URL.createObjectURL(file);
-    setImages({ file, preview });
-  };
-
-  const removeImage = () => {
-    setImages(null);
-  };
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Parent */}
-
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Name */}
-      <InputString
-        placeholder="Enter name"
-        name="name"
-        label="Brand Name"
-        register={register}
-        errors={errors}
-      />
-
-      {/* Image */}
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Brand Name <span className="text-red-500">*</span>
+        </label>
         <input
-          type="file"
-          id="image-upload"
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="hidden"
+          {...register('name', { required: 'Name is required' })}
+          placeholder="e.g. Samsung"
+          className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
         />
-
-        {images ? (
-          <div className="relative group">
-            <img
-              src={images.preview}
-              className="w-full max-h-62.5 object-cover rounded-md"
-            />
-            <button
-              type="button"
-              onClick={removeImage}
-              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full"
-            >
-              <FiX size={12} />
-            </button>
-          </div>
-        ) : (
-          <label htmlFor="image-upload" className="cursor-pointer">
-            <div className="flex flex-col items-center">
-              <FiUpload className="text-3xl text-gray-400 mb-2" />
-              <p className="text-sm font-medium text-gray-700">
-                Click to upload
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                PNG, JPG, GIF up to 10MB
-              </p>
-              <p className="text-xs text-gray-400 mt-1">(Max 10 images)</p>
-            </div>
-            Click to upload
-          </label>
+        {errors.name && (
+          <p className="text-red-500 text-xs mt-1">{errors.name.message as string}</p>
         )}
+      </div>
+
+      {/* Logo */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Logo</label>
+        <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center">
+          <input
+            type="file"
+            id="logo-upload-edit"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setLogo({ file, preview: URL.createObjectURL(file) });
+            }}
+          />
+          {logo ? (
+            <div className="relative inline-block">
+              <img
+                src={logo.preview}
+                alt="Logo"
+                className="h-20 w-20 object-cover rounded-lg mx-auto"
+              />
+              <button
+                type="button"
+                onClick={() => setLogo(null)}
+                className="absolute -top-1.5 -right-1.5 p-0.5 bg-red-500 text-white rounded-full"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ) : (
+            <label
+              htmlFor="logo-upload-edit"
+              className="cursor-pointer flex flex-col items-center gap-1 text-gray-400"
+            >
+              <Upload size={20} />
+              <span className="text-xs">Click to upload</span>
+            </label>
+          )}
+        </div>
       </div>
 
       {/* Description */}
       <div>
-        <InputTextarea
-          placeholder="Enter description here... "
-          name="description"
-          label="Description"
-          required={false}
-          register={register}
+        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <textarea
+          {...register('description')}
           rows={2}
-          errors={errors}
+          placeholder="Short brand description (optional)"
+          className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] resize-none"
         />
       </div>
-      <div>
-        <InputTextarea
-          placeholder="Enter Meta Title here... "
-          name="meta_title"
-          label="Meta Title"
-          required={false}
-          register={register}
-          rows={2}
-          errors={errors}
-        />
+
+      {/* Status */}
+      <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+        <span className="text-sm font-medium text-gray-700">Active Status</span>
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" {...register('isActive')} className="sr-only peer" />
+          <div className="w-9 h-5 bg-gray-200 peer-checked:bg-[#ff6d29] rounded-full transition-colors peer-focus:ring-2 peer-focus:ring-[#ff6d29]/20" />
+          <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
+        </label>
       </div>
-      <div>
-        <InputTextarea
-          placeholder="Enter Meta Description here... "
-          name="meta_description"
-          label="Meta Description"
-          required={false}
-          register={register}
-          rows={2}
-          errors={errors}
-        />
+
+      <div className="flex gap-3 pt-1">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-1 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="flex-1 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          {isLoading && (
+            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
+          <Save size={14} /> Update Brand
+        </button>
       </div>
-      <div>
-        <InputString
-          placeholder="Enter keywords here... "
-          name="keywords"
-          label="Keywords"
-          required={false}
-          register={register}
-          errors={errors}
-        />
-      </div>
-      <ToggleSwitch
-        name="status"
-        label="Brand Status"
-        register={register}
-        errors={errors}
-        defaultValue={true}
-        onToggle={(status) => {
-          console.log("Status changed to:", status ? "Active" : "Inactive");
-        }}
-        helperText="Enable to make this Brand visible"
-      />
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={isLoading}
-        className="px-6 py-2.5 cursor-pointer bg-primary-500 text-white rounded-md hover:bg-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-      >
-        {isLoading ? (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            Updating...
-          </>
-        ) : (
-          <>
-            <FiSave className="mr-2" />
-            Update Brand
-          </>
-        )}
-      </button>
     </form>
   );
 };

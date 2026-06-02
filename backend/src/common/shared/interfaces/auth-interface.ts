@@ -6,5 +6,7 @@ export interface AuthRequest extends Request {
     email: string;
     name: string;
     role: string;
+    businessId: string | null;
+    customPermissions: string[];
   };
 }

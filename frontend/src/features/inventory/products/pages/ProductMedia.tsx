@@ -28,7 +28,7 @@ const ProductMediaManager = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: imagesData, isLoading, refetch } = useGetProductImagesQuery(productId!);
-  const images = imagesData?.data || [];
+  const images = imagesData || [];
   const [uploadImages, { isLoading: uploading }] = useUploadProductImagesMutation();
   const [deleteImage] = useDeleteProductImageMutation();
   const [setThumbnail] = useSetThumbnailMutation();

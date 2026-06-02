@@ -42,10 +42,10 @@ const NewReturnModal = ({ onClose }: { onClose: () => void }) => {
     { search: invoiceSearch, limit: 10 },
     { skip: invoiceSearch.length < 2 },
   );
-  const foundSales: any[] = salesData?.data?.data ?? [];
+  const foundSales: any[] = salesData?.data ?? [];
 
   const { data: saleDetailData } = useGetSaleQuery(selectedSaleId, { skip: !selectedSaleId });
-  const saleDetail = saleDetailData?.data;
+  const saleDetail = saleDetailData;
 
   useEffect(() => {
     if (saleDetail?.items) {
@@ -232,8 +232,8 @@ const SaleReturns = () => {
   const { data, isLoading, isFetching } = useGetAllSaleReturnsQuery({ search, page, limit: 15 });
   const [approveReturn] = useApproveReturnMutation();
 
-  const returns: any[] = data?.data?.data ?? [];
-  const meta = data?.data?.meta;
+  const returns: any[] = data?.data ?? [];
+  const meta = data?.meta;
 
   const handleApprove = async (id: string, ref: string) => {
     if (!confirm(`Approve return ${ref}? This will restore stock.`)) return;

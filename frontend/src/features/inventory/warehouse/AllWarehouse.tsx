@@ -28,8 +28,8 @@ const AllWarehouse = () => {
   const [setDefault, { isLoading: isSettingDefault }] = useSetDefaultWarehouseMutation();
   const [deleteWarehouse, { isLoading: isDeleting }] = useDeleteWarehouseMutation();
 
-  const warehouses = data?.data?.data || [];
-  const meta = data?.data?.meta || { totalItems: 0, totalPages: 1 };
+  const warehouses = data?.data || [];
+  const meta = data?.meta || { totalItems: 0, totalPages: 1 };
   const isBusy = isFetching || isCreating || isUpdating || isDeleting || isSettingDefault;
 
   const openAdd = () => {

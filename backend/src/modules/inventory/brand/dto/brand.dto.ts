@@ -1,6 +1,15 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsNumber, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+
+/** Converts string values from FormData / query params to boolean */
+const toBool = ({ value }: { value: any }): boolean | undefined => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'boolean') return value;
+  if (value === 'true' || value === 'active' || value === '1') return true;
+  if (value === 'false' || value === 'inactive' || value === '0') return false;
+  return Boolean(value);
+};
 
 export class CreateBrandDto {
   @IsString()
@@ -19,6 +28,7 @@ export class CreateBrandDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(toBool)
   @IsBoolean()
   isActive?: boolean;
 }
@@ -41,8 +51,20 @@ export class UpdateBrandDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @Transform(toBool)
   @IsBoolean()
   isActive?: boolean;
+
+  /** Legacy alias — frontend may send 'active'/'inactive' as status field */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'active') return true;
+    if (value === 'inactive') return false;
+    return undefined;
+  })
+  @IsBoolean()
+  status?: boolean;
 }
 
 export class GetBrandsDto {

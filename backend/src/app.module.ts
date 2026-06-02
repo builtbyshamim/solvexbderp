@@ -12,6 +12,7 @@ import jwtConfig from './config/jwt.config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { PermissionGuard } from './common/guards/permission.guard';
 import { UserModule } from './modules/users/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MailModule } from './modules/mail/mail.module';
@@ -101,6 +102,9 @@ import { SmsMarketingModule } from './modules/sms-marketing/sms-marketing.module
 
     // ✅ Global Roles Guard
     { provide: APP_GUARD, useClass: RolesGuard },
+
+    // ✅ Global Permission Guard (fine-grained, checked after RolesGuard)
+    { provide: APP_GUARD, useClass: PermissionGuard },
   ],
 })
 export class AppModule {}

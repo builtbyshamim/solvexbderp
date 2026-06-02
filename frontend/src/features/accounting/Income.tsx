@@ -38,13 +38,13 @@ const Income = () => {
   const [page, setPage] = useState(1);
 
   const { data: accountsData = [] } = useGetAllAccountsQuery({});
-  const cashAccounts = accountsData?.data?.filter((a: any) =>
+  const cashAccounts = accountsData?.filter((a: any) =>
     ['cash', 'bank', 'mobile_banking'].includes(a.accountType),
   );
 
   const { data: incomesRes, isLoading } = useGetIncomesQuery({ search, page, limit: 20 });
-  const incomes = incomesRes?.data?.data ?? [];
-  const meta = incomesRes?.data?.meta;
+  const incomes = incomesRes?.data ?? [];
+  const meta = incomesRes?.meta;
 
   const [recordIncome, { isLoading: saving }] = useRecordIncomeMutation();
   const [deleteTransaction, { isLoading: deleting }] = useDeleteTransactionMutation();

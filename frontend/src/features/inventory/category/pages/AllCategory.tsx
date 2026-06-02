@@ -21,8 +21,8 @@ const AllCategory = () => {
   const { data, error, isFetching, refetch } = useGetAllCategoryQuery({ ...searchValue, search: debouncedSearch });
   const [deleteCategory, { isLoading: isDeleting }] = useDeleteCategoryMutation();
 
-  const categories = data?.data?.data || [];
-  const meta = data?.data?.meta || { totalItems: 0, totalPages: 1 };
+  const categories = data?.data || [];
+  const meta = data?.meta || { totalItems: 0, totalPages: 1 };
 
   const handleDelete = async (category: any) => {
     try {

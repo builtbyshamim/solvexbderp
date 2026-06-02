@@ -41,6 +41,10 @@ export const reportsApi = baseApi.injectEndpoints({
       query: () => ({ url: `${REPORT_URL}/payables`, method: "GET" }),
       providesTags: [{ type: tagTypes.report, id: "PAYABLES" }],
     }),
+    getTopSuppliers: build.query({
+      query: (params) => ({ url: `${REPORT_URL}/top-suppliers`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.report, id: "TOP_SUPPLIERS" }],
+    }),
   }),
 });
 
@@ -54,4 +58,5 @@ export const {
   useGetProfitLossQuery,
   useGetReceivablesQuery,
   useGetPayablesQuery,
+  useGetTopSuppliersQuery,
 } = reportsApi;

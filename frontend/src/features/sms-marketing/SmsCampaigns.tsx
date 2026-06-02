@@ -54,10 +54,10 @@ const SmsCampaigns = () => {
   const [sendCampaign, { isLoading: isSending }] = useSendSmsCampaignMutation();
   const [deleteCampaign, { isLoading: isDeleting }] = useDeleteSmsCampaignMutation();
 
-  const campaigns = data?.data ?? [];
+  const campaigns = data ?? [];
   const meta = data?.meta;
-  const groups = groupData?.data ?? [];
-  const templates = tplData?.data ?? [];
+  const groups = groupData ?? [];
+  const templates = tplData ?? [];
 
   const openCreate = () => {
     setEditId(null);

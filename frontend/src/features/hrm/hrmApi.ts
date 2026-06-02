@@ -66,6 +66,72 @@ export const hrmApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: tagTypes.payroll, id: "LEAVE_LIST" }],
     }),
 
+    // Departments
+    getDepartments: build.query({
+      query: (params) => ({ url: `${HRM_URL}/departments`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.employee, id: "DEPARTMENTS" }],
+    }),
+    createDepartment: build.mutation({
+      query: (data) => ({ url: `${HRM_URL}/departments`, method: "POST", data }),
+      invalidatesTags: [{ type: tagTypes.employee, id: "DEPARTMENTS" }],
+    }),
+    updateDepartment: build.mutation({
+      query: ({ id, data }: { id: string; data: any }) => ({
+        url: `${HRM_URL}/departments/${id}`, method: "PATCH", data,
+      }),
+      invalidatesTags: [{ type: tagTypes.employee, id: "DEPARTMENTS" }],
+    }),
+    deleteDepartment: build.mutation({
+      query: (id: string) => ({ url: `${HRM_URL}/departments/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: tagTypes.employee, id: "DEPARTMENTS" }],
+    }),
+
+    // Designations
+    getDesignations: build.query({
+      query: (params) => ({ url: `${HRM_URL}/designations`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.employee, id: "DESIGNATIONS" }],
+    }),
+    createDesignation: build.mutation({
+      query: (data) => ({ url: `${HRM_URL}/designations`, method: "POST", data }),
+      invalidatesTags: [{ type: tagTypes.employee, id: "DESIGNATIONS" }],
+    }),
+    updateDesignation: build.mutation({
+      query: ({ id, data }: { id: string; data: any }) => ({
+        url: `${HRM_URL}/designations/${id}`, method: "PATCH", data,
+      }),
+      invalidatesTags: [{ type: tagTypes.employee, id: "DESIGNATIONS" }],
+    }),
+    deleteDesignation: build.mutation({
+      query: (id: string) => ({ url: `${HRM_URL}/designations/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: tagTypes.employee, id: "DESIGNATIONS" }],
+    }),
+
+    // Loans & Advances
+    getAllLoans: build.query({
+      query: (params) => ({ url: `${HRM_URL}/loans`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.employee, id: "LOANS" }],
+    }),
+    createLoan: build.mutation({
+      query: (data) => ({ url: `${HRM_URL}/loans`, method: "POST", data }),
+      invalidatesTags: [{ type: tagTypes.employee, id: "LOANS" }],
+    }),
+    updateLoan: build.mutation({
+      query: ({ id, data }: { id: string; data: any }) => ({
+        url: `${HRM_URL}/loans/${id}`, method: "PATCH", data,
+      }),
+      invalidatesTags: [{ type: tagTypes.employee, id: "LOANS" }],
+    }),
+
+    // KPI
+    getAllKPI: build.query({
+      query: (params) => ({ url: `${HRM_URL}/kpi`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.employee, id: "KPI" }],
+    }),
+    createKPI: build.mutation({
+      query: (data) => ({ url: `${HRM_URL}/kpi`, method: "POST", data }),
+      invalidatesTags: [{ type: tagTypes.employee, id: "KPI" }],
+    }),
+
     // Payroll
     getAllPayrolls: build.query({
       query: (params) => ({ url: `${HRM_URL}/payroll`, method: "GET", params }),
@@ -87,6 +153,19 @@ export const hrmApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetDepartmentsQuery,
+  useCreateDepartmentMutation,
+  useUpdateDepartmentMutation,
+  useDeleteDepartmentMutation,
+  useGetDesignationsQuery,
+  useCreateDesignationMutation,
+  useUpdateDesignationMutation,
+  useDeleteDesignationMutation,
+  useGetAllLoansQuery,
+  useCreateLoanMutation,
+  useUpdateLoanMutation,
+  useGetAllKPIQuery,
+  useCreateKPIMutation,
   useGetAllEmployeesQuery,
   useGetEmployeeQuery,
   useCreateEmployeeMutation,

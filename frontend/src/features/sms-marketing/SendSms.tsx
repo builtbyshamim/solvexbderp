@@ -17,7 +17,7 @@ const SendSms = () => {
 
   const [quickSend, { isLoading }] = useQuickSendSmsMutation();
   const { data: tplData } = useGetSmsTemplatesQuery({ limit: 50 });
-  const templates = tplData?.data ?? [];
+  const templates = tplData ?? [];
 
   const charCount = message.length;
   const parts = Math.ceil(charCount / CHAR_LIMIT) || 1;

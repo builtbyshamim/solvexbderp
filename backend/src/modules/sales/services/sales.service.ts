@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, ILike, Repository } from 'typeorm';
+import { StockLocationService } from 'src/modules/inventory/warehouse/services/stock-location.service';
 import { CustomerEntity } from '../entities/customer.entity';
 import { SaleEntity, SaleItemEntity, SaleStatus, PaymentStatus } from '../entities/sale.entity';
 import { QuotationEntity, QuotationItemEntity, QuotationStatus } from '../entities/quotation.entity';
@@ -28,6 +29,7 @@ export class SalesService {
     @InjectRepository(SaleReturnEntity) private readonly returnRepo: Repository<SaleReturnEntity>,
     @InjectRepository(ProductStockEntity) private readonly stockRepo: Repository<ProductStockEntity>,
     @InjectRepository(StockLedgerEntity) private readonly ledgerRepo: Repository<StockLedgerEntity>,
+    private readonly locationService: StockLocationService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -142,6 +144,9 @@ export class SalesService {
 
   async createSale(businessId: string, userId: string, dto: CreateSaleDto) {
     return this.dataSource.transaction(async (tx) => {
+      // Resolve stock location — defaults to business if no warehouse specified
+      const location = await this.locationService.resolve(businessId, dto.warehouseId, tx);
+
       let subtotal = 0;
       let totalProfit = 0;
 
@@ -152,7 +157,7 @@ export class SalesService {
 
       for (const item of dto.items) {
         const stock = await tx.findOne(ProductStockEntity, {
-          where: { businessId, productId: item.productId, warehouseId: dto.warehouseId },
+          where: { businessId, productId: item.productId, locationId: location.id },
         });
         if (!stock || Number(stock.currentQty) < Number(item.quantity)) {
           throw new BadRequestException(
@@ -191,14 +196,14 @@ export class SalesService {
         await tx.save(SaleItemEntity, { ...item, saleId: savedSale.id });
 
         const stock = await tx.findOne(ProductStockEntity, {
-          where: { businessId, productId: item.productId, warehouseId: dto.warehouseId },
+          where: { businessId, productId: item.productId, locationId: location.id },
         });
         stock!.currentQty = Number(stock!.currentQty) - item.quantity;
         stock!.outQty = Number(stock!.outQty) + item.quantity;
         await tx.save(ProductStockEntity, stock!);
 
         await tx.save(StockLedgerEntity, {
-          businessId, productId: item.productId, warehouseId: dto.warehouseId,
+          businessId, productId: item.productId, locationId: location.id,
           transactionType: StockTransactionType.SALE, referenceType: 'sale',
           referenceId: savedSale.id, qtyIn: 0, qtyOut: item.quantity,
           balanceAfter: stock!.currentQty, unitCost: item.costPrice, createdBy: userId,
@@ -265,9 +270,11 @@ export class SalesService {
       if (!sale) throw new NotFoundException('Sale not found');
       if (sale.status === SaleStatus.CANCELLED) throw new BadRequestException('Sale is already cancelled');
 
+      const location = await this.locationService.resolve(businessId, sale.warehouseId, tx);
+
       for (const item of sale.items) {
         const stock = await tx.findOne(ProductStockEntity, {
-          where: { businessId, productId: item.productId, warehouseId: sale.warehouseId },
+          where: { businessId, productId: item.productId, locationId: location.id },
         });
         if (stock) {
           stock.currentQty = Number(stock.currentQty) + Number(item.quantity);
@@ -275,7 +282,7 @@ export class SalesService {
           await tx.save(ProductStockEntity, stock);
 
           await tx.save(StockLedgerEntity, {
-            businessId, productId: item.productId, warehouseId: sale.warehouseId,
+            businessId, productId: item.productId, locationId: location.id,
             transactionType: StockTransactionType.ADJUSTMENT_IN, referenceType: 'sale_cancel',
             referenceId: sale.id, qtyIn: Number(item.quantity), qtyOut: 0,
             balanceAfter: stock.currentQty, unitCost: Number(item.costPrice),
@@ -456,10 +463,10 @@ export class SalesService {
       if (!ret) throw new NotFoundException('Return not found');
       if (ret.status !== ReturnStatus.PENDING) throw new BadRequestException('Only pending returns can be approved');
 
-      const warehouseId = ret.sale.warehouseId;
+      const location = await this.locationService.resolve(businessId, ret.sale.warehouseId, tx);
       for (const item of ret.items) {
         const stock = await tx.findOne(ProductStockEntity, {
-          where: { businessId, productId: item.productId, warehouseId },
+          where: { businessId, productId: item.productId, locationId: location.id },
         });
         if (stock) {
           stock.currentQty = Number(stock.currentQty) + Number(item.quantity);

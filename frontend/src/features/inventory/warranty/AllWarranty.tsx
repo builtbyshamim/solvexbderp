@@ -23,8 +23,8 @@ const AllWarranty = () => {
   const [updateWarranty, { isLoading: isUpdating }] = useUpdateWarrantyMutation();
   const [deleteWarranty, { isLoading: isDeleting }] = useDeleteWarrantyMutation();
 
-  const warranties = data?.data?.data || [];
-  const meta = data?.data?.meta || { totalItems: 0, totalPages: 1 };
+  const warranties = data?.data || [];
+  const meta = data?.meta || { totalItems: 0, totalPages: 1 };
   const isBusy = isFetching || isCreating || isUpdating || isDeleting;
 
   const openAdd = () => {

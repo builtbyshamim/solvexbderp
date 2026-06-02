@@ -14,6 +14,6 @@ import { WarehouseModule } from '../warehouse/warehouse.module';
   ],
   controllers: [ProductController],
   providers: [ProductService],
-  exports: [ProductService, TypeOrmModule],
+  exports: [ProductService, TypeOrmModule, WarehouseModule],
 })
 export class ProductModule {}

@@ -35,7 +35,7 @@ const AllAccounts = () => {
   const [deleteItem, setDeleteItem] = useState<any>(null);
 
   const { data, isLoading } = useGetAllAccountsQuery({});
-  const accounts = data?.data || [];
+  const accounts = data || [];
   const { data: summary } = useGetAccountSummaryQuery(undefined);
   const [createAccount, { isLoading: creating }] = useCreateAccountMutation();
   const [updateAccount, { isLoading: updating }] = useUpdateAccountMutation();

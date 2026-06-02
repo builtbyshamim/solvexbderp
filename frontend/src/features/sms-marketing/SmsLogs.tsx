@@ -28,7 +28,7 @@ const SmsLogs = () => {
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useGetSmsLogsQuery({ search, status, dateFrom, dateTo, page, limit: 20 });
-  const logs = data?.data ?? [];
+  const logs = data ?? [];
   const meta = data?.meta;
 
   const exportCsv = () => {

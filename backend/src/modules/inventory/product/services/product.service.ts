@@ -1,15 +1,12 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource, ILike, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProductEntity } from '../entities/product.entity';
 import { ProductStockEntity } from '../entities/product-stock.entity';
 import { StockLedgerEntity, StockTransactionType } from '../entities/stock-ledger.entity';
 import { CreateProductDto, GetProductsDto, UpdateProductDto } from '../dto/product.dto';
-import { WarehouseService } from '../../warehouse/services/warehouse.service';
+import { StockLocationService } from '../../warehouse/services/stock-location.service';
+import { StockLocationEntity } from '../../warehouse/entities/stock-location.entity';
 
 @Injectable()
 export class ProductService {
@@ -20,17 +17,14 @@ export class ProductService {
     private readonly stockRepo: Repository<ProductStockEntity>,
     @InjectRepository(StockLedgerEntity)
     private readonly ledgerRepo: Repository<StockLedgerEntity>,
-    private readonly warehouseService: WarehouseService,
+    private readonly locationService: StockLocationService,
     private readonly dataSource: DataSource,
   ) {}
 
   async create(businessId: string, userId: string, dto: CreateProductDto) {
     return this.dataSource.transaction(async (tx) => {
-      // SKU uniqueness check within business
       if (dto.sku) {
-        const exists = await tx.findOne(ProductEntity, {
-          where: { businessId, sku: dto.sku },
-        });
+        const exists = await tx.findOne(ProductEntity, { where: { businessId, sku: dto.sku } });
         if (exists) throw new ConflictException('SKU already exists in this business');
       }
 
@@ -43,50 +37,37 @@ export class ProductService {
       });
       const saved = await tx.save(ProductEntity, product);
 
-      // Determine warehouse
-      const warehouseId = dto.warehouseId
-        ?? (await this.warehouseService.getDefault(businessId))?.id;
+      // Resolve location: warehouseId provided → warehouse location, else → business default
+      const location = await this.locationService.resolve(businessId, dto.warehouseId, tx);
+      const openingQty = dto.openingStock ?? 0;
 
-      if (warehouseId && (dto.openingStock ?? 0) > 0) {
-        // Create stock record
-        const stock = tx.create(ProductStockEntity, {
-          businessId,
-          productId: saved.id,
-          warehouseId,
-          openingQty: dto.openingStock,
-          inQty: dto.openingStock,
-          outQty: 0,
-          currentQty: dto.openingStock,
-          avgCost: dto.purchasePrice ?? 0,
-        });
-        await tx.save(ProductStockEntity, stock);
+      const stock = tx.create(ProductStockEntity, {
+        businessId,
+        productId: saved.id,
+        locationId: location.id,
+        openingQty,
+        inQty: openingQty,
+        outQty: 0,
+        currentQty: openingQty,
+        reservedQty: 0,
+        avgCost: dto.purchasePrice ?? 0,
+      });
+      await tx.save(ProductStockEntity, stock);
 
-        // Write to stock ledger
+      if (openingQty > 0) {
         await tx.save(StockLedgerEntity, {
           businessId,
           productId: saved.id,
-          warehouseId,
+          locationId: location.id,
           transactionType: StockTransactionType.OPENING,
-          qtyIn: dto.openingStock,
+          qtyIn: openingQty,
           qtyOut: 0,
-          balanceAfter: dto.openingStock,
+          balanceAfter: openingQty,
           unitCost: dto.purchasePrice ?? 0,
+          totalCost: (dto.purchasePrice ?? 0) * openingQty,
           note: 'Opening stock',
           createdBy: userId,
         });
-      } else if (warehouseId) {
-        // Zero opening stock — still create record
-        const stock = tx.create(ProductStockEntity, {
-          businessId,
-          productId: saved.id,
-          warehouseId,
-          openingQty: 0,
-          inQty: 0,
-          outQty: 0,
-          currentQty: 0,
-          avgCost: dto.purchasePrice ?? 0,
-        });
-        await tx.save(ProductStockEntity, stock);
       }
 
       return saved;
@@ -106,25 +87,37 @@ export class ProductService {
       .where('p.businessId = :businessId', { businessId });
 
     if (search) {
-      qb.andWhere('(p.name ILIKE :s OR p.sku ILIKE :s OR p.barcode ILIKE :s)', {
-        s: `%${search}%`,
-      });
+      qb.andWhere('(p.name ILIKE :s OR p.sku ILIKE :s OR p.barcode ILIKE :s)', { s: `%${search}%` });
     }
     if (categoryId) qb.andWhere('p.categoryId = :categoryId', { categoryId });
     if (brandId) qb.andWhere('p.brandId = :brandId', { brandId });
 
     qb.orderBy('p.name', 'ASC').skip(skip).take(limit);
-
     const [data, totalItems] = await qb.getManyAndCount();
+
+    // Enrich each stock row with warehouseId from stock_locations
+    // so the frontend can match stocks to the active warehouse
+    const locationIds = new Set<string>();
+    for (const p of data) {
+      for (const s of p.stocks ?? []) locationIds.add(s.locationId);
+    }
+    if (locationIds.size > 0) {
+      const locs = await this.dataSource
+        .getRepository(StockLocationEntity)
+        .createQueryBuilder('l')
+        .where('l.id IN (:...ids)', { ids: [...locationIds] })
+        .getMany();
+      const locMap = new Map<string, string | null>(locs.map((l) => [l.id, l.warehouseId ?? null]));
+      for (const p of data) {
+        for (const s of p.stocks ?? []) {
+          (s as any).warehouseId = locMap.get(s.locationId) ?? null;
+        }
+      }
+    }
 
     return {
       data,
-      meta: {
-        totalItems,
-        totalPages: Math.ceil(totalItems / limit),
-        currentPage: Number(page),
-        limit: Number(limit),
-      },
+      meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: Number(page), limit: Number(limit) },
     };
   }
 
@@ -138,10 +131,10 @@ export class ProductService {
   }
 
   async getStock(businessId: string, productId: string) {
-    return this.stockRepo.find({
-      where: { businessId, productId },
-      relations: ['warehouse'],
-    });
+    // Return stock rows with computed total
+    const rows = await this.stockRepo.find({ where: { businessId, productId } });
+    const total = rows.reduce((s, r) => s + Number(r.currentQty), 0);
+    return { rows, total };
   }
 
   async update(businessId: string, id: string, dto: UpdateProductDto) {
@@ -158,7 +151,7 @@ export class ProductService {
 
   async getLowStockProducts(businessId: string) {
     return this.dataSource.query(
-      `SELECT p.*, ps.current_qty, ps.warehouse_id
+      `SELECT p.*, ps.current_qty, ps.location_id
        FROM products p
        JOIN product_stocks ps ON ps.product_id = p.id AND ps.business_id = $1
        WHERE p.business_id = $1
