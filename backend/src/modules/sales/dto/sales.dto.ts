@@ -30,6 +30,11 @@ export class GetCustomersDto {
 
 // ─── Sale DTOs ─────────────────────────────────────────────────────────────────
 
+export class PaymentEntryDto {
+  @ApiProperty() @IsString() @IsNotEmpty() method: string;
+  @ApiProperty() @Type(() => Number) @IsNumber() @Min(0) amount: number;
+}
+
 export class SaleItemDto {
   @ApiProperty() @IsUUID() productId: string;
   @ApiProperty() @Type(() => Number) @IsNumber() @Min(0.0001) quantity: number;
@@ -47,6 +52,9 @@ export class CreateSaleDto {
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) taxAmount?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) paidAmount?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() paymentMethod?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) deliveryCharge?: number;
+  @ApiPropertyOptional() @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => PaymentEntryDto) payments?: PaymentEntryDto[];
+  @ApiPropertyOptional() @IsOptional() @IsString() offerLabel?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
 }
 

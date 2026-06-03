@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
@@ -8,7 +7,6 @@ import { useGetAllCategoryQuery } from '../../category/categoryApi';
 import { useGetAllBrandQuery } from '../../brand/brandApi';
 import { useGetAllUnitQuery } from '../../unit/unitApi';
 import { useGetAllWarrantyQuery } from '../../warranty/warrantyApi';
-import { useGetAllWarehouseQuery } from '../../warehouse/warehouseApi';
 import PageHeader from '../../../../components/shared/PageHeader';
 
 const F = ({ label, required, error, children }: any) => (
@@ -29,7 +27,6 @@ const AddProduct = () => {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: { isActive: true, productType: 'physical' },
@@ -39,22 +36,12 @@ const AddProduct = () => {
   const { data: brandData } = useGetAllBrandQuery({ limit: 500 });
   const { data: unitData } = useGetAllUnitQuery({ limit: 500 });
   const { data: warrantyData } = useGetAllWarrantyQuery({ limit: 500 });
-  const { data: warehouseData } = useGetAllWarehouseQuery({ limit: 500 });
   const [createProduct, { isLoading }] = useCreateProductMutation();
 
   const categories = catData?.data || [];
   const brands = brandData?.data || [];
   const units = unitData?.data || [];
   const warranties = warrantyData?.data || [];
-  const warehouses: any[] = warehouseData?.data || [];
-
-  // Auto-select default warehouse once loaded
-  useEffect(() => {
-    if (warehouses.length > 0) {
-      const def = warehouses.find((w: any) => w.isDefault);
-      if (def) setValue('warehouseId', def.id);
-    }
-  }, [warehouses.length]);
 
   const onSubmit = async (data: any) => {
     const payload: any = {
@@ -69,7 +56,6 @@ const AddProduct = () => {
     if (data.brandId) payload.brandId = data.brandId;
     if (data.unitId) payload.unitId = data.unitId;
     if (data.warrantyId) payload.warrantyId = data.warrantyId;
-    if (data.warehouseId) payload.warehouseId = data.warehouseId;
     if (data.purchasePrice) payload.purchasePrice = Number(data.purchasePrice);
     if (data.sellingPrice) payload.sellingPrice = Number(data.sellingPrice);
     if (data.wholesalePrice) payload.wholesalePrice = Number(data.wholesalePrice);
@@ -284,18 +270,6 @@ const AddProduct = () => {
                   {warranties.map((w: any) => (
                     <option key={w.id} value={w.id}>
                       {w.name}
-                    </option>
-                  ))}
-                </select>
-              </F>
-
-              <F label="Warehouse">
-                <select {...register('warehouseId')} className={inp()}>
-                  <option value="">Business profile (default)</option>
-                  {warehouses.map((w: any) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                      {w.isDefault ? ' ★ Default' : ''}
                     </option>
                   ))}
                 </select>

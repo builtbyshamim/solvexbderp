@@ -175,19 +175,31 @@ export class SalesService {
 
       const discount = dto.discountAmount ?? 0;
       const tax = dto.taxAmount ?? 0;
-      const grandTotal = subtotal - discount + tax;
-      const paid = dto.paidAmount ?? 0;
-      const due = grandTotal - paid;
+      const delivery = dto.deliveryCharge ?? 0;
+      const grandTotal = subtotal - discount + tax + delivery;
+
+      // Resolve paid amount from payments array (multi-method) or single paidAmount
+      const paymentEntries = dto.payments ?? [];
+      const paid = paymentEntries.length > 0
+        ? paymentEntries.reduce((s, p) => s + Number(p.amount), 0)
+        : (dto.paidAmount ?? 0);
+      const payMethod = paymentEntries.length === 1
+        ? paymentEntries[0].method
+        : paymentEntries.length > 1 ? 'split' : (dto.paymentMethod ?? 'cash');
+      const due = Math.max(0, grandTotal - paid);
 
       const sale = tx.create(SaleEntity, {
         businessId, customerId: dto.customerId, warehouseId: dto.warehouseId,
         invoiceNo: dto.invoiceNo || this.generateInvoiceNo(),
         saleDate: new Date(dto.saleDate),
-        subtotal, discountAmount: discount, taxAmount: tax, grandTotal,
+        subtotal, discountAmount: discount, taxAmount: tax,
+        deliveryCharge: delivery, grandTotal,
         paidAmount: paid, dueAmount: due, totalProfit,
         status: SaleStatus.CONFIRMED,
         paymentStatus: this.computePaymentStatus(paid, grandTotal),
-        paymentMethod: dto.paymentMethod,
+        paymentMethod: payMethod,
+        payments: paymentEntries.length > 0 ? paymentEntries : undefined,
+        offerLabel: dto.offerLabel,
         note: dto.note, createdBy: userId,
       });
       const savedSale = await tx.save(SaleEntity, sale);

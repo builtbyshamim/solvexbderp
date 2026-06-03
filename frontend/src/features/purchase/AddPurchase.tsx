@@ -18,16 +18,19 @@ interface PurchaseItem {
   unitCost: number;
   discountAmount: number;
   total: number;
+  currentStock: number;
 }
 
 // ─── Product Search ────────────────────────────────────────────────────────────
 
 const ProductSearch = ({
   item,
+  warehouseId,
   onSelect,
 }: {
   item: PurchaseItem;
-  onSelect: (p: { id: string; name: string; purchasePrice: number }) => void;
+  warehouseId: string;
+  onSelect: (p: { id: string; name: string; purchasePrice: number; currentStock: number }) => void;
 }) => {
   const [query, setQuery] = useState(item.productName);
   const [open, setOpen] = useState(false);
@@ -50,6 +53,13 @@ const ProductSearch = ({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const getStock = (p: any) => {
+    if (!warehouseId) {
+      return (p.stocks ?? []).reduce((s: number, st: any) => s + Number(st.currentQty ?? 0), 0);
+    }
+    return Number(p.stocks?.find((s: any) => s.warehouseId === warehouseId)?.currentQty ?? 0);
+  };
+
   return (
     <div className="relative" ref={ref}>
       <div className="relative">
@@ -64,31 +74,41 @@ const ProductSearch = ({
         />
       </div>
       {open && products.length > 0 && (
-        <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-[#DBDFE9] rounded-lg shadow-lg w-72 max-h-52 overflow-y-auto">
-          {products.map((p: any) => (
-            <button
-              key={p.id}
-              type="button"
-              onMouseDown={() => {
-                onSelect({
-                  id: p.id,
-                  name: p.name,
-                  purchasePrice: Number(p.purchasePrice ?? p.basePrice ?? 0),
-                });
-                setQuery(p.name);
-                setOpen(false);
-              }}
-              className="w-full text-left px-3 py-2 hover:bg-orange-50 text-sm border-b border-gray-50 last:border-0"
-            >
-              <div className="font-medium text-[#26272F]">{p.name}</div>
-              <div className="flex items-center justify-between text-xs mt-0.5">
-                <span className="text-gray-400 font-mono">{p.sku ?? ''}</span>
-                <span className="text-[#ff6d29] font-semibold">
-                  Cost: ৳{Number(p.purchasePrice ?? p.basePrice ?? 0).toLocaleString()}
-                </span>
-              </div>
-            </button>
-          ))}
+        <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-[#DBDFE9] rounded-lg shadow-lg w-80 max-h-52 overflow-y-auto">
+          {products.map((p: any) => {
+            const stock = getStock(p);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onMouseDown={() => {
+                  onSelect({
+                    id: p.id,
+                    name: p.name,
+                    purchasePrice: Number(p.purchasePrice ?? 0),
+                    currentStock: Number(stock),
+                  });
+                  setQuery(p.name);
+                  setOpen(false);
+                }}
+                className="w-full text-left px-3 py-2 hover:bg-orange-50 text-sm border-b border-gray-50 last:border-0"
+              >
+                <div className="font-medium text-[#26272F]">{p.name}</div>
+                <div className="flex items-center justify-between text-xs mt-0.5">
+                  <span className="text-gray-400 font-mono">{p.sku ?? ''}</span>
+                  <span className="text-[#ff6d29] font-semibold">
+                    Cost: ৳{Number(p.purchasePrice ?? 0).toLocaleString()}
+                  </span>
+                  <span className={`font-semibold ${
+                    Number(stock) <= 0 ? 'text-red-500' :
+                    Number(stock) <= 5 ? 'text-yellow-600' : 'text-gray-500'
+                  }`}>
+                    Stk: {Number(stock).toFixed(0)}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -105,6 +125,7 @@ const EMPTY_ITEM = (): PurchaseItem => ({
   unitCost: 0,
   discountAmount: 0,
   total: 0,
+  currentStock: -1,
 });
 
 const AddPurchase = () => {
@@ -167,11 +188,11 @@ const AddPurchase = () => {
     );
   };
 
-  const selectProduct = (_id: number, p: { id: string; name: string; purchasePrice: number }) => {
+  const selectProduct = (_id: number, p: { id: string; name: string; purchasePrice: number; currentStock: number }) => {
     setItems((prev) =>
       prev.map((it) => {
         if (it._id !== _id) return it;
-        const updated = { ...it, productId: p.id, productName: p.name, unitCost: p.purchasePrice };
+        const updated = { ...it, productId: p.id, productName: p.name, unitCost: p.purchasePrice, currentStock: p.currentStock };
         updated.total = calcTotal(updated.qty, updated.unitCost, updated.discountAmount);
         return updated;
       }),
@@ -380,7 +401,25 @@ const AddPurchase = () => {
                   {items.map((item) => (
                     <tr key={item._id} className="border-b border-gray-50">
                       <td className="py-2 pr-3">
-                        <ProductSearch item={item} onSelect={(p) => selectProduct(item._id, p)} />
+                        <ProductSearch
+                          item={item}
+                          warehouseId={form.warehouseId}
+                          onSelect={(p) => selectProduct(item._id, p)}
+                        />
+                        {/* Current stock badge — informational for purchases */}
+                        {item.productId && item.currentStock >= 0 && (
+                          <div className="mt-1 flex items-center gap-1">
+                            <span className={`inline-flex items-center gap-1 text-xs font-medium ${
+                              item.currentStock === 0 ? 'text-red-500' :
+                              item.currentStock <= 5  ? 'text-yellow-600' : 'text-gray-500'
+                            }`}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                              {item.currentStock === 0
+                                ? 'Currently out of stock'
+                                : `Current stock: ${item.currentStock}`}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="py-2 pr-3">
                         <input
@@ -391,6 +430,11 @@ const AddPurchase = () => {
                           onChange={(e) => updateItem(item._id, { qty: Number(e.target.value) })}
                           className="w-16 px-2 py-1.5 border border-[#DBDFE9] rounded text-sm text-center focus:outline-none focus:border-[#ff6d29]"
                         />
+                        {item.productId && item.currentStock >= 0 && (
+                          <p className="text-xs mt-0.5 text-center text-gray-400">
+                            → {item.currentStock + item.qty}
+                          </p>
+                        )}
                       </td>
                       <td className="py-2 pr-3">
                         <input

@@ -1,5 +1,5 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { DataSource, ILike, Repository } from 'typeorm';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { DataSource, ILike, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProductEntity } from '../entities/product.entity';
 import { ProductStockEntity } from '../entities/product-stock.entity';
@@ -145,6 +145,14 @@ export class ProductService {
 
   async remove(businessId: string, id: string) {
     const product = await this.findOne(businessId, id);
+
+    const txCount = await this.ledgerRepo.count({
+      where: { businessId, productId: id, transactionType: Not(StockTransactionType.OPENING) },
+    });
+    if (txCount > 0) {
+      throw new BadRequestException('Cannot delete a product that has transactions. Archive it by setting it inactive instead.');
+    }
+
     await this.productRepo.remove(product);
     return { message: 'Product deleted successfully' };
   }

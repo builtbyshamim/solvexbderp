@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Search, Phone, Mail, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Pencil, Trash2, Search, Phone, Mail, Loader2, Eye } from 'lucide-react';
 import PageHeader from '../../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -229,6 +230,9 @@ const AllSupplier = () => {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
+                        <Link to={`/admin/purchase/suppliers/${item.id}`} className="p-1.5 text-[#ff6d29] hover:bg-orange-50 rounded-lg" title="View details">
+                          <Eye className="h-4 w-4" />
+                        </Link>
                         <button
                           onClick={() => openEdit(item)}
                           className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"

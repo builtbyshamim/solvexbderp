@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Package } from 'lucide-react';
+import { Plus, Search, Package, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useDebounce } from '../../../../hooks/useDebounce';
-import { useGetAllProductsQuery } from '../productApi';
+import { useGetAllProductsQuery, useDeleteProductMutation } from '../productApi';
 import CommonPagination from '../../../../components/ui/paginations/CommonPagination';
 import { ImageDisplay } from '../../../../components/ui/modal/ImageDisply';
 import PageHeader from '../../../../components/shared/PageHeader';
@@ -11,6 +12,7 @@ import { useLanguage } from '../../../../context/LanguageContext';
 const AllProduct = () => {
   const { t } = useLanguage();
   const [searchValue, setSearchValue] = useState({ search: '', limit: 10, page: 1 });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const debouncedSearch = useDebounce(searchValue.search, 500);
 
   const {
@@ -22,9 +24,21 @@ const AllProduct = () => {
     search: debouncedSearch,
   });
 
+  const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+
   const products = productData?.data || [];
-  console.log('Fetched products:', products);
   const meta = productData?.meta || { totalItems: 0, totalPages: 1 };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteProduct(id).unwrap();
+      toast.success('Product deleted');
+      setConfirmDeleteId(null);
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Failed to delete product');
+      setConfirmDeleteId(null);
+    }
+  };
 
   const tableHeaders = [
     '#',
@@ -41,6 +55,38 @@ const AllProduct = () => {
 
   return (
     <div>
+      {/* Delete confirmation dialog */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-800">Delete Product</p>
+                <p className="text-sm text-gray-500 mt-0.5">This action cannot be undone.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(confirmDeleteId)}
+                disabled={isDeleting}
+                className="flex-1 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-60"
+              >
+                {isDeleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <PageHeader
         title={t('inventory.products.title')}
         subtitle={t('inventory.products.subtitle')}
@@ -118,7 +164,11 @@ const AllProduct = () => {
               ) : (
                 products.map((product: any, index: number) => {
                   const thumbnail =
-                    [...(product?.images ?? [])].find((img) => img.isThumbnail)?.url || '';
+                    product.image || [...(product?.images ?? [])].find((img: any) => img.isThumbnail)?.url || '';
+                  const totalStock = (product.stocks ?? []).reduce(
+                    (sum: number, s: any) => sum + Number(s.currentQty ?? 0),
+                    0,
+                  );
                   return (
                     <tr key={product.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 text-gray-500">
@@ -141,10 +191,10 @@ const AllProduct = () => {
                         {product.sku || '—'}
                       </td>
                       <td className="px-4 py-3 font-semibold">
-                        ৳{Number(product.basePrice).toFixed(2)}
+                        ৳{Number(product.sellingPrice ?? 0).toFixed(2)}
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                        {Number(product.baseStock).toFixed(2)}
+                        {totalStock.toFixed(2)}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -165,12 +215,21 @@ const AllProduct = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <Link
-                          to={`/admin/inventory/products/edit/${product.id}`}
-                          className="px-3 py-1.5 text-xs border border-[#DBDFE9] text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          {t('common.edit')}
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            to={`/admin/inventory/products/edit/${product.id}`}
+                            className="px-3 py-1.5 text-xs border border-[#DBDFE9] text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            {t('common.edit')}
+                          </Link>
+                          <button
+                            onClick={() => setConfirmDeleteId(product.id)}
+                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete product"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

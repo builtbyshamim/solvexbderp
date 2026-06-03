@@ -214,6 +214,20 @@ export class PurchaseService {
       relations: ['items', 'supplier'],
     });
     if (!p) throw new NotFoundException('Purchase not found');
+
+    if (p.items?.length) {
+      const productIds = p.items.map((i) => i.productId);
+      const products: { id: string; name: string }[] = await this.dataSource.query(
+        'SELECT id, name FROM products WHERE id = ANY($1::uuid[])',
+        [productIds],
+      );
+      const nameMap = new Map(products.map((pr) => [pr.id, pr.name]));
+      (p as any).items = p.items.map((item) => ({
+        ...item,
+        product: { name: nameMap.get(item.productId) ?? item.productId },
+      }));
+    }
+
     return p;
   }
 

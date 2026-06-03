@@ -25,6 +25,7 @@ import StockReport from '../features/inventory/stock/StockReport';
 
 // Purchase
 import AllSupplier from '../features/purchase/supplier/AllSupplier';
+import SupplierDetail from '../features/purchase/supplier/SupplierDetail';
 import PurchaseList from '../features/purchase/PurchaseList';
 import AddPurchase from '../features/purchase/AddPurchase';
 import PurchaseReturns from '../features/purchase/PurchaseReturns';
@@ -32,6 +33,7 @@ import SupplierLedger from '../features/purchase/SupplierLedger';
 
 // Sales
 import AllCustomer from '../features/sales/customer/AllCustomer';
+import CustomerDetail from '../features/sales/customer/CustomerDetail';
 import SaleList from '../features/sales/SaleList';
 import AddSale from '../features/sales/AddSale';
 import SaleReturns from '../features/sales/SaleReturns';
@@ -134,6 +136,7 @@ const router = createBrowserRouter([
 
       // Purchase
       { path: 'purchase/suppliers', element: <AllSupplier /> },
+      { path: 'purchase/suppliers/:id', element: <SupplierDetail /> },
       { path: 'purchase/list', element: <PurchaseList /> },
       { path: 'purchase/add', element: <AddPurchase /> },
       { path: 'purchase/returns', element: <PurchaseReturns /> },
@@ -141,6 +144,7 @@ const router = createBrowserRouter([
 
       // Sales
       { path: 'sales/customers', element: <AllCustomer /> },
+      { path: 'sales/customers/:id', element: <CustomerDetail /> },
       { path: 'sales/list', element: <SaleList /> },
       { path: 'sales/add', element: <AddSale /> },
       { path: 'sales/returns', element: <SaleReturns /> },
