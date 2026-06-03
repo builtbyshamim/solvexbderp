@@ -96,6 +96,8 @@ const en = {
   'nav.sales.saleReturns': 'Sale Returns',
   'nav.sales.quotations': 'Quotations',
   'nav.sales.customerLedger': 'Customer Ledger',
+  'nav.sales.collection': 'Collection',
+  'nav.sales.collectionReport': 'Collection Report',
   'nav.pos': 'POS',
   'nav.accounting': 'Accounting',
   'nav.accounting.accounts': 'Accounts',

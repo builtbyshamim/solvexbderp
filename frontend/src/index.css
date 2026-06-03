@@ -16,30 +16,52 @@ body {
   font-family: "Nunito", sans-serif;
 }
 
-/* sidebarScroll  */
-.custom-select-scroll {
+/* ── Global scrollbar defaults ── */
+* {
   scrollbar-width: thin;
-  scrollbar-color: #dbdfe9 transparent;
+  scrollbar-color: #e2e5ef transparent;
 }
-.custom-select-scroll::-webkit-scrollbar-button {
-  display: none !important;
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
 }
-/* sidebarScroll  */
-.custom-select-scroll {
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: #d1d5e0;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #b0b5c8;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ── Branded orange scrollbar (sidebar, dropdowns) ── */
+.scroll-brand {
   scrollbar-width: thin;
   scrollbar-color: #ff6d29 transparent;
 }
+.scroll-brand::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.scroll-brand::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-brand::-webkit-scrollbar-thumb {
+  background: #ff6d29;
+  border-radius: 999px;
+}
+.scroll-brand::-webkit-scrollbar-thumb:hover {
+  background: #e65a1f;
+}
 
-.custom-select-scroll::-webkit-scrollbar-button {
-  display: none !important;
-}
-.sidebarScroll::-webkit-scrollbar {
-  width: 5px;
-}
-.sidebarScroll::-webkit-scrollbar-thumb {
-  background-color: #ff6d29;
-  border-radius: 10px;
-}
+/* ── Legacy aliases (keep for existing usage) ── */
+.sidebarScroll { @apply scroll-brand; }
+.custom-select-scroll { @apply scroll-brand; }
 .input-style {
   @apply py-[6px] placeholder:text-sm text-sm bg-[#FCFCFC] border border-[#DBDFE9] w-full rounded placeholder:text-[#B5B7C8] outline-[#00B45F];
 }

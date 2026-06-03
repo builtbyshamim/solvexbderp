@@ -96,6 +96,8 @@ const bn = {
   'nav.sales.saleReturns': 'বিক্রয় ফেরত',
   'nav.sales.quotations': 'কোটেশন',
   'nav.sales.customerLedger': 'গ্রাহক খতিয়ান',
+  'nav.sales.collection': 'কালেকশন',
+  'nav.sales.collectionReport': 'কালেকশন রিপোর্ট',
   'nav.pos': 'পিওএস',
   'nav.accounting': 'হিসাব বিভাগ',
   'nav.accounting.accounts': 'হিসাব',

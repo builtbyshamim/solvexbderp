@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Search,
   Plus,
@@ -8,12 +8,14 @@ import {
   Printer,
   RotateCcw,
   Loader2,
+  ChevronDown,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCreateSaleMutation } from '../sales/salesApi';
 import { useGetAllCustomersQuery } from '../sales/salesApi';
 import { useGetAllProductsQuery } from '../inventory/products/productApi';
 import { useActiveWarehouse } from '../../hooks/useActiveWarehouse';
+import { useNavigate } from 'react-router-dom';
 
 interface CartItem {
   id: string;
@@ -25,8 +27,194 @@ interface CartItem {
   total: number;
 }
 
+const LIMIT = 12;
+
+// ── Product Search Dropdown (opens upward) ────────────────────────────────────
+const ProductSearchDropdown = ({
+  warehouseId,
+  onSelect,
+}: {
+  warehouseId: string;
+  onSelect: (p: any) => void;
+}) => {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [accumulated, setAccumulated] = useState<any[]>([]);
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reset accumulation when query changes
+  useEffect(() => {
+    setPage(1);
+    setAccumulated([]);
+  }, [query]);
+
+  const { data, isFetching } = useGetAllProductsQuery(
+    { search: query || undefined, limit: LIMIT, page },
+    { skip: !open },
+  );
+
+  const incoming: any[] = data?.data ?? [];
+  const meta = data?.meta;
+  const hasMore = meta ? page < meta.totalPages : false;
+
+  // Merge new page into accumulated list (deduplicate by id)
+  useEffect(() => {
+    if (incoming.length === 0) return;
+    setAccumulated((prev) => {
+      const ids = new Set(prev.map((p) => p.id));
+      const fresh = incoming.filter((p) => !ids.has(p.id));
+      return [...prev, ...fresh];
+    });
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const getStock = (p: any): number => {
+    const stocks: any[] = p.stocks ?? [];
+    if (!stocks.length) return 0;
+    if (warehouseId) {
+      const exact = stocks.find((s) => s.warehouseId === warehouseId);
+      if (exact) return Number(exact.currentQty ?? 0);
+      const def = stocks.find((s) => s.warehouseId === null);
+      if (def) return Number(def.currentQty ?? 0);
+    }
+    const def = stocks.find((s) => s.warehouseId === null);
+    if (def) return Number(def.currentQty ?? 0);
+    return stocks.reduce((sum, s) => sum + Number(s.currentQty ?? 0), 0);
+  };
+
+  const handleSelect = (p: any) => {
+    onSelect(p);
+    setQuery('');
+    setOpen(false);
+    setPage(1);
+    setAccumulated([]);
+    inputRef.current?.focus();
+  };
+
+  const loadMore = () => {
+    if (!isFetching && hasMore) setPage((p) => p + 1);
+  };
+
+  return (
+    <div className="relative flex-1" ref={ref}>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="Search product or scan barcode..."
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          className="pl-9 pr-4 py-2.5 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
+          autoFocus
+        />
+        {isFetching && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-[#ff6d29]" />
+        )}
+      </div>
+
+      {/* Dropdown — opens ABOVE the input */}
+      {open && (
+        <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-[#DBDFE9] rounded-lg shadow-xl z-50 max-h-72 flex flex-col">
+          <div className="overflow-y-auto flex-1">
+            {accumulated.length === 0 && !isFetching && (
+              <div className="px-4 py-6 text-center text-gray-400 text-sm">
+                {query ? 'No products found' : 'Type to search products'}
+              </div>
+            )}
+            {accumulated.map((p: any) => {
+              const stock = getStock(p);
+              const outOfStock = stock <= 0;
+              return (
+                <button
+                  key={p.id}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelect(p);
+                  }}
+                  disabled={outOfStock}
+                  className="w-full text-left px-3 py-2.5 hover:bg-orange-50 border-b border-gray-50 last:border-0 flex items-center justify-between gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#26272F] truncate">{p.name}</p>
+                    <p className="text-xs text-gray-400">{p.sku || '—'}</p>
+                  </div>
+                  <div className="flex flex-col items-end shrink-0">
+                    <span className="text-sm font-bold text-[#ff6d29]">
+                      ৳{Number(p.sellingPrice).toLocaleString()}
+                    </span>
+                    <span
+                      className={`text-xs font-medium ${
+                        outOfStock
+                          ? 'text-red-500'
+                          : stock <= 5
+                            ? 'text-yellow-600'
+                            : 'text-green-600'
+                      }`}
+                    >
+                      {outOfStock ? 'Out of stock' : `${Number(stock).toFixed(0)} in stock`}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Load more */}
+          {hasMore && (
+            <div className="border-t border-[#DBDFE9] p-2 shrink-0">
+              <button
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  loadMore();
+                }}
+                disabled={isFetching}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs text-[#ff6d29] hover:bg-orange-50 rounded font-medium disabled:opacity-40"
+              >
+                {isFetching ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" /> Loading…
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3 w-3" /> Load more (
+                    {meta?.totalItems ? meta.totalItems - accumulated.length : '?'} remaining)
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Loading first page */}
+          {isFetching && accumulated.length === 0 && (
+            <div className="px-4 py-4 text-center">
+              <Loader2 className="h-5 w-5 animate-spin text-[#ff6d29] mx-auto" />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Main POS Terminal ─────────────────────────────────────────────────────────
+
 const POSTerminal = () => {
-  const [search, setSearch] = useState('');
+  const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerId, setCustomerId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
@@ -34,10 +222,38 @@ const POSTerminal = () => {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paidAmount, setPaidAmount] = useState('');
   const [category, setCategory] = useState('All');
+  const [gridSearch, setGridSearch] = useState('');
+  const [gridPage, setGridPage] = useState(1);
+  const [gridProducts, setGridProducts] = useState<any[]>([]);
 
-  const { data: productsData } = useGetAllProductsQuery({ search, limit: 50 });
-  const products: any[] = productsData?.data ?? [];
-  console.log(productsData, 'productsData');
+  const { data: gridData, isFetching: gridFetching } = useGetAllProductsQuery({
+    search: gridSearch || undefined,
+    limit: 24,
+    page: gridPage,
+  });
+
+  const gridMeta = gridData?.meta;
+  const gridHasMore = gridMeta ? gridPage < gridMeta.totalPages : false;
+
+  // Accumulate grid pages
+  useEffect(() => {
+    const incoming: any[] = gridData?.data ?? [];
+    if (incoming.length === 0) return;
+    if (gridPage === 1) {
+      setGridProducts(incoming);
+    } else {
+      setGridProducts((prev) => {
+        const ids = new Set(prev.map((p) => p.id));
+        return [...prev, ...incoming.filter((p) => !ids.has(p.id))];
+      });
+    }
+  }, [gridData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset grid when search changes
+  useEffect(() => {
+    setGridPage(1);
+    setGridProducts([]);
+  }, [gridSearch]);
 
   const { data: customersData } = useGetAllCustomersQuery({ limit: 200 });
   const customers: any[] = customersData?.data ?? [];
@@ -45,7 +261,6 @@ const POSTerminal = () => {
   const { warehouseId: activeWarehouseId, warehouses } = useActiveWarehouse();
   const [createSale, { isLoading: isCheckingOut }] = useCreateSaleMutation();
 
-  // Keep local warehouseId in sync with global selection (can override per-session)
   useEffect(() => {
     if (activeWarehouseId && !warehouseId) setWarehouseId(activeWarehouseId);
   }, [activeWarehouseId]);
@@ -53,22 +268,15 @@ const POSTerminal = () => {
   const getStock = (p: any): number => {
     const stocks: any[] = p.stocks ?? [];
     if (!stocks.length) return 0;
-
     if (warehouseId) {
-      // 1. Exact match — stock for the selected warehouse's location
       const exact = stocks.find((s) => s.warehouseId === warehouseId);
       if (exact) return Number(exact.currentQty ?? 0);
-
-      // 2. Business-default location (warehouseId === null) as fallback
       const def = stocks.find((s) => s.warehouseId === null);
       if (def) return Number(def.currentQty ?? 0);
     } else {
-      // No warehouse selected — use business default first
       const def = stocks.find((s) => s.warehouseId === null);
       if (def) return Number(def.currentQty ?? 0);
     }
-
-    // 3. Last resort — sum all locations
     return stocks.reduce((sum, s) => sum + Number(s.currentQty ?? 0), 0);
   };
 
@@ -128,9 +336,8 @@ const POSTerminal = () => {
       toast.error('No warehouse available');
       return;
     }
-
     try {
-      await createSale({
+      const result = await createSale({
         customerId: customerId || undefined,
         warehouseId,
         saleDate: new Date().toISOString().split('T')[0],
@@ -146,43 +353,36 @@ const POSTerminal = () => {
       }).unwrap();
 
       toast.success('Sale completed!');
+      const newId = result?.data?.id ?? result?.id;
       setCart([]);
       setPaidAmount('');
       setDiscountPct('0');
       setCustomerId('');
+
+      if (newId) navigate(`/admin/sales/${newId}`);
     } catch (err: any) {
       toast.error(err?.message || 'Checkout failed');
     }
   };
 
-  // Get unique category names from products
-  const categories = [
+  // Category list from grid products
+  const allCategories = [
     'All',
-    ...Array.from(new Set(products.map((p: any) => p.category?.name).filter(Boolean))),
+    ...Array.from(new Set(gridProducts.map((p: any) => p.category?.name).filter(Boolean))),
   ] as string[];
 
-  const filteredProducts = products.filter((p: any) => {
-    const matchCat = category === 'All' || p.category?.name === category;
-    return matchCat;
-  });
+  const filteredGrid = gridProducts.filter(
+    (p: any) => category === 'All' || p.category?.name === category,
+  );
 
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col lg:flex-row gap-4 overflow-hidden">
       {/* Products Panel */}
       <div className="flex-1 flex flex-col overflow-hidden bg-white border border-[#DBDFE9] rounded-lg">
         <div className="p-3 border-b border-[#DBDFE9]">
+          {/* Top row: search dropdown + warehouse picker */}
           <div className="flex gap-2 mb-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search product or scan barcode..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-4 py-2.5 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
-                autoFocus
-              />
-            </div>
+            <ProductSearchDropdown warehouseId={warehouseId} onSelect={addToCart} />
             {warehouses.length > 1 && (
               <select
                 value={warehouseId}
@@ -197,9 +397,25 @@ const POSTerminal = () => {
               </select>
             )}
           </div>
-          {categories.length > 1 && (
+
+          {/* Grid filter search */}
+          <div className="flex items-center gap-2 mb-2">
+            <div className="relative flex-1 sm:max-w-xs">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Filter grid..."
+                value={gridSearch}
+                onChange={(e) => setGridSearch(e.target.value)}
+                className="pl-8 pr-3 py-1.5 border border-[#DBDFE9] rounded-lg text-xs w-full focus:outline-none focus:border-[#ff6d29]"
+              />
+            </div>
+          </div>
+
+          {/* Category chips */}
+          {allCategories.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
-              {categories.map((cat) => (
+              {allCategories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setCategory(cat)}
@@ -212,9 +428,10 @@ const POSTerminal = () => {
           )}
         </div>
 
+        {/* Product grid */}
         <div className="flex-1 overflow-y-auto p-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
-            {filteredProducts.map((product: any) => {
+            {filteredGrid.map((product: any) => {
               const stock = getStock(product);
               return (
                 <button
@@ -241,13 +458,41 @@ const POSTerminal = () => {
                 </button>
               );
             })}
-            {filteredProducts.length === 0 && (
+
+            {filteredGrid.length === 0 && !gridFetching && (
               <div className="col-span-full flex flex-col items-center justify-center py-16 text-gray-400">
                 <Search className="h-10 w-10 mb-2 text-gray-300" />
                 <p className="text-sm">No products found</p>
               </div>
             )}
+
+            {gridFetching && gridProducts.length === 0 && (
+              <div className="col-span-full flex items-center justify-center py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-[#ff6d29]" />
+              </div>
+            )}
           </div>
+
+          {/* Load more grid */}
+          {gridHasMore && (
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={() => setGridPage((p) => p + 1)}
+                disabled={gridFetching}
+                className="flex items-center gap-2 px-5 py-2 border border-[#DBDFE9] rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+              >
+                {gridFetching ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3.5 w-3.5" /> Load more
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -288,7 +533,7 @@ const POSTerminal = () => {
             <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
               <ShoppingCart className="h-12 w-12 mb-3 text-gray-200" />
               <p className="text-sm">Cart is empty</p>
-              <p className="text-xs mt-1">Click products to add them</p>
+              <p className="text-xs mt-1">Search or click a product to add</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
@@ -395,7 +640,17 @@ const POSTerminal = () => {
           )}
 
           <div className="grid grid-cols-2 gap-2">
-            <button className="flex items-center justify-center gap-1.5 py-2.5 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
+            <button
+              onClick={() => {
+                if (cart.length === 0) {
+                  toast.error('Cart is empty');
+                  return;
+                }
+                // Quick POS receipt in new window using last sale id would need a sale first.
+                toast('Complete checkout to print receipt', { icon: '🖨️' });
+              }}
+              className="flex items-center justify-center gap-1.5 py-2.5 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50"
+            >
               <Printer className="h-4 w-4" /> Print
             </button>
             <button

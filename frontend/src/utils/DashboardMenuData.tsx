@@ -70,8 +70,10 @@ export const useDashboardMenuData = () => {
         { id: 2, name: t('nav.sales.saleList'),       path: '/admin/sales/list' },
         { id: 3, name: t('nav.sales.addSale'),        path: '/admin/sales/add' },
         { id: 4, name: t('nav.sales.saleReturns'),    path: '/admin/sales/returns' },
-        { id: 5, name: t('nav.sales.quotations'),     path: '/admin/sales/quotations' },
-        { id: 6, name: t('nav.sales.customerLedger'), path: '/admin/sales/customer-ledger' },
+        { id: 5, name: t('nav.sales.quotations'),        path: '/admin/sales/quotations' },
+        { id: 6, name: t('nav.sales.customerLedger'),   path: '/admin/sales/customer-ledger' },
+        { id: 7, name: t('nav.sales.collection'),        path: '/admin/sales/collection' },
+        { id: 8, name: t('nav.sales.collectionReport'),  path: '/admin/sales/collection-report' },
       ],
     },
     {

@@ -65,7 +65,25 @@ export const salesApi = baseApi.injectEndpoints({
       query: ({ id, data }: { id: string; data: any }) => ({
         url: `${SALE_URL}/${id}/collect-payment`, method: "POST", data,
       }),
-      invalidatesTags: [{ type: tagTypes.sale, id: "LIST" }, { type: tagTypes.customer, id: "LIST" }],
+      invalidatesTags: [
+        { type: tagTypes.sale, id: "LIST" },
+        { type: tagTypes.customer, id: "LIST" },
+        { type: tagTypes.collection, id: "LIST" },
+      ],
+    }),
+    collectBulkPayment: build.mutation({
+      query: ({ customerId, data }: { customerId: string; data: any }) => ({
+        url: `${CUSTOMER_URL}/${customerId}/collect`, method: "POST", data,
+      }),
+      invalidatesTags: [
+        { type: tagTypes.sale, id: "LIST" },
+        { type: tagTypes.customer, id: "LIST" },
+        { type: tagTypes.collection, id: "LIST" },
+      ],
+    }),
+    getCollectionReport: build.query({
+      query: (params) => ({ url: `${SALE_URL}/collections`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.collection, id: "LIST" }],
     }),
     getSalesDashboardStats: build.query({
       query: () => ({ url: `${SALE_URL}/dashboard-stats`, method: "GET" }),
@@ -130,6 +148,8 @@ export const {
   useCreateSaleMutation,
   useCancelSaleMutation,
   useCollectPaymentMutation,
+  useCollectBulkPaymentMutation,
+  useGetCollectionReportQuery,
   useGetSalesDashboardStatsQuery,
   useGetAllQuotationsQuery,
   useCreateQuotationMutation,

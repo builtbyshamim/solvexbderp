@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Eye, Plus, Download, Loader2, XCircle } from 'lucide-react';
+import { Search, Eye, Plus, Download, Loader2, XCircle, Printer } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -153,8 +153,19 @@ const SaleList = () => {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        <button className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg" title="View">
+                        <Link
+                          to={`/admin/sales/${item.id}`}
+                          className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg"
+                          title="View"
+                        >
                           <Eye className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => window.open(`/print/invoice/a4/${item.id}`, '_blank', 'width=900,height=700')}
+                          className="p-1.5 text-[#ff6d29] hover:bg-orange-50 rounded-lg"
+                          title="Print Invoice"
+                        >
+                          <Printer className="h-4 w-4" />
                         </button>
                         {item.status !== 'cancelled' && (
                           <button

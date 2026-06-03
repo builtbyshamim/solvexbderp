@@ -36,9 +36,14 @@ import AllCustomer from '../features/sales/customer/AllCustomer';
 import CustomerDetail from '../features/sales/customer/CustomerDetail';
 import SaleList from '../features/sales/SaleList';
 import AddSale from '../features/sales/AddSale';
+import SaleDetail from '../features/sales/SaleDetail';
 import SaleReturns from '../features/sales/SaleReturns';
 import Quotations from '../features/sales/Quotations';
 import CustomerLedger from '../features/sales/CustomerLedger';
+import CustomerCollection from '../features/sales/CustomerCollection';
+import CollectionReport from '../features/sales/CollectionReport';
+import InvoiceA4 from '../features/sales/print/InvoiceA4';
+import InvoicePOS from '../features/sales/print/InvoicePOS';
 
 // POS
 import POSTerminal from '../features/pos/POSTerminal';
@@ -95,6 +100,23 @@ const router = createBrowserRouter([
     path: '/',
     element: <Navigate to="/admin" replace />,
   },
+  // Standalone print pages (no layout, no sidebar)
+  {
+    path: '/print/invoice/a4/:id',
+    element: (
+      <ProtectedRoute>
+        <InvoiceA4 />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/print/invoice/pos/:id',
+    element: (
+      <ProtectedRoute>
+        <InvoicePOS />
+      </ProtectedRoute>
+    ),
+  },
   {
     path: '/login',
     element: (
@@ -150,6 +172,9 @@ const router = createBrowserRouter([
       { path: 'sales/returns', element: <SaleReturns /> },
       { path: 'sales/quotations', element: <Quotations /> },
       { path: 'sales/customer-ledger', element: <CustomerLedger /> },
+      { path: 'sales/collection', element: <CustomerCollection /> },
+      { path: 'sales/collection-report', element: <CollectionReport /> },
+      { path: 'sales/:id', element: <SaleDetail /> },
 
       // POS
       { path: 'pos', element: <POSTerminal /> },
