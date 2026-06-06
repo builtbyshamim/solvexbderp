@@ -12,7 +12,7 @@ import { ProductStockEntity } from 'src/modules/inventory/product/entities/produ
 import { StockLedgerEntity, StockTransactionType } from 'src/modules/inventory/product/entities/stock-ledger.entity';
 import {
   CreatePurchaseDto, CreateSupplierDto, GetPurchasesDto,
-  GetSuppliersDto, UpdateSupplierDto,
+  GetSuppliersDto, UpdateSupplierDto, PaySupplierDto,
 } from '../dto/purchase.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { StockLocationService } from 'src/modules/inventory/warehouse/services/stock-location.service';
@@ -229,6 +229,80 @@ export class PurchaseService {
     }
 
     return p;
+  }
+
+  async getSupplierDuePurchases(businessId: string, supplierId: string) {
+    const supplier = await this.findSupplier(businessId, supplierId);
+    const purchases = await this.purchaseRepo.find({
+      where: { businessId, supplierId },
+      order: { purchaseDate: 'ASC', createdAt: 'ASC' },
+    });
+    const duePurchases = purchases.filter((p) => Number(p.dueAmount) > 0);
+    return { supplier, data: duePurchases };
+  }
+
+  async paySupplier(businessId: string, supplierId: string, dto: PaySupplierDto) {
+    return this.dataSource.transaction(async (tx) => {
+      const supplier = await tx.findOne(SupplierEntity, { where: { id: supplierId, businessId } });
+      if (!supplier) throw new NotFoundException('Supplier not found');
+
+      const currentBalance = Number(supplier.currentBalance);
+      if (dto.amount > currentBalance + 0.01) {
+        throw new BadRequestException(
+          `Payment ৳${dto.amount} exceeds supplier payable balance ৳${currentBalance.toFixed(2)}`,
+        );
+      }
+
+      if (dto.invoicePayments?.length) {
+        // ── Invoice-wise: pay specific purchases ──
+        for (const item of dto.invoicePayments) {
+          const purchase = await tx.findOne(PurchaseEntity, {
+            where: { id: item.purchaseId, businessId, supplierId },
+          });
+          if (!purchase) throw new NotFoundException(`Purchase ${item.purchaseId} not found`);
+
+          const payable = Math.min(Number(item.amount), Number(purchase.dueAmount));
+          purchase.paidAmount = Number(purchase.paidAmount) + payable;
+          purchase.dueAmount = Number(purchase.dueAmount) - payable;
+          purchase.paymentStatus =
+            purchase.dueAmount <= 0.009
+              ? PaymentStatus.PAID
+              : Number(purchase.paidAmount) > 0
+                ? PaymentStatus.PARTIAL
+                : PaymentStatus.UNPAID;
+          if (purchase.dueAmount < 0) purchase.dueAmount = 0;
+          await tx.save(PurchaseEntity, purchase);
+        }
+      } else {
+        // ── Bulk: auto-distribute oldest-first ──
+        const duePurchases = await this.purchaseRepo.find({
+          where: { businessId, supplierId },
+          order: { purchaseDate: 'ASC', createdAt: 'ASC' },
+        });
+        let remaining = Number(dto.amount);
+        for (const purchase of duePurchases) {
+          if (remaining <= 0) break;
+          const due = Number(purchase.dueAmount);
+          if (due <= 0) continue;
+          const payable = Math.min(remaining, due);
+          purchase.paidAmount = Number(purchase.paidAmount) + payable;
+          purchase.dueAmount = due - payable;
+          purchase.paymentStatus =
+            purchase.dueAmount <= 0.009
+              ? PaymentStatus.PAID
+              : PaymentStatus.PARTIAL;
+          if (purchase.dueAmount < 0) purchase.dueAmount = 0;
+          await tx.save(PurchaseEntity, purchase);
+          remaining -= payable;
+        }
+      }
+
+      // Reduce supplier payable balance
+      const newBalance = Math.max(0, currentBalance - Number(dto.amount));
+      await tx.update(SupplierEntity, { id: supplierId, businessId }, { currentBalance: newBalance });
+
+      return { message: 'Payment recorded successfully', paidAmount: dto.amount, remainingBalance: newBalance };
+    });
   }
 
   async getSupplierLedger(
