@@ -358,11 +358,6 @@ const AddSale = () => {
       toast.error('Please fill all product rows with valid quantities');
       return;
     }
-    if (!form.warehouseId) {
-      toast.error('Please select a warehouse');
-      return;
-    }
-
     // Stock checks (frontend guard — backend enforces too)
     const outOfStock = items.find((i) => i.productId && i.maxStock === 0 && i.maxStock !== 9999);
     if (outOfStock) {
@@ -381,7 +376,7 @@ const AddSale = () => {
     try {
       const payload: any = {
         customerId: form.customerId || undefined,
-        warehouseId: form.warehouseId,
+        warehouseId: form.warehouseId || undefined,
         saleDate: form.date,
         invoiceNo: form.invoiceNo || undefined,
         items: items.map((i) => ({
@@ -465,7 +460,7 @@ const AddSale = () => {
               {hasWarehouses && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    Warehouse {warehouses.length > 1 && <span className="text-red-500">*</span>}
+                    Warehouse <span className="text-gray-400 font-normal">(optional — defaults to business stock)</span>
                   </label>
                   {warehouses.length === 1 ? (
                     <div className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm text-gray-600 bg-gray-50">

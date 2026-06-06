@@ -96,6 +96,19 @@ export const purchaseApi = baseApi.injectEndpoints({
       }),
       providesTags: (result, error, arg) => [{ type: tagTypes.supplier, id: arg.supplierId }],
     }),
+
+    // Supplier Ledger Adjustment
+    createSupplierAdjustment: build.mutation({
+      query: ({ supplierId, data }: { supplierId: string; data: any }) => ({
+        url: `${SUPPLIER_URL}/${supplierId}/adjust`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: tagTypes.supplier, id: arg.supplierId },
+        { type: tagTypes.supplier, id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -114,4 +127,5 @@ export const {
   useGetSupplierDuePurchasesQuery,
   usePaySupplierMutation,
   useGetSupplierLedgerQuery,
+  useCreateSupplierAdjustmentMutation,
 } = purchaseApi;

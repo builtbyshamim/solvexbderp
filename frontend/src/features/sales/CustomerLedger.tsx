@@ -1,14 +1,28 @@
 import { useState } from 'react';
-import { Search, Download, Loader2 } from 'lucide-react';
+import { Search, Download, Loader2, SlidersHorizontal, X } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
-import { useGetAllCustomersQuery, useGetCustomerStatementQuery } from './salesApi';
+import {
+  useGetAllCustomersQuery,
+  useGetCustomerStatementQuery,
+  useCreateCustomerAdjustmentMutation,
+} from './salesApi';
 import { useLanguage } from '../../context/LanguageContext';
+import toast from 'react-hot-toast';
 
 const typeColors: Record<string, string> = {
-  sale:    'bg-blue-100 text-blue-700',
-  payment: 'bg-green-100 text-green-700',
-  return:  'bg-orange-100 text-orange-600',
+  sale:       'bg-blue-100 text-blue-700',
+  payment:    'bg-green-100 text-green-700',
+  return:     'bg-orange-100 text-orange-600',
+  opening:    'bg-gray-100 text-gray-600',
+  adjustment: 'bg-purple-100 text-purple-700',
 };
+
+const EMPTY_ADJ = () => ({
+  date: new Date().toISOString().split('T')[0],
+  type: 'debit' as 'debit' | 'credit',
+  amount: '',
+  note: '',
+});
 
 const CustomerLedger = () => {
   const { t } = useLanguage();
@@ -16,6 +30,10 @@ const CustomerLedger = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [search, setSearch] = useState('');
+
+  // Adjustment modal state
+  const [adjOpen, setAdjOpen] = useState(false);
+  const [adjForm, setAdjForm] = useState(EMPTY_ADJ());
 
   const { data: customersData } = useGetAllCustomersQuery({ limit: 200 });
   const customers: any[] = customersData?.data ?? [];
@@ -25,8 +43,9 @@ const CustomerLedger = () => {
     { skip: !customerId },
   );
 
-  const statement = stmtData;
+  const [createAdjustment, { isLoading: adjSaving }] = useCreateCustomerAdjustmentMutation();
 
+  const statement = stmtData;
   const entries: any[] = statement?.entries ?? [];
   const currentBalance = statement?.customer?.currentBalance ?? 0;
   const selectedCustomer = customers.find((c: any) => c.id === customerId);
@@ -46,6 +65,25 @@ const CustomerLedger = () => {
     t('common.balance'),
     t('common.note'),
   ];
+
+  const openAdj = () => { setAdjForm(EMPTY_ADJ()); setAdjOpen(true); };
+  const closeAdj = () => setAdjOpen(false);
+
+  const handleAdjSubmit = async () => {
+    if (!adjForm.amount || Number(adjForm.amount) <= 0) {
+      toast.error('Enter a valid amount'); return;
+    }
+    try {
+      await createAdjustment({
+        customerId,
+        data: { ...adjForm, amount: Number(adjForm.amount) },
+      }).unwrap();
+      toast.success('Adjustment saved');
+      closeAdj();
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Failed to save adjustment');
+    }
+  };
 
   return (
     <div>
@@ -98,6 +136,12 @@ const CustomerLedger = () => {
                 ({Number(currentBalance) > 0 ? t('sales.customerLedger.due') : t('sales.customerLedger.clear')})
               </span>
             </span>
+            <button
+              onClick={openAdj}
+              className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" /> Adjust
+            </button>
           </div>
         )}
       </div>
@@ -154,6 +198,96 @@ const CustomerLedger = () => {
           </table>
         </div>
       </div>
+
+      {/* ── Adjustment Modal ── */}
+      {adjOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#DBDFE9]">
+              <h3 className="text-base font-semibold text-[#26272F]">Ledger Adjustment — {selectedCustomer?.name}</h3>
+              <button onClick={closeAdj} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              {/* Type */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Adjustment Type</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {(['debit', 'credit'] as const).map((tp) => (
+                    <button
+                      key={tp}
+                      type="button"
+                      onClick={() => setAdjForm((f) => ({ ...f, type: tp }))}
+                      className={`py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                        adjForm.type === tp
+                          ? tp === 'debit'
+                            ? 'border-orange-500 bg-orange-50 text-orange-600'
+                            : 'border-green-500 bg-green-50 text-green-600'
+                          : 'border-[#DBDFE9] text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      {tp === 'debit' ? '▲ Debit (owes more)' : '▼ Credit (owes less)'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Date</label>
+                <input
+                  type="date"
+                  value={adjForm.date}
+                  onChange={(e) => setAdjForm((f) => ({ ...f, date: e.target.value }))}
+                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
+                />
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Amount (৳)</label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={adjForm.amount}
+                  onChange={(e) => setAdjForm((f) => ({ ...f, amount: e.target.value }))}
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
+                />
+              </div>
+
+              {/* Note */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Note (optional)</label>
+                <textarea
+                  rows={2}
+                  value={adjForm.note}
+                  onChange={(e) => setAdjForm((f) => ({ ...f, note: e.target.value }))}
+                  placeholder="Reason for adjustment..."
+                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] resize-none"
+                />
+              </div>
+            </div>
+            <div className="px-5 py-4 border-t border-[#DBDFE9] flex justify-end gap-3">
+              <button
+                onClick={closeAdj}
+                className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAdjSubmit}
+                disabled={adjSaving}
+                className="px-5 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:opacity-60 transition-colors"
+              >
+                {adjSaving ? 'Saving…' : 'Save Adjustment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

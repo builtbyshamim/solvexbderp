@@ -218,14 +218,13 @@ const AddPurchase = () => {
   // ─── Submit ──────────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
-    if (!form.warehouseId) { toast.error('Select a warehouse'); return; }
     if (items.some((i) => !i.productId)) { toast.error('Select a product for every row'); return; }
     if (items.some((i) => i.qty <= 0)) { toast.error('Quantity must be greater than 0'); return; }
     if (items.some((i) => i.unitCost <= 0)) { toast.error('Unit cost must be greater than 0'); return; }
 
     const payload = {
       supplierId: form.supplierId || undefined,
-      warehouseId: form.warehouseId,
+      warehouseId: form.warehouseId || undefined,
       invoiceNo: form.invoiceNo || undefined,
       purchaseDate: form.purchaseDate,
       items: items.map((i) => ({
@@ -334,7 +333,7 @@ const AddPurchase = () => {
               {/* Warehouse */}
               {hasWarehouses && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Warehouse <span className="text-red-500">*</span></label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Warehouse <span className="text-gray-400 font-normal">(optional — defaults to business stock)</span></label>
                   {warehouses.length === 1 ? (
                     <div className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm text-gray-600 bg-gray-50">{warehouses[0].name}</div>
                   ) : (

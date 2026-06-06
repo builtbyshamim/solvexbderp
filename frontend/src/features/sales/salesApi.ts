@@ -23,6 +23,18 @@ export const salesApi = baseApi.injectEndpoints({
       }),
       providesTags: (result, error, { customerId }) => [{ type: tagTypes.customer, id: customerId }],
     }),
+
+    createCustomerAdjustment: build.mutation({
+      query: ({ customerId, data }: { customerId: string; data: any }) => ({
+        url: `${CUSTOMER_URL}/${customerId}/adjust`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: tagTypes.customer, id: arg.customerId },
+        { type: tagTypes.customer, id: "LIST" },
+      ],
+    }),
     createCustomer: build.mutation({
       query: (data) => ({ url: CUSTOMER_URL, method: "POST", data }),
       invalidatesTags: [{ type: tagTypes.customer, id: "LIST" }],
@@ -158,4 +170,5 @@ export const {
   useGetAllSaleReturnsQuery,
   useCreateSaleReturnMutation,
   useApproveReturnMutation,
+  useCreateCustomerAdjustmentMutation,
 } = salesApi;
