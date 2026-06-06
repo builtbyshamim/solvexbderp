@@ -14,10 +14,11 @@ import { SaleReturnEntity, SaleReturnItemEntity, ReturnStatus } from '../entitie
 import { ProductStockEntity } from 'src/modules/inventory/product/entities/product-stock.entity';
 import { StockLedgerEntity, StockTransactionType } from 'src/modules/inventory/product/entities/stock-ledger.entity';
 import {
-  CreateCustomerDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
+  CreateCustomerDto, CreateCustomerAdjustmentDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
   CollectPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
   ConvertQuotationDto, CreateSaleReturnDto, GetSaleReturnsDto, GetCustomerStatementDto,
 } from '../dto/sales.dto';
+import { CustomerLedgerAdjustmentEntity, AdjustmentType } from '../entities/customer-adjustment.entity';
 
 @Injectable()
 export class SalesService {
@@ -29,6 +30,8 @@ export class SalesService {
     @InjectRepository(SaleReturnEntity) private readonly returnRepo: Repository<SaleReturnEntity>,
     @InjectRepository(ProductStockEntity) private readonly stockRepo: Repository<ProductStockEntity>,
     @InjectRepository(StockLedgerEntity) private readonly ledgerRepo: Repository<StockLedgerEntity>,
+    @InjectRepository(CustomerLedgerAdjustmentEntity)
+    private readonly customerAdjustmentRepo: Repository<CustomerLedgerAdjustmentEntity>,
     private readonly locationService: StockLocationService,
     private readonly dataSource: DataSource,
   ) {}
@@ -75,6 +78,32 @@ export class SalesService {
     return { message: 'Customer deleted successfully' };
   }
 
+  async createCustomerAdjustment(
+    businessId: string,
+    customerId: string,
+    dto: CreateCustomerAdjustmentDto,
+    userId: string,
+  ) {
+    const customer = await this.findCustomer(businessId, customerId);
+    const adj = this.customerAdjustmentRepo.create({
+      businessId,
+      customerId,
+      date: new Date(dto.date),
+      type: dto.type as AdjustmentType,
+      amount: dto.amount,
+      note: dto.note,
+      createdBy: userId,
+    });
+    await this.customerAdjustmentRepo.save(adj);
+
+    // Debit = customer owes more; Credit = customer owes less
+    const delta = dto.type === 'debit' ? Number(dto.amount) : -Number(dto.amount);
+    const newBalance = Math.max(0, Number(customer.currentBalance) + delta);
+    await this.customerRepo.update({ id: customerId, businessId }, { currentBalance: newBalance });
+
+    return adj;
+  }
+
   async getCustomerStatement(businessId: string, customerId: string, query: GetCustomerStatementDto) {
     const customer = await this.findCustomer(businessId, customerId);
     const { dateFrom, dateTo } = query;
@@ -88,7 +117,41 @@ export class SalesService {
     if (dateTo) qb.andWhere('s.saleDate <= :dateTo', { dateTo });
     qb.orderBy('s.saleDate', 'ASC').addOrderBy('s.createdAt', 'ASC');
 
-    const sales = await qb.getMany();
+    const [sales, adjustments] = await Promise.all([
+      qb.getMany(),
+      this.customerAdjustmentRepo.find({
+        where: { businessId, customerId },
+        order: { date: 'ASC', createdAt: 'ASC' },
+      }),
+    ]);
+
+    // Build unified list of entries
+    const rawEntries: any[] = [
+      ...sales.map((s) => ({
+        id: s.id,
+        _sortKey: new Date(s.saleDate).getTime(),
+        _tieBreak: s.createdAt,
+        date: s.saleDate,
+        reference: s.invoiceNo,
+        type: 'sale',
+        debit: Number(s.grandTotal),
+        credit: Number(s.paidAmount),
+        note: `Sale invoice — ${s.paymentStatus}`,
+      })),
+      ...adjustments.map((a) => ({
+        id: a.id,
+        _sortKey: new Date(a.date).getTime(),
+        _tieBreak: a.createdAt,
+        date: a.date,
+        reference: `ADJ-${a.id.slice(0, 8).toUpperCase()}`,
+        type: 'adjustment',
+        debit: a.type === AdjustmentType.DEBIT ? Number(a.amount) : 0,
+        credit: a.type === AdjustmentType.CREDIT ? Number(a.amount) : 0,
+        note: a.note,
+      })),
+    ];
+
+    rawEntries.sort((a, b) => a._sortKey - b._sortKey || (a._tieBreak > b._tieBreak ? 1 : -1));
 
     let runningBalance = Number(customer.openingBalance);
     const entries: any[] = [];
@@ -105,18 +168,9 @@ export class SalesService {
       });
     }
 
-    for (const s of sales) {
-      runningBalance += Number(s.dueAmount);
-      entries.push({
-        id: s.id,
-        date: s.saleDate,
-        reference: s.invoiceNo,
-        type: 'sale',
-        debit: Number(s.grandTotal),
-        credit: Number(s.paidAmount),
-        balance: runningBalance,
-        note: `Sale invoice — ${s.paymentStatus}`,
-      });
+    for (const e of rawEntries) {
+      runningBalance += e.debit - e.credit;
+      entries.push({ ...e, balance: runningBalance });
     }
 
     return {
@@ -189,7 +243,7 @@ export class SalesService {
       const due = Math.max(0, grandTotal - paid);
 
       const sale = tx.create(SaleEntity, {
-        businessId, customerId: dto.customerId, warehouseId: dto.warehouseId,
+        businessId, customerId: dto.customerId, warehouseId: dto.warehouseId ?? null,
         invoiceNo: dto.invoiceNo || this.generateInvoiceNo(),
         saleDate: new Date(dto.saleDate),
         subtotal, discountAmount: discount, taxAmount: tax,

@@ -11,9 +11,10 @@ import { PurchaseEntity, PurchaseItemEntity, PurchaseStatus, PaymentStatus } fro
 import { ProductStockEntity } from 'src/modules/inventory/product/entities/product-stock.entity';
 import { StockLedgerEntity, StockTransactionType } from 'src/modules/inventory/product/entities/stock-ledger.entity';
 import {
-  CreatePurchaseDto, CreateSupplierDto, GetPurchasesDto,
+  CreatePurchaseDto, CreateSupplierAdjustmentDto, CreateSupplierDto, GetPurchasesDto,
   GetSuppliersDto, UpdateSupplierDto, PaySupplierDto,
 } from '../dto/purchase.dto';
+import { SupplierLedgerAdjustmentEntity, AdjustmentType } from '../entities/supplier-adjustment.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { StockLocationService } from 'src/modules/inventory/warehouse/services/stock-location.service';
 
@@ -30,6 +31,8 @@ export class PurchaseService {
     private readonly stockRepo: Repository<ProductStockEntity>,
     @InjectRepository(StockLedgerEntity)
     private readonly ledgerRepo: Repository<StockLedgerEntity>,
+    @InjectRepository(SupplierLedgerAdjustmentEntity)
+    private readonly supplierAdjustmentRepo: Repository<SupplierLedgerAdjustmentEntity>,
     private readonly locationService: StockLocationService,
     private readonly dataSource: DataSource,
   ) {}
@@ -107,7 +110,7 @@ export class PurchaseService {
       const purchase = tx.create(PurchaseEntity, {
         businessId,
         supplierId: dto.supplierId,
-        warehouseId: dto.warehouseId,
+        warehouseId: dto.warehouseId ?? null,
         invoiceNo: dto.invoiceNo || this.generateInvoiceNo(),
         purchaseDate: new Date(dto.purchaseDate),
         subtotal,
@@ -305,50 +308,96 @@ export class PurchaseService {
     });
   }
 
+  async createSupplierAdjustment(
+    businessId: string,
+    supplierId: string,
+    dto: CreateSupplierAdjustmentDto,
+    userId: string,
+  ) {
+    const supplier = await this.findSupplier(businessId, supplierId);
+    const adj = this.supplierAdjustmentRepo.create({
+      businessId,
+      supplierId,
+      date: new Date(dto.date),
+      type: dto.type as AdjustmentType,
+      amount: dto.amount,
+      note: dto.note,
+      createdBy: userId,
+    });
+    await this.supplierAdjustmentRepo.save(adj);
+
+    // Debit = we owe more; Credit = we owe less
+    const delta = dto.type === 'debit' ? Number(dto.amount) : -Number(dto.amount);
+    const newBalance = Math.max(0, Number(supplier.currentBalance) + delta);
+    await this.supplierRepo.update({ id: supplierId, businessId }, { currentBalance: newBalance });
+
+    return adj;
+  }
+
   async getSupplierLedger(
     businessId: string,
     supplierId: string,
     query: { page?: number; limit?: number },
   ) {
     const supplier = await this.findSupplier(businessId, supplierId);
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
+    const page = Number(query.page ?? 1);
+    const limit = Number(query.limit ?? 20);
 
-    const [purchases, totalItems] = await this.purchaseRepo.findAndCount({
-      where: { businessId, supplierId },
-      order: { purchaseDate: 'DESC', createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const [purchases, adjustments] = await Promise.all([
+      this.purchaseRepo.find({
+        where: { businessId, supplierId },
+        order: { purchaseDate: 'ASC', createdAt: 'ASC' },
+      }),
+      this.supplierAdjustmentRepo.find({
+        where: { businessId, supplierId },
+        order: { date: 'ASC', createdAt: 'ASC' },
+      }),
+    ]);
 
-    // Build ledger rows from purchases (each purchase = debit row)
-    let runningBalance = Number(supplier.openingBalance);
-    const allPurchases = await this.purchaseRepo.find({
-      where: { businessId, supplierId },
-      order: { purchaseDate: 'ASC', createdAt: 'ASC' },
-    });
-    const balanceMap: Record<string, number> = {};
-    let bal = Number(supplier.openingBalance);
-    for (const p of allPurchases) {
-      bal += Number(p.dueAmount);
-      balanceMap[p.id] = bal;
+    // Merge into unified entries
+    const allEntries: any[] = [
+      ...purchases.map((p) => ({
+        id: p.id,
+        date: p.purchaseDate,
+        _sortKey: new Date(p.purchaseDate).getTime(),
+        _tieBreak: p.createdAt,
+        referenceId: p.invoiceNo,
+        transactionType: 'purchase',
+        debit: Number(p.grandTotal),
+        credit: Number(p.paidAmount),
+        note: p.note,
+      })),
+      ...adjustments.map((a) => ({
+        id: a.id,
+        date: a.date,
+        _sortKey: new Date(a.date).getTime(),
+        _tieBreak: a.createdAt,
+        referenceId: `ADJ-${a.id.slice(0, 8).toUpperCase()}`,
+        transactionType: 'adjustment',
+        debit: a.type === AdjustmentType.DEBIT ? Number(a.amount) : 0,
+        credit: a.type === AdjustmentType.CREDIT ? Number(a.amount) : 0,
+        note: a.note,
+      })),
+    ];
+
+    allEntries.sort((a, b) => a._sortKey - b._sortKey || (a._tieBreak > b._tieBreak ? 1 : -1));
+
+    // Compute running balance
+    let balance = Number(supplier.openingBalance);
+    for (const entry of allEntries) {
+      balance += entry.debit - entry.credit;
+      entry.balanceAfter = balance;
     }
 
-    const entries = purchases.map((p) => ({
-      id: p.id,
-      date: p.purchaseDate,
-      referenceId: p.invoiceNo,
-      transactionType: 'purchase',
-      debit: Number(p.grandTotal),
-      credit: Number(p.paidAmount),
-      balanceAfter: balanceMap[p.id] ?? 0,
-      note: p.note,
-    }));
+    // Paginate (newest first)
+    allEntries.reverse();
+    const totalItems = allEntries.length;
+    const paginated = allEntries.slice((page - 1) * limit, page * limit);
 
     return {
       supplier,
-      data: entries,
-      meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: Number(page) },
+      data: paginated,
+      meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page },
     };
   }
 }

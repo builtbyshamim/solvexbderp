@@ -33,8 +33,8 @@ export class SaleEntity {
   @JoinColumn({ name: 'customer_id' })
   customer?: CustomerEntity;
 
-  @Column({ name: 'warehouse_id' })
-  warehouseId: string;
+  @Column({ nullable: true, name: 'warehouse_id' })
+  warehouseId?: string;
 
   @Column()
   invoiceNo: string;

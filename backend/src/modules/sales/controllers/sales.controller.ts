@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SalesService } from '../services/sales.service';
 import {
-  CreateCustomerDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
+  CreateCustomerDto, CreateCustomerAdjustmentDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
   CollectPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
   ConvertQuotationDto, CreateSaleReturnDto, GetSaleReturnsDto, GetCustomerStatementDto,
 } from '../dto/sales.dto';
@@ -39,6 +39,17 @@ export class SalesController {
   @ApiOperation({ summary: 'Get customer statement / ledger' })
   getCustomerStatement(@BusinessId() biz: string, @Param('id') id: string, @Query() q: GetCustomerStatementDto) {
     return this.salesService.getCustomerStatement(biz, id, q);
+  }
+
+  @Post('customers/:id/adjust')
+  @ApiOperation({ summary: 'Add manual debit/credit adjustment to customer ledger' })
+  adjustCustomerLedger(
+    @BusinessId() biz: string,
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+    @Body() dto: CreateCustomerAdjustmentDto,
+  ) {
+    return this.salesService.createCustomerAdjustment(biz, id, dto, user.id);
   }
 
   @Patch('customers/:id')

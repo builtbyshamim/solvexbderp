@@ -97,9 +97,10 @@ export class CreatePurchaseDto {
   @IsUUID()
   supplierId?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsUUID()
-  warehouseId: string;
+  warehouseId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -231,6 +232,27 @@ export class PaySupplierDto {
   @ValidateNested({ each: true })
   @Type(() => InvoicePaymentItemDto)
   invoicePayments?: InvoicePaymentItemDto[];
+}
+
+export class CreateSupplierAdjustmentDto {
+  @ApiProperty({ description: 'Adjustment date (ISO date)' })
+  @IsDateString()
+  date: string;
+
+  @ApiProperty({ enum: ['debit', 'credit'], description: 'debit = we owe more, credit = we owe less' })
+  @IsEnum(['debit', 'credit'])
+  type: 'debit' | 'credit';
+
+  @ApiProperty()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  amount: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  note?: string;
 }
 
 export class GetSuppliersDto {

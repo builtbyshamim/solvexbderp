@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PurchaseService } from '../services/purchase.service';
 import {
-  CreatePurchaseDto, CreateSupplierDto, GetPurchasesDto,
+  CreatePurchaseDto, CreateSupplierAdjustmentDto, CreateSupplierDto, GetPurchasesDto,
   GetSuppliersDto, UpdateSupplierDto, PaySupplierDto,
 } from '../dto/purchase.dto';
 import { BusinessId } from 'src/common/decorators/business-id.decorator';
@@ -93,5 +93,16 @@ export class PurchaseController {
     @Query('limit') limit?: number,
   ) {
     return this.purchaseService.getSupplierLedger(biz, id, { page, limit });
+  }
+
+  @Post('suppliers/:id/adjust')
+  @ApiOperation({ summary: 'Add manual debit/credit adjustment to supplier ledger' })
+  adjustSupplierLedger(
+    @BusinessId() biz: string,
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+    @Body() dto: CreateSupplierAdjustmentDto,
+  ) {
+    return this.purchaseService.createSupplierAdjustment(biz, id, dto, user.id);
   }
 }
