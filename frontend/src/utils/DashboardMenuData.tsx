@@ -58,6 +58,7 @@ export const useDashboardMenuData = () => {
         { id: 3, name: t('nav.purchase.addPurchase'),    path: '/admin/purchase/add' },
         { id: 4, name: t('nav.purchase.purchaseReturns'),path: '/admin/purchase/returns' },
         { id: 5, name: t('nav.purchase.supplierLedger'), path: '/admin/purchase/supplier-ledger' },
+        { id: 6, name: t('nav.purchase.supplierPayment'), path: '/admin/purchase/supplier-payment' },
       ],
     },
     {

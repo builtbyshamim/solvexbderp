@@ -68,6 +68,25 @@ export const purchaseApi = baseApi.injectEndpoints({
       invalidatesTags: [{ type: tagTypes.purchaseReturn, id: "LIST" }],
     }),
 
+    // Supplier Payment
+    getSupplierDuePurchases: build.query({
+      query: (supplierId: string) => ({ url: `${SUPPLIER_URL}/${supplierId}/due-purchases`, method: 'GET' }),
+      providesTags: (result, error, id) => [{ type: tagTypes.supplier, id }, { type: tagTypes.purchase, id: 'DUE' }],
+    }),
+    paySupplier: build.mutation({
+      query: ({ supplierId, data }: { supplierId: string; data: any }) => ({
+        url: `${SUPPLIER_URL}/${supplierId}/pay`,
+        method: 'POST',
+        data,
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: tagTypes.supplier, id: arg.supplierId },
+        { type: tagTypes.supplier, id: 'LIST' },
+        { type: tagTypes.purchase, id: 'LIST' },
+        { type: tagTypes.purchase, id: 'DUE' },
+      ],
+    }),
+
     // Supplier Ledger
     getSupplierLedger: build.query({
       query: ({ supplierId, ...params }: { supplierId: string; [k: string]: any }) => ({
@@ -92,5 +111,7 @@ export const {
   useGetPurchaseReturnsQuery,
   useCreatePurchaseReturnMutation,
   useApprovePurchaseReturnMutation,
+  useGetSupplierDuePurchasesQuery,
+  usePaySupplierMutation,
   useGetSupplierLedgerQuery,
 } = purchaseApi;

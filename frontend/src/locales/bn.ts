@@ -89,6 +89,7 @@ const bn = {
   'nav.purchase.addPurchase': 'ক্রয় যোগ',
   'nav.purchase.purchaseReturns': 'ক্রয় ফেরত',
   'nav.purchase.supplierLedger': 'সরবরাহকারী খতিয়ান',
+  'nav.purchase.supplierPayment': 'সরবরাহকারী পরিশোধ',
   'nav.sales': 'বিক্রয়',
   'nav.sales.customers': 'গ্রাহক',
   'nav.sales.saleList': 'বিক্রয় তালিকা',

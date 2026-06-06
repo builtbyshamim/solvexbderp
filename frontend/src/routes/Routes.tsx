@@ -30,6 +30,7 @@ import PurchaseList from '../features/purchase/PurchaseList';
 import AddPurchase from '../features/purchase/AddPurchase';
 import PurchaseReturns from '../features/purchase/PurchaseReturns';
 import SupplierLedger from '../features/purchase/SupplierLedger';
+import SupplierPayment from '../features/purchase/SupplierPayment';
 
 // Sales
 import AllCustomer from '../features/sales/customer/AllCustomer';
@@ -163,6 +164,7 @@ const router = createBrowserRouter([
       { path: 'purchase/add', element: <AddPurchase /> },
       { path: 'purchase/returns', element: <PurchaseReturns /> },
       { path: 'purchase/supplier-ledger', element: <SupplierLedger /> },
+      { path: 'purchase/supplier-payment', element: <SupplierPayment /> },
 
       // Sales
       { path: 'sales/customers', element: <AllCustomer /> },

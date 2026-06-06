@@ -89,6 +89,7 @@ const en = {
   'nav.purchase.addPurchase': 'Add Purchase',
   'nav.purchase.purchaseReturns': 'Purchase Returns',
   'nav.purchase.supplierLedger': 'Supplier Ledger',
+  'nav.purchase.supplierPayment': 'Supplier Payment',
   'nav.sales': 'Sales',
   'nav.sales.customers': 'Customers',
   'nav.sales.saleList': 'Sale List',
