@@ -1,7 +1,16 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
+import SuperAdminLayout from '../layouts/SuperAdminLayout';
 import AuthUserNotAccessRoute from '../components/providers/AuthUserNotAccessRoute';
 import ProtectedRoute from '../components/providers/ProtectedRoute';
+import SuperAdminRoute from '../components/providers/SuperAdminRoute';
+
+// Super Admin
+import SuperAdminLogin from '../features/super-admin/SuperAdminLogin';
+import SuperAdminDashboard from '../features/super-admin/SuperAdminDashboard';
+import BusinessesList from '../features/super-admin/BusinessesList';
+import ComingSoonPage from '../features/super-admin/ComingSoonPage';
+import PackageManagement from '../features/super-admin/PackageManagement';
 
 // Auth
 import LoginPage from '../components/auth/Login';
@@ -109,6 +118,32 @@ const router = createBrowserRouter([
     path: '/',
     element: <LandingPage />,
   },
+
+  // ── Super Admin area ──────────────────────────────────────────────────────
+  {
+    path: '/super-admin/login',
+    element: <SuperAdminLogin />,
+  },
+  {
+    path: '/super-admin',
+    element: (
+      <SuperAdminRoute>
+        <SuperAdminLayout />
+      </SuperAdminRoute>
+    ),
+    children: [
+      { index: true, element: <Navigate to="/super-admin/dashboard" replace /> },
+      { path: 'dashboard', element: <SuperAdminDashboard /> },
+      { path: 'businesses', element: <BusinessesList /> },
+      { path: 'users', element: <ComingSoonPage title="All Users" /> },
+      { path: 'subscriptions', element: <ComingSoonPage title="Subscriptions" /> },
+      { path: 'packages', element: <PackageManagement /> },
+      { path: 'reports', element: <ComingSoonPage title="Platform Reports" /> },
+      { path: 'announcements', element: <ComingSoonPage title="Announcements" /> },
+      { path: 'settings', element: <ComingSoonPage title="Platform Settings" /> },
+    ],
+  },
+  // ─────────────────────────────────────────────────────────────────────────
   // Standalone print pages (no layout, no sidebar)
   {
     path: '/print/invoice/a4/:id',

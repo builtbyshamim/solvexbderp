@@ -30,6 +30,8 @@ export const tagTypes = {
   smsLog: "smsLog",
   collection: "collection",
   affiliate: "affiliate",
+  superAdmin: "superAdmin",
+  packages: "packages",
 };
 
 export const tagTypesList = Object.values(tagTypes);

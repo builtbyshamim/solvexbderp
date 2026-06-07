@@ -7,8 +7,10 @@ import {
   Zap, Shield, Headphones, RefreshCw, Lock, Database, Cpu,
   LayoutDashboard, UserCheck, Scan,
   Building2, Award, Phone, Mail, MapPin,
-  Sparkles, Play,
+  Sparkles, Play, Crown, MessageCircle, Send,
 } from 'lucide-react';
+import { MOCK_PACKAGES, yearlyDiscount, monthlyEquivalent, representativeYearlyDiscount } from '../data/mockPackages';
+import type { Package as PkgType } from '../redux/api/packagesApi';
 
 // ─── Tokens ──────────────────────────────────────────────────────────────────
 // Primary brand  #f97316  (orange-500 — warmer, less harsh than #ff6d29)
@@ -91,22 +93,9 @@ const WHY = [
   { icon: RefreshCw,  title: 'Always Current',        desc: 'Monthly feature drops, zero manual upgrades, backwards-compatible migrations.' },
 ];
 
-const PLANS = [
-  {
-    name: 'Starter', price: '৳500', per: '/mo',
-    badge: null, highlight: false,
-    desc: 'Perfect for small businesses getting started.',
-    features: ['3 users','500 products','1 warehouse','POS terminal','Inventory, Purchase & Sales','Basic reports','SMS marketing','15-day free trial','Email support'],
-    cta: 'Start Free Trial',
-  },
-  {
-    name: 'Pro', price: '৳1,200', per: '/mo',
-    badge: 'Most Popular', highlight: true,
-    desc: 'Everything a growing business needs.',
-    features: ['25 users','Unlimited products','5 warehouses','Full POS + offline','Full HRM suite','Double-entry accounting','Complete reports & export','Advanced SMS campaigns','Priority 24/7 support'],
-    cta: 'Get Started Now',
-  },
-];
+// pricing data pulled from shared mock (replaced by API in prod)
+const ACTIVE_PLANS = MOCK_PACKAGES.filter((p) => p.isActive);
+const YEARLY_SAVE_PCT = representativeYearlyDiscount(ACTIVE_PLANS);
 
 const TESTIMONIALS = [
   { name: 'Md. Karim Uddin',  role: 'Owner, Karim Electronics',  loc: 'Dhaka',     av: 'KU', c: 'bg-blue-500',   r: 5, text: 'BizCore transformed how I run my shop. The POS is incredibly fast and inventory alerts mean I never run out of hot products. My accountant loves the reports!' },
@@ -164,10 +153,14 @@ function FAQ({ q, a }: { q: string; a: string }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
-  const [menu, setMenu]   = useState(false);
-  const [top, setTop]     = useState(true);
-  const [mod, setMod]     = useState(0);
-  const isLoggedIn        = !!Cookies.get('access_token');
+  const [menu, setMenu]    = useState(false);
+  const [top, setTop]      = useState(true);
+  const [mod, setMod]      = useState(0);
+  const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
+  const [enterpriseForm, setEnterpriseForm] = useState({ name: '', mobile: '', businessName: '', message: '' });
+  const [enterpriseOpen, setEnterpriseOpen] = useState(false);
+  const [enterpriseSubmitted, setEnterpriseSubmitted] = useState(false);
+  const isLoggedIn         = !!Cookies.get('access_token');
 
   useEffect(() => {
     const fn = () => setTop(window.scrollY < 30);
@@ -674,76 +667,238 @@ export default function LandingPage() {
       {/* ════════════ PRICING ════════════ */}
       <section id="pricing" className="py-16 sm:py-20 lg:py-32 bg-zinc-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10 sm:mb-16">
+
+          {/* heading */}
+          <div className="text-center mb-8 sm:mb-12">
             <Pill className="bg-green-100 text-green-700 mb-4 sm:mb-5">
               <Zap className="w-3 h-3" /> Simple Pricing
             </Pill>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-zinc-900 mb-4 sm:mb-5 tracking-tight">Transparent. No surprises.</h2>
-            <p className="text-zinc-500 max-w-xl mx-auto text-base sm:text-lg">
-              Both plans include a 15-day free trial. No credit card. Cancel anytime.
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-zinc-900 mb-4 sm:mb-5 tracking-tight">
+              Transparent. No surprises.
+            </h2>
+            <p className="text-zinc-500 max-w-xl mx-auto text-base sm:text-lg mb-8">
+              All plans include a {ACTIVE_PLANS[0]?.trialDays ?? 15}-day free trial. No credit card. Cancel anytime.
             </p>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 max-w-3xl mx-auto">
-            {PLANS.map(p => (
-              /* NOTE: no overflow-hidden here so the badge isn't clipped; border-radius is preserved by the browser */
-              <div key={p.name} className={`relative rounded-3xl ${
-                p.highlight
-                  ? 'bg-zinc-950 border-2 border-orange-500/50 shadow-2xl shadow-orange-500/10'
-                  : 'bg-white border-2 border-zinc-200 shadow-sm'
-              } ${p.badge ? 'mt-4' : ''}`}>
-
-                {p.badge && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
-                    <span className="inline-block bg-orange-500 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg shadow-orange-500/30 whitespace-nowrap">
-                      {p.badge}
+            {/* billing toggle */}
+            <div className="inline-flex items-center gap-1 p-1 bg-zinc-200 rounded-2xl relative">
+              {(['monthly', 'yearly'] as const).map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setBilling(b)}
+                  className={`relative px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    billing === b
+                      ? 'bg-white text-zinc-900 shadow-sm'
+                      : 'text-zinc-500 hover:text-zinc-700'
+                  }`}
+                >
+                  {b === 'monthly' ? 'Monthly' : 'Yearly'}
+                  {b === 'yearly' && (
+                    <span className="absolute -top-3 -right-3 bg-green-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none whitespace-nowrap shadow">
+                      SAVE {YEARLY_SAVE_PCT}%
                     </span>
-                  </div>
-                )}
-
-                {p.highlight && (
-                  <div className="absolute inset-0 rounded-3xl bg-[radial-gradient(ellipse_at_top,rgba(249,115,22,0.08),transparent_60%)] pointer-events-none" />
-                )}
-
-                <div className="p-6 sm:p-8 relative">
-                  <div className="flex items-start justify-between mb-5 sm:mb-6">
-                    <div>
-                      <h3 className={`text-xl font-black mb-1 ${p.highlight ? 'text-white' : 'text-zinc-900'}`}>{p.name}</h3>
-                      <p className={`text-xs ${p.highlight ? 'text-zinc-400' : 'text-zinc-500'}`}>{p.desc}</p>
-                    </div>
-                    <div className="text-right ml-4">
-                      <p className={`text-3xl sm:text-4xl font-black ${p.highlight ? 'text-white' : 'text-zinc-900'}`}>{p.price}</p>
-                      <p className={`text-xs ${p.highlight ? 'text-zinc-500' : 'text-zinc-400'}`}>{p.per}</p>
-                    </div>
-                  </div>
-
-                  <ul className="space-y-2.5 sm:space-y-3 mb-6 sm:mb-8">
-                    {p.features.map(f => (
-                      <li key={f} className="flex items-center gap-2.5 sm:gap-3">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${p.highlight ? 'bg-orange-500/20' : 'bg-orange-100'}`}>
-                          <CheckCircle2 className={`w-3 h-3 ${p.highlight ? 'text-orange-400' : 'text-orange-500'}`} />
-                        </div>
-                        <span className={`text-sm ${p.highlight ? 'text-zinc-300' : 'text-zinc-600'}`}>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Link to="/login"
-                    className={`block text-center text-sm font-bold py-4 rounded-2xl transition-all ${
-                      p.highlight
-                        ? 'bg-orange-500 hover:bg-orange-400 text-white shadow-lg shadow-orange-500/30'
-                        : 'border-2 border-zinc-900 text-zinc-900 hover:bg-zinc-900 hover:text-white'
-                    }`}>
-                    {p.cta}
-                  </Link>
-                </div>
-              </div>
-            ))}
+                  )}
+                </button>
+              ))}
+            </div>
+            {billing === 'yearly' && (
+              <p className="text-xs text-green-600 font-medium mt-3">
+                🎉 Yearly billing saves you {YEARLY_SAVE_PCT}% — paid once annually
+              </p>
+            )}
           </div>
 
-          <p className="text-center text-sm text-zinc-500 mt-8 sm:mt-10">
-            Need 25+ users or custom features?{' '}
-            <a href="mailto:hello@bizcore.app" className="text-orange-500 font-semibold hover:underline">Talk to us about Enterprise →</a>
+          {/* plan cards */}
+          <div className={`grid grid-cols-1 gap-5 sm:gap-6 max-w-6xl mx-auto ${
+            ACTIVE_PLANS.length === 3 ? 'lg:grid-cols-3' : 'sm:grid-cols-2 max-w-3xl'
+          }`}>
+            {ACTIVE_PLANS.map((plan: PkgType) => {
+              const isHighlight = plan.highlight;
+              const isEnterprise = plan.isEnterprise;
+              const price = billing === 'monthly' ? plan.monthlyPrice : monthlyEquivalent(plan);
+              const discount = yearlyDiscount(plan);
+              const PlanIcon = plan.name === 'Pro' ? Crown : plan.name === 'Enterprise' ? Building2 : Zap;
+
+              return (
+                <div
+                  key={plan.id}
+                  className={`relative flex flex-col rounded-3xl transition-all ${
+                    isHighlight
+                      ? 'bg-zinc-950 border-2 border-orange-500/50 shadow-2xl shadow-orange-500/10'
+                      : 'bg-white border-2 border-zinc-200 shadow-sm hover:shadow-md'
+                  } ${plan.badge ? 'mt-5' : ''}`}
+                >
+                  {/* badge */}
+                  {plan.badge && !isEnterprise && (
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                      <span className="inline-block bg-orange-500 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg shadow-orange-500/30 whitespace-nowrap">
+                        {plan.badge}
+                      </span>
+                    </div>
+                  )}
+                  {isEnterprise && (
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                      <span className="inline-block bg-zinc-900 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow whitespace-nowrap">
+                        Enterprise
+                      </span>
+                    </div>
+                  )}
+
+                  {isHighlight && (
+                    <div className="absolute inset-0 rounded-3xl bg-[radial-gradient(ellipse_at_top,rgba(249,115,22,0.08),transparent_60%)] pointer-events-none" />
+                  )}
+
+                  <div className="p-6 sm:p-8 relative flex-1 flex flex-col">
+                    {/* plan name + icon */}
+                    <div className="flex items-center gap-2.5 mb-4">
+                      <div className={`p-2 rounded-xl ${isHighlight ? 'bg-orange-500/20' : 'bg-orange-50'}`}>
+                        <PlanIcon className={`w-5 h-5 ${isHighlight ? 'text-orange-400' : 'text-orange-500'}`} />
+                      </div>
+                      <h3 className={`text-xl font-black ${isHighlight ? 'text-white' : 'text-zinc-900'}`}>{plan.name}</h3>
+                    </div>
+
+                    {/* price */}
+                    {isEnterprise ? (
+                      <div className="mb-6">
+                        <p className={`text-4xl font-black mb-1 ${isHighlight ? 'text-white' : 'text-zinc-900'}`}>Custom</p>
+                        <p className={`text-sm ${isHighlight ? 'text-zinc-400' : 'text-zinc-500'}`}>Talk to our team for a quote</p>
+                      </div>
+                    ) : (
+                      <div className="mb-1">
+                        <div className="flex items-end gap-1.5 mb-1">
+                          <span className={`text-4xl sm:text-5xl font-black ${isHighlight ? 'text-white' : 'text-zinc-900'}`}>
+                            ৳{price.toLocaleString()}
+                          </span>
+                          <span className={`text-sm mb-2 ${isHighlight ? 'text-zinc-400' : 'text-zinc-400'}`}>/mo</span>
+                        </div>
+                        {billing === 'yearly' && discount > 0 && (
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-xs line-through ${isHighlight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                              ৳{plan.monthlyPrice}/mo
+                            </span>
+                            <span className="text-xs font-bold text-green-500">Save {discount}%</span>
+                          </div>
+                        )}
+                        {billing === 'yearly' && (
+                          <p className={`text-xs mb-4 ${isHighlight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                            Billed ৳{plan.yearlyPrice.toLocaleString()} annually
+                          </p>
+                        )}
+                        {billing === 'monthly' && (
+                          <p className={`text-xs mb-4 ${isHighlight ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                            Billed monthly · Save {discount}% with yearly
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* trial badge */}
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold mb-5 self-start ${
+                      isHighlight ? 'bg-orange-500/15 text-orange-400' : 'bg-green-50 text-green-700 border border-green-200'
+                    }`}>
+                      <CheckCircle2 className="w-3 h-3" />
+                      {plan.trialDays}-day free trial included
+                    </div>
+
+                    {/* features */}
+                    <ul className="space-y-2.5 mb-6 flex-1">
+                      {plan.features.map((f) => (
+                        <li key={f} className="flex items-start gap-2.5">
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${isHighlight ? 'bg-orange-500/20' : 'bg-orange-100'}`}>
+                            <CheckCircle2 className={`w-3 h-3 ${isHighlight ? 'text-orange-400' : 'text-orange-500'}`} />
+                          </div>
+                          <span className={`text-sm leading-snug ${isHighlight ? 'text-zinc-300' : 'text-zinc-600'}`}>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* CTA */}
+                    {isEnterprise ? (
+                      <div className="space-y-2.5">
+                        <a
+                          href={`https://wa.me/8801XXXXXXXXX?text=${encodeURIComponent('Hi! I am interested in BizCore Enterprise plan.')}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-[#25D366] hover:bg-[#1ebe5d] text-white text-sm font-bold transition-all shadow-lg shadow-green-500/20"
+                        >
+                          <MessageCircle className="w-4 h-4" /> Chat on WhatsApp
+                        </a>
+                        <button
+                          onClick={() => setEnterpriseOpen((v) => !v)}
+                          className={`flex items-center justify-center gap-2 w-full py-3 rounded-2xl border-2 text-sm font-semibold transition-all ${
+                            isHighlight
+                              ? 'border-zinc-700 text-zinc-300 hover:border-zinc-500'
+                              : 'border-zinc-300 text-zinc-700 hover:border-zinc-400'
+                          }`}
+                        >
+                          <Send className="w-4 h-4" />
+                          {enterpriseOpen ? 'Close Form' : 'Send Enquiry'}
+                        </button>
+                        {enterpriseOpen && !enterpriseSubmitted && (
+                          <form
+                            onSubmit={(e) => { e.preventDefault(); setEnterpriseSubmitted(true); }}
+                            className={`space-y-2.5 pt-1 ${isHighlight ? '' : ''}`}
+                          >
+                            {[
+                              { name: 'name', placeholder: 'Your Name', type: 'text' },
+                              { name: 'mobile', placeholder: 'Mobile Number', type: 'tel' },
+                              { name: 'businessName', placeholder: 'Business Name', type: 'text' },
+                            ].map(({ name, placeholder, type }) => (
+                              <input
+                                key={name}
+                                type={type}
+                                required
+                                placeholder={placeholder}
+                                value={(enterpriseForm as any)[name]}
+                                onChange={(e) => setEnterpriseForm((p) => ({ ...p, [name]: e.target.value }))}
+                                className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-orange-400/30 transition-colors ${
+                                  isHighlight ? 'bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500' : 'bg-white border-zinc-200 text-zinc-900'
+                                }`}
+                              />
+                            ))}
+                            <textarea
+                              required rows={2}
+                              placeholder="Tell us about your requirements..."
+                              value={enterpriseForm.message}
+                              onChange={(e) => setEnterpriseForm((p) => ({ ...p, message: e.target.value }))}
+                              className={`w-full px-3.5 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-orange-400/30 resize-none transition-colors ${
+                                isHighlight ? 'bg-zinc-800 border-zinc-700 text-white placeholder-zinc-500' : 'bg-white border-zinc-200 text-zinc-900'
+                              }`}
+                            />
+                            <button type="submit"
+                              className="w-full py-3 rounded-2xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-bold transition-all">
+                              Submit Request
+                            </button>
+                          </form>
+                        )}
+                        {enterpriseSubmitted && (
+                          <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-700">
+                            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                            Request submitted! We'll reach out within 24 hours.
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <Link to="/login"
+                        className={`block text-center text-sm font-bold py-4 rounded-2xl transition-all ${
+                          isHighlight
+                            ? 'bg-orange-500 hover:bg-orange-400 text-white shadow-lg shadow-orange-500/30'
+                            : 'border-2 border-zinc-900 text-zinc-900 hover:bg-zinc-900 hover:text-white'
+                        }`}
+                      >
+                        {plan.name === 'Starter' ? 'Start Free Trial' : 'Get Started Now'}
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-center text-sm text-zinc-400 mt-10">
+            All prices are exclusive of VAT ·{' '}
+            <a href="mailto:hello@bizcore.app" className="text-orange-500 font-semibold hover:underline">
+              hello@bizcore.app
+            </a>
           </p>
         </div>
       </section>
