@@ -96,10 +96,18 @@ import UsersRoles from '../features/settings/UsersRoles';
 import Subscription from '../features/settings/Subscription';
 import InvoiceSettings from '../features/settings/InvoiceSettings';
 
+// Affiliate
+import MyAffiliate from '../features/affiliate/MyAffiliate';
+import AffiliateManagement from '../features/affiliate/AffiliateManagement';
+import AffiliateDetail from '../features/affiliate/AffiliateDetail';
+
+// Landing
+import LandingPage from '../pages/LandingPage';
+
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/admin" replace />,
+    element: <LandingPage />,
   },
   // Standalone print pages (no layout, no sidebar)
   {
@@ -227,6 +235,11 @@ const router = createBrowserRouter([
       { path: 'settings/users', element: <UsersRoles /> },
       { path: 'settings/subscription', element: <Subscription /> },
       { path: 'settings/invoice', element: <InvoiceSettings /> },
+      { path: 'settings/affiliate', element: <MyAffiliate /> },
+
+      // Super Admin - Affiliate
+      { path: 'super-admin/affiliates', element: <AffiliateManagement /> },
+      { path: 'super-admin/affiliates/:id', element: <AffiliateDetail /> },
     ],
   },
 ]);

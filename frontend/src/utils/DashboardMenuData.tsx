@@ -8,6 +8,7 @@ import {
   MdOutlineLocalShipping,
   MdOutlineSms,
   MdOutlineSettings,
+  MdOutlineAdminPanelSettings,
 } from 'react-icons/md';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
 import { useLanguage } from '../context/LanguageContext';
@@ -158,6 +159,16 @@ export const useDashboardMenuData = () => {
         { id: 2, name: t('nav.settings.usersRoles'),       path: '/admin/settings/users' },
         { id: 3, name: t('nav.settings.subscription'),     path: '/admin/settings/subscription' },
         { id: 4, name: t('nav.settings.invoiceSettings'),  path: '/admin/settings/invoice' },
+        { id: 5, name: 'My Affiliate',                     path: '/admin/settings/affiliate' },
+      ],
+    },
+    {
+      id: 11,
+      name: 'Super Admin',
+      path: '/admin/super-admin',
+      icon: <MdOutlineAdminPanelSettings size={18} />,
+      subMenu: [
+        { id: 1, name: 'Affiliate Management', path: '/admin/super-admin/affiliates' },
       ],
     },
   ];

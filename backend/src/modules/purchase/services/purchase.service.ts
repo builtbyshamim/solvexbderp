@@ -110,7 +110,7 @@ export class PurchaseService {
       const purchase = tx.create(PurchaseEntity, {
         businessId,
         supplierId: dto.supplierId,
-        warehouseId: dto.warehouseId ?? null,
+        warehouseId: dto.warehouseId ?? undefined,
         invoiceNo: dto.invoiceNo || this.generateInvoiceNo(),
         purchaseDate: new Date(dto.purchaseDate),
         subtotal,

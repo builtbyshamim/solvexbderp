@@ -243,7 +243,7 @@ export class SalesService {
       const due = Math.max(0, grandTotal - paid);
 
       const sale = tx.create(SaleEntity, {
-        businessId, customerId: dto.customerId, warehouseId: dto.warehouseId ?? null,
+        businessId, customerId: dto.customerId, warehouseId: dto.warehouseId ?? undefined,
         invoiceNo: dto.invoiceNo || this.generateInvoiceNo(),
         saleDate: new Date(dto.saleDate),
         subtotal, discountAmount: discount, taxAmount: tax,

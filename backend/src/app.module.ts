@@ -32,6 +32,7 @@ import { AccountingModule } from './modules/accounting/accounting.module';
 import { HrmModule } from './modules/hrm/hrm.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { SmsMarketingModule } from './modules/sms-marketing/sms-marketing.module';
+import { AffiliateModule } from './modules/affiliate/affiliate.module';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { SmsMarketingModule } from './modules/sms-marketing/sms-marketing.module
     HrmModule,
     ReportsModule,
     SmsMarketingModule,
+    AffiliateModule,
   ],
   controllers: [AppController],
   providers: [

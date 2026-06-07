@@ -29,6 +29,7 @@ export const tagTypes = {
   smsCampaign: "smsCampaign",
   smsLog: "smsLog",
   collection: "collection",
+  affiliate: "affiliate",
 };
 
 export const tagTypesList = Object.values(tagTypes);
