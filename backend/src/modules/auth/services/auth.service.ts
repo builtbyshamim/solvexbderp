@@ -455,10 +455,16 @@ export class AuthService {
       });
       const savedUser = await userRepo.save(user);
 
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 15);
+
       const business = bizRepo.create({
         name: `${name}'s Business`,
         ownerId: savedUser.id,
         currencyCode: 'BDT',
+        subscriptionStatus: 'trial',
+        subscriptionExpiresAt: trialEnd,
+        subscriptionPlan: null,
       });
       const savedBusiness = await bizRepo.save(business);
 

@@ -19,6 +19,8 @@ import {
   ConvertQuotationDto, CreateSaleReturnDto, GetSaleReturnsDto, GetCustomerStatementDto,
 } from '../dto/sales.dto';
 import { CustomerLedgerAdjustmentEntity, AdjustmentType } from '../entities/customer-adjustment.entity';
+import { SmsMarketingService } from 'src/modules/sms-marketing/services/sms-marketing.service';
+import { TransactionalSmsEvent } from 'src/modules/sms-marketing/entities/transactional-sms.entity';
 
 @Injectable()
 export class SalesService {
@@ -34,6 +36,7 @@ export class SalesService {
     private readonly customerAdjustmentRepo: Repository<CustomerLedgerAdjustmentEntity>,
     private readonly locationService: StockLocationService,
     private readonly dataSource: DataSource,
+    private readonly smsService: SmsMarketingService,
   ) {}
 
   // ─── Customer CRUD ────────────────────────────────────────────────────────
@@ -281,6 +284,19 @@ export class SalesService {
       }
 
       return tx.findOne(SaleEntity, { where: { id: savedSale.id }, relations: ['items', 'customer'] });
+    }).then((sale) => {
+      if (sale?.customer?.phone) {
+        this.smsService.sendTransactionalSms(businessId, TransactionalSmsEvent.SALE_CREATED, {
+          customerName: sale.customer.name,
+          customerPhone: sale.customer.phone,
+          invoiceNo: sale.invoiceNo,
+          totalAmount: Number(sale.grandTotal),
+          paidAmount: Number(sale.paidAmount),
+          dueAmount: Number(sale.dueAmount),
+          saleDate: new Date(sale.saleDate).toLocaleDateString('en-BD'),
+        }).catch(() => {});
+      }
+      return sale;
     });
   }
 
@@ -367,7 +383,7 @@ export class SalesService {
   }
 
   async collectPayment(businessId: string, saleId: string, dto: CollectPaymentDto) {
-    return this.dataSource.transaction(async (tx) => {
+    const result = await this.dataSource.transaction(async (tx) => {
       const sale = await tx.findOne(SaleEntity, { where: { id: saleId, businessId } });
       if (!sale) throw new NotFoundException('Sale not found');
       if (sale.paymentStatus === PaymentStatus.PAID) throw new BadRequestException('Sale is already fully paid');
@@ -384,8 +400,27 @@ export class SalesService {
         await tx.decrement(CustomerEntity, { id: sale.customerId, businessId }, 'currentBalance', amount);
       }
 
-      return sale;
+      return { sale, collectedAmount: amount };
     });
+
+    if (result.sale.customerId) {
+      const customer = await this.customerRepo.findOne({
+        where: { id: result.sale.customerId, businessId },
+        select: ['id', 'name', 'phone'],
+      });
+      if (customer?.phone) {
+        this.smsService.sendTransactionalSms(businessId, TransactionalSmsEvent.PAYMENT_RECEIVED, {
+          customerName: customer.name,
+          customerPhone: customer.phone,
+          invoiceNo: result.sale.invoiceNo,
+          paymentAmount: result.collectedAmount,
+          paidAmount: Number(result.sale.paidAmount),
+          dueAmount: Number(result.sale.dueAmount),
+        }).catch(() => {});
+      }
+    }
+
+    return result.sale;
   }
 
   async getDashboardStats(businessId: string) {
@@ -505,7 +540,24 @@ export class SalesService {
         unitPrice: Number(i.unitPrice), total: Number(i.quantity) * Number(i.unitPrice),
       })) as any,
     });
-    return this.returnRepo.save(ret);
+    const saved = await this.returnRepo.save(ret);
+
+    if (sale.customerId) {
+      const customer = await this.customerRepo.findOne({
+        where: { id: sale.customerId, businessId },
+        select: ['id', 'name', 'phone'],
+      });
+      if (customer?.phone) {
+        this.smsService.sendTransactionalSms(businessId, TransactionalSmsEvent.SALE_RETURN, {
+          customerName: customer.name,
+          customerPhone: customer.phone,
+          invoiceNo: sale.invoiceNo,
+          returnAmount: totalAmount,
+        }).catch(() => {});
+      }
+    }
+
+    return saved;
   }
 
   async findAllSaleReturns(businessId: string, query: GetSaleReturnsDto) {

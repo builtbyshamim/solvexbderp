@@ -5,13 +5,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, ILike, Repository } from 'typeorm';
+import { DataSource, ILike, In, Repository } from 'typeorm';
 import { AccountEntity, AccountType } from '../entities/account.entity';
 import { AccountLedgerEntity, LedgerTransactionType } from '../entities/account-ledger.entity';
+import { AccountingCategoryEntity, AccountingCategoryType } from '../entities/accounting-category.entity';
 import {
   AccountTransferDto, CreateAccountDto, CreateExpenseDto,
   CreateIncomeDto, GetAccountsDto, GetLedgerDto, GetReportDto,
   GetTransactionsDto, UpdateAccountDto,
+  CreateAccountingCategoryDto, UpdateAccountingCategoryDto, GetAccountingCategoriesDto,
 } from '../dto/accounting.dto';
 
 @Injectable()
@@ -21,8 +23,42 @@ export class AccountingService {
     private readonly accountRepo: Repository<AccountEntity>,
     @InjectRepository(AccountLedgerEntity)
     private readonly ledgerRepo: Repository<AccountLedgerEntity>,
+    @InjectRepository(AccountingCategoryEntity)
+    private readonly categoryRepo: Repository<AccountingCategoryEntity>,
     private readonly dataSource: DataSource,
   ) {}
+
+  // ─── Accounting Categories ────────────────────────────────────────────────
+
+  async createCategory(businessId: string, dto: CreateAccountingCategoryDto) {
+    const exists = await this.categoryRepo.findOne({
+      where: { businessId, name: ILike(dto.name), type: dto.type },
+    });
+    if (exists) throw new ConflictException('Category already exists');
+    return this.categoryRepo.save(this.categoryRepo.create({ ...dto, businessId }));
+  }
+
+  async getCategories(businessId: string, dto: GetAccountingCategoriesDto) {
+    const where: any = { businessId };
+    if (dto.type) {
+      where['type'] = In([dto.type, AccountingCategoryType.BOTH]);
+    }
+    return this.categoryRepo.find({ where, order: { name: 'ASC' } });
+  }
+
+  async updateCategory(businessId: string, id: string, dto: UpdateAccountingCategoryDto) {
+    const cat = await this.categoryRepo.findOne({ where: { id, businessId } });
+    if (!cat) throw new NotFoundException('Category not found');
+    Object.assign(cat, dto);
+    return this.categoryRepo.save(cat);
+  }
+
+  async deleteCategory(businessId: string, id: string) {
+    const cat = await this.categoryRepo.findOne({ where: { id, businessId } });
+    if (!cat) throw new NotFoundException('Category not found');
+    await this.categoryRepo.remove(cat);
+    return { message: 'Category deleted' };
+  }
 
   // ─── Accounts ────────────────────────────────────────────────────────────
 
@@ -190,7 +226,7 @@ export class AccountingService {
   // ─── Transactions (unified list + delete) ────────────────────────────────
 
   async getTransactions(businessId: string, dto: GetTransactionsDto) {
-    const { transactionType, dateFrom, dateTo, search, page = 1, limit = 20 } = dto;
+    const { transactionType, category, dateFrom, dateTo, search, page = 1, limit = 20 } = dto;
     const qb = this.ledgerRepo
       .createQueryBuilder('l')
       .leftJoinAndSelect('l.account', 'account')
@@ -199,6 +235,7 @@ export class AccountingService {
     if (transactionType && transactionType !== 'all') {
       qb.andWhere('l.transactionType = :transactionType', { transactionType });
     }
+    if (category) qb.andWhere('l.category = :category', { category });
     if (dateFrom) qb.andWhere('l.transactionDate >= :dateFrom', { dateFrom });
     if (dateTo) qb.andWhere('l.transactionDate <= :dateTo', { dateTo });
     if (search) {

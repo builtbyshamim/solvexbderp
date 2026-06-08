@@ -87,6 +87,26 @@ export class ReportsController {
     return this.reportsService.getProfitLoss(biz, dateFrom, dateTo);
   }
 
+  @Get('category-sales')
+  @ApiOperation({ summary: 'Sales revenue breakdown by product category' })
+  categorySales(
+    @BusinessId() biz: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.reportsService.getCategorySales(biz, dateFrom, dateTo);
+  }
+
+  @Get('payment-methods')
+  @ApiOperation({ summary: 'Sales breakdown by payment method' })
+  paymentMethods(
+    @BusinessId() biz: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.reportsService.getPaymentMethodBreakdown(biz, dateFrom, dateTo);
+  }
+
   @Get('receivables')
   @ApiOperation({ summary: 'Customer receivables (outstanding dues)' })
   receivables(@BusinessId() biz: string) {

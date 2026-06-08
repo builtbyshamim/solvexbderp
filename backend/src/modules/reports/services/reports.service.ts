@@ -226,6 +226,61 @@ export class ReportsService {
     };
   }
 
+  async getCategorySales(businessId: string, dateFrom?: string, dateTo?: string) {
+    const from = dateFrom || monthStartStr();
+    const to = dateTo || todayStr();
+    const rows = await this.saleRepo.query(
+      `SELECT
+         COALESCE(c.id::text, 'uncategorized') AS category_id,
+         COALESCE(c.name, 'Uncategorized') AS category_name,
+         COUNT(DISTINCT si.product_id) AS product_count,
+         SUM(si.quantity) AS total_qty,
+         SUM(si.total) AS total_revenue,
+         SUM(si.profit) AS total_profit
+       FROM sale_items si
+       JOIN sales s ON s.id = si.sale_id
+       LEFT JOIN products p ON p.id = si.product_id
+       LEFT JOIN categories c ON c.id = p.category_id
+       WHERE s.business_id = $1 AND s.sale_date >= $2 AND s.sale_date <= $3
+         AND s.status != 'cancelled'
+       GROUP BY c.id, c.name
+       ORDER BY total_revenue DESC`,
+      [businessId, from, to],
+    );
+    return rows.map((r: any) => ({
+      categoryId: r.category_id,
+      categoryName: r.category_name,
+      productCount: Number(r.product_count),
+      totalQty: Number(r.total_qty),
+      totalRevenue: Number(r.total_revenue),
+      totalProfit: Number(r.total_profit ?? 0),
+    }));
+  }
+
+  async getPaymentMethodBreakdown(businessId: string, dateFrom?: string, dateTo?: string) {
+    const from = dateFrom || monthStartStr();
+    const to = dateTo || todayStr();
+    const rows = await this.saleRepo.query(
+      `SELECT
+         COALESCE(payment_method, 'unknown') AS method,
+         COUNT(*) AS count,
+         SUM(grand_total) AS total,
+         SUM(paid_amount) AS collected
+       FROM sales
+       WHERE business_id = $1 AND sale_date >= $2 AND sale_date <= $3
+         AND status != 'cancelled'
+       GROUP BY payment_method
+       ORDER BY total DESC`,
+      [businessId, from, to],
+    );
+    return rows.map((r: any) => ({
+      method: r.method,
+      count: Number(r.count),
+      total: Number(r.total),
+      collected: Number(r.collected),
+    }));
+  }
+
   async getReceivables(businessId: string) {
     const customers = await this.customerRepo.find({
       where: { businessId },

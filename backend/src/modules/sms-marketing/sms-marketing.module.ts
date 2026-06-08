@@ -7,9 +7,11 @@ import { SmsGroupEntity, SmsGroupMemberEntity } from './entities/sms-group.entit
 import { SmsConfigEntity } from './entities/sms-config.entity';
 import { SmsPackageEntity, SmsCreditEntity } from './entities/sms-package.entity';
 import { DueReminderEntity, DueReminderLogEntity } from './entities/due-reminder.entity';
+import { TransactionalSmsSettingEntity } from './entities/transactional-sms.entity';
 import { SmsMarketingService } from './services/sms-marketing.service';
 import { SmsMarketingController } from './controllers/sms-marketing.controller';
 import { CustomerEntity } from '../sales/entities/customer.entity';
+import { BusinessEntity } from '../business/entities/business.entity';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { CustomerEntity } from '../sales/entities/customer.entity';
       DueReminderEntity,
       DueReminderLogEntity,
       CustomerEntity,
+      BusinessEntity,
+      TransactionalSmsSettingEntity,
     ]),
   ],
   controllers: [SmsMarketingController],

@@ -13,6 +13,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { PermissionGuard } from './common/guards/permission.guard';
+import { SubscriptionGuard } from './common/guards/subscription.guard';
 import { UserModule } from './modules/users/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MailModule } from './modules/mail/mail.module';
@@ -33,6 +34,7 @@ import { HrmModule } from './modules/hrm/hrm.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { SmsMarketingModule } from './modules/sms-marketing/sms-marketing.module';
 import { AffiliateModule } from './modules/affiliate/affiliate.module';
+import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 
 @Module({
   imports: [
@@ -96,6 +98,7 @@ import { AffiliateModule } from './modules/affiliate/affiliate.module';
     ReportsModule,
     SmsMarketingModule,
     AffiliateModule,
+    SuperAdminModule,
   ],
   controllers: [AppController],
   providers: [
@@ -107,6 +110,9 @@ import { AffiliateModule } from './modules/affiliate/affiliate.module';
 
     // ✅ Global Permission Guard (fine-grained, checked after RolesGuard)
     { provide: APP_GUARD, useClass: PermissionGuard },
+
+    // ✅ Subscription Guard — blocks all API calls for expired subscriptions
+    { provide: APP_GUARD, useClass: SubscriptionGuard },
   ],
 })
 export class AppModule {}

@@ -72,6 +72,18 @@ export class BusinessEntity {
   @Column({ default: true })
   isActive: boolean;
 
+  @ApiProperty()
+  @Column({ default: 'trial' })
+  subscriptionStatus: string; // 'trial' | 'active' | 'expired' | 'suspended'
+
+  @ApiProperty()
+  @Column({ type: 'timestamp', nullable: true })
+  subscriptionExpiresAt: Date | null;
+
+  @ApiProperty()
+  @Column({ type: 'varchar', nullable: true })
+  subscriptionPlan: string | null; // 'starter' | 'pro' | 'enterprise'
+
   @OneToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'owner_id' })
   owner: UserEntity;

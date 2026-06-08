@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SmsMarketingService } from '../services/sms-marketing.service';
 import {
@@ -9,6 +9,7 @@ import {
   SaveSmsConfigDto, TestSmsDto,
   PurchasePackageDto,
   CreateDueReminderDto, UpdateDueReminderDto, GetDueReminderLogsDto,
+  SaveTransactionalSmsDto, PreviewTransactionalSmsDto,
 } from '../dto/sms-marketing.dto';
 import { BusinessId } from 'src/common/decorators/business-id.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -251,5 +252,25 @@ export class SmsMarketingController {
   @ApiOperation({ summary: 'Get due reminder logs' })
   getReminderLogs(@BusinessId() biz: string, @Query() q: GetDueReminderLogsDto) {
     return this.smsService.getReminderLogs(biz, q);
+  }
+
+  // ── Transactional SMS ─────────────────────────────────────────────────────
+
+  @Get('transactional-settings')
+  @ApiOperation({ summary: 'Get transactional SMS settings for all event types' })
+  getTransactionalSettings(@BusinessId() biz: string) {
+    return this.smsService.getTransactionalSettings(biz);
+  }
+
+  @Put('transactional-settings')
+  @ApiOperation({ summary: 'Save transactional SMS settings' })
+  saveTransactionalSettings(@BusinessId() biz: string, @Body() dto: SaveTransactionalSmsDto) {
+    return this.smsService.saveTransactionalSettings(biz, dto);
+  }
+
+  @Post('transactional-settings/preview')
+  @ApiOperation({ summary: 'Preview transactional SMS template with sample data' })
+  previewTransactional(@Body() dto: PreviewTransactionalSmsDto) {
+    return this.smsService.previewTransactional(dto.template);
   }
 }

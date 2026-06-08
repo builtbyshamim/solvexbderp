@@ -8,6 +8,7 @@ import { CustomerLedgerAdjustmentEntity } from './entities/customer-adjustment.e
 import { SalesService } from './services/sales.service';
 import { SalesController } from './controllers/sales.controller';
 import { ProductModule } from '../inventory/product/product.module';
+import { SmsMarketingModule } from '../sms-marketing/sms-marketing.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ProductModule } from '../inventory/product/product.module';
       CustomerLedgerAdjustmentEntity,
     ]),
     ProductModule,
+    SmsMarketingModule,
   ],
   controllers: [SalesController],
   providers: [SalesService],

@@ -23,6 +23,7 @@ import { GetAllUsersDto } from '../dto/get-all-users.dto';
 import { Permission, UserRole } from 'src/common/shared/enums/user-role.enum';
 import { ROLE_PERMISSIONS } from 'src/common/config/role-permissions.config';
 import { InviteUserDto } from '../dto/invite-user.dto';
+import { BusinessEntity } from 'src/modules/business/entities/business.entity';
 
 const OTP_TTL = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
@@ -204,10 +205,67 @@ export class UsersService {
     const custom = user.customPermissions ?? [];
     const effective = Array.from(new Set([...rolePerms, ...custom]));
 
+    // Load subscription info from business
+    const subscription = await this.resolveSubscription(user);
+
     return {
       ...user,
       rolePermissions: rolePerms,
       effectivePermissions: effective,
+      subscription,
+    };
+  }
+
+  private async resolveSubscription(user: UserEntity) {
+    // SUPER_ADMIN has no subscription requirement
+    if (user.role === UserRole.SUPER_ADMIN) {
+      return { status: 'active', isActive: true, expiresAt: null, daysLeft: null };
+    }
+
+    const bizRepo = this.dataSource.getRepository(BusinessEntity);
+    let business: BusinessEntity | null = null;
+
+    if (user.businessId) {
+      business = await bizRepo.findOne({ where: { id: user.businessId } });
+    }
+    if (!business && user.role === UserRole.ADMIN) {
+      business = await bizRepo.findOne({ where: { ownerId: user.id } });
+    }
+
+    if (!business) {
+      return { status: 'no_business', isActive: false, expiresAt: null, daysLeft: null };
+    }
+
+    if (!business.isActive) {
+      return { status: 'suspended', isActive: false, expiresAt: null, daysLeft: null };
+    }
+
+    const now = new Date();
+    const expiresAt = business.subscriptionExpiresAt;
+
+    if (expiresAt === null) {
+      // No expiry — grandfathered / admin manually set unlimited
+      return {
+        status: business.subscriptionStatus ?? 'active',
+        isActive: true,
+        expiresAt: null,
+        daysLeft: null,
+        plan: business.subscriptionPlan,
+      };
+    }
+
+    const isExpired = expiresAt <= now;
+    const daysLeft = isExpired
+      ? 0
+      : Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    const status = isExpired ? 'expired' : (business.subscriptionStatus ?? 'trial');
+    return {
+      status,
+      isActive: !isExpired,
+      expiresAt: expiresAt.toISOString(),
+      daysLeft,
+      plan: business.subscriptionPlan,
     };
   }
 
