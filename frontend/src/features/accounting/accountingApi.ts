@@ -2,10 +2,31 @@ import { baseApi } from "../../redux/api/baseApi";
 import { tagTypes } from "../../redux/tag-types";
 
 const ACCOUNT_URL = "/accounting/accounts";
+const CAT_URL = "/accounting/categories";
 const ACC_URL = "/accounting";
 
 export const accountingApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
+    // ── Accounting Categories ─────────────────────────────────────────────
+    getAccountingCategories: build.query({
+      query: (params?: { type?: string }) => ({ url: CAT_URL, method: "GET", params }),
+      providesTags: [{ type: tagTypes.account, id: "CATEGORIES" }],
+    }),
+    createAccountingCategory: build.mutation({
+      query: (data) => ({ url: CAT_URL, method: "POST", data }),
+      invalidatesTags: [{ type: tagTypes.account, id: "CATEGORIES" }],
+    }),
+    updateAccountingCategory: build.mutation({
+      query: ({ id, data }: { id: string; data: any }) => ({
+        url: `${CAT_URL}/${id}`, method: "PATCH", data,
+      }),
+      invalidatesTags: [{ type: tagTypes.account, id: "CATEGORIES" }],
+    }),
+    deleteAccountingCategory: build.mutation({
+      query: (id: string) => ({ url: `${CAT_URL}/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: tagTypes.account, id: "CATEGORIES" }],
+    }),
+
     // ── Accounts ─────────────────────────────────────────────────────────
     getAllAccounts: build.query({
       query: (params) => ({ url: ACCOUNT_URL, method: "GET", params }),
@@ -123,6 +144,10 @@ export const accountingApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetAccountingCategoriesQuery,
+  useCreateAccountingCategoryMutation,
+  useUpdateAccountingCategoryMutation,
+  useDeleteAccountingCategoryMutation,
   useGetAllAccountsQuery,
   useGetAccountQuery,
   useGetAccountSummaryQuery,

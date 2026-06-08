@@ -87,6 +87,7 @@ import ProfitLossReport from '../features/reports/ProfitLossReport';
 import CustomerReport from '../features/reports/CustomerReport';
 import SupplierReport from '../features/reports/SupplierReport';
 import HRMReport from '../features/reports/HRMReport';
+import TopProductsReport from '../features/reports/TopProductsReport';
 
 // SMS Marketing
 import SmsOverview from '../features/sms-marketing/SmsOverview';
@@ -98,6 +99,7 @@ import SmsLogs from '../features/sms-marketing/SmsLogs';
 import SmsConfiguration from '../features/sms-marketing/SmsConfiguration';
 import SmsPackages from '../features/sms-marketing/SmsPackages';
 import DueReminder from '../features/sms-marketing/DueReminder';
+import SmsNotifications from '../features/sms-marketing/SmsNotifications';
 
 // Settings
 import BusinessProfile from '../features/settings/BusinessProfile';
@@ -253,6 +255,7 @@ const router = createBrowserRouter([
       { path: 'reports/customers', element: <CustomerReport /> },
       { path: 'reports/suppliers', element: <SupplierReport /> },
       { path: 'reports/hrm', element: <HRMReport /> },
+      { path: 'reports/top-products', element: <TopProductsReport /> },
 
       // SMS Marketing
       { path: 'sms-marketing', element: <SmsOverview /> },
@@ -264,6 +267,7 @@ const router = createBrowserRouter([
       { path: 'sms-marketing/configuration', element: <SmsConfiguration /> },
       { path: 'sms-marketing/packages', element: <SmsPackages /> },
       { path: 'sms-marketing/due-reminder', element: <DueReminder /> },
+      { path: 'sms-marketing/notifications', element: <SmsNotifications /> },
 
       // Settings
       { path: 'settings/business', element: <BusinessProfile /> },

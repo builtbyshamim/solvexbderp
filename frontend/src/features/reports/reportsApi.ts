@@ -45,6 +45,14 @@ export const reportsApi = baseApi.injectEndpoints({
       query: (params) => ({ url: `${REPORT_URL}/top-suppliers`, method: "GET", params }),
       providesTags: [{ type: tagTypes.report, id: "TOP_SUPPLIERS" }],
     }),
+    getCategorySales: build.query({
+      query: (params) => ({ url: `${REPORT_URL}/category-sales`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.report, id: "CATEGORY_SALES" }],
+    }),
+    getPaymentMethods: build.query({
+      query: (params) => ({ url: `${REPORT_URL}/payment-methods`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.report, id: "PAYMENT_METHODS" }],
+    }),
   }),
 });
 
@@ -59,4 +67,6 @@ export const {
   useGetReceivablesQuery,
   useGetPayablesQuery,
   useGetTopSuppliersQuery,
+  useGetCategorySalesQuery,
+  useGetPaymentMethodsQuery,
 } = reportsApi;

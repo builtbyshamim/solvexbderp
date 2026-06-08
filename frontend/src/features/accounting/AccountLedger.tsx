@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Download, Loader2 } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import { useGetAllAccountsQuery, useGetAccountLedgerQuery } from './accountingApi';
@@ -17,7 +18,8 @@ const typeColors: Record<string, string> = {
 
 const AccountLedger = () => {
   const { t } = useLanguage();
-  const [accountId, setAccountId] = useState('');
+  const [searchParams] = useSearchParams();
+  const [accountId, setAccountId] = useState(searchParams.get('accountId') ?? '');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [search, setSearch] = useState('');

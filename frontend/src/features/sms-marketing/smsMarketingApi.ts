@@ -167,6 +167,19 @@ export const smsMarketingApi = baseApi.injectEndpoints({
       query: (params) => ({ url: `${SMS}/due-reminder-logs`, method: "GET", params }),
       providesTags: [{ type: tagTypes.smsLog, id: "REMINDER-LOGS" }],
     }),
+
+    // ── Transactional SMS ─────────────────────────────────────────────────────
+    getTransactionalSmsSettings: build.query({
+      query: () => ({ url: `${SMS}/transactional-settings`, method: "GET" }),
+      providesTags: [{ type: tagTypes.smsCampaign, id: "TRANSACTIONAL" }],
+    }),
+    saveTransactionalSmsSettings: build.mutation({
+      query: (data) => ({ url: `${SMS}/transactional-settings`, method: "PUT", data }),
+      invalidatesTags: [{ type: tagTypes.smsCampaign, id: "TRANSACTIONAL" }],
+    }),
+    previewTransactionalSms: build.mutation({
+      query: (data: { template: string }) => ({ url: `${SMS}/transactional-settings/preview`, method: "POST", data }),
+    }),
   }),
 });
 
@@ -207,4 +220,7 @@ export const {
   useSendDueReminderMutation,
   useDeleteDueReminderMutation,
   useGetDueReminderLogsQuery,
+  useGetTransactionalSmsSettingsQuery,
+  useSaveTransactionalSmsSettingsMutation,
+  usePreviewTransactionalSmsMutation,
 } = smsMarketingApi;
