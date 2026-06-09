@@ -35,6 +35,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { SmsMarketingModule } from './modules/sms-marketing/sms-marketing.module';
 import { AffiliateModule } from './modules/affiliate/affiliate.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
+import { PackageModule } from './modules/packages/package.module';
 
 @Module({
   imports: [
@@ -99,6 +100,7 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     SmsMarketingModule,
     AffiliateModule,
     SuperAdminModule,
+    PackageModule,
   ],
   controllers: [AppController],
   providers: [

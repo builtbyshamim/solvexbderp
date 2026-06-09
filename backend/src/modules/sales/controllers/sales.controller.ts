@@ -1,6 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SalesService } from '../services/sales.service';
+import { CustomerImportExportService } from '../services/customer-import-export.service';
 import {
   CreateCustomerDto, CreateCustomerAdjustmentDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
   CollectPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
@@ -13,7 +15,10 @@ import { UserEntity } from 'src/modules/users/entities/user.entity';
 @ApiTags('Sales')
 @Controller({ path: 'sales', version: '1' })
 export class SalesController {
-  constructor(private readonly salesService: SalesService) {}
+  constructor(
+    private readonly salesService: SalesService,
+    private readonly customerImportExportService: CustomerImportExportService,
+  ) {}
 
   // ── Customers ──────────────────────────────────────────────────────────────
 
@@ -27,6 +32,36 @@ export class SalesController {
   @ApiOperation({ summary: 'Get all customers' })
   getCustomers(@BusinessId() biz: string, @Query() q: GetCustomersDto) {
     return this.salesService.findAllCustomers(biz, q);
+  }
+
+  @Get('customers/export')
+  @ApiOperation({ summary: 'Export all customers as Excel (.xlsx) with opening & closing balance' })
+  async exportCustomers(@BusinessId() biz: string, @Res() res: any) {
+    const buffer = await this.customerImportExportService.exportCustomers(biz);
+    res.setHeader('Content-Disposition', 'attachment; filename="customers.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  }
+
+  @Get('customers/import-template')
+  @ApiOperation({ summary: 'Download the customer import template (.xlsx)' })
+  getCustomerImportTemplate(@Res() res: any) {
+    const buffer = this.customerImportExportService.getTemplate();
+    res.setHeader('Content-Disposition', 'attachment; filename="customer-import-template.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  }
+
+  @Post('customers/import')
+  @ApiOperation({ summary: 'Import customers from Excel or CSV file' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  async importCustomers(
+    @BusinessId() biz: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Please upload an Excel or CSV file');
+    return this.customerImportExportService.importCustomers(biz, file);
   }
 
   @Get('customers/:id')

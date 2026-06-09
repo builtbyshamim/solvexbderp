@@ -16,8 +16,11 @@ import { BusinessEntity } from 'src/modules/business/entities/business.entity';
 const WHITELIST_PATHS = [
   '/api/v1/users/profile',
   '/api/v1/packages/public',
+  '/api/v1/packages',
   '/api/v1/business/me',
   '/api/v1/business/setup',
+  '/api/v1/business/subscribe',
+  '/api/v1/business/subscription/renew',
   '/api/v1/auth/',
 ];
 

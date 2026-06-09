@@ -24,6 +24,7 @@ import { Permission, UserRole } from 'src/common/shared/enums/user-role.enum';
 import { ROLE_PERMISSIONS } from 'src/common/config/role-permissions.config';
 import { InviteUserDto } from '../dto/invite-user.dto';
 import { BusinessEntity } from 'src/modules/business/entities/business.entity';
+import { PackageEntity } from 'src/modules/packages/entities/package.entity';
 
 const OTP_TTL = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
@@ -217,14 +218,14 @@ export class UsersService {
   }
 
   private async resolveSubscription(user: UserEntity) {
-    // SUPER_ADMIN has no subscription requirement
     if (user.role === UserRole.SUPER_ADMIN) {
-      return { status: 'active', isActive: true, expiresAt: null, daysLeft: null };
+      return { status: 'active', isActive: true, expiresAt: null, daysLeft: null, needsPackageSelection: false };
     }
 
     const bizRepo = this.dataSource.getRepository(BusinessEntity);
-    let business: BusinessEntity | null = null;
+    const pkgRepo = this.dataSource.getRepository(PackageEntity);
 
+    let business: BusinessEntity | null = null;
     if (user.businessId) {
       business = await bizRepo.findOne({ where: { id: user.businessId } });
     }
@@ -233,24 +234,37 @@ export class UsersService {
     }
 
     if (!business) {
-      return { status: 'no_business', isActive: false, expiresAt: null, daysLeft: null };
+      return { status: 'no_business', isActive: false, expiresAt: null, daysLeft: null, needsPackageSelection: false };
     }
 
     if (!business.isActive) {
-      return { status: 'suspended', isActive: false, expiresAt: null, daysLeft: null };
+      return { status: 'suspended', isActive: false, expiresAt: null, daysLeft: null, needsPackageSelection: false };
+    }
+
+    // No package selected yet — still in free onboarding
+    const needsPackageSelection = !business.packageId;
+
+    // Load package details if available
+    let pkg: PackageEntity | null = null;
+    if (business.packageId) {
+      pkg = await pkgRepo.findOne({ where: { id: business.packageId } });
     }
 
     const now = new Date();
     const expiresAt = business.subscriptionExpiresAt;
 
     if (expiresAt === null) {
-      // No expiry — grandfathered / admin manually set unlimited
       return {
-        status: business.subscriptionStatus ?? 'active',
+        status: business.subscriptionStatus ?? 'trial',
         isActive: true,
         expiresAt: null,
+        trialEndsAt: business.trialEndsAt?.toISOString() ?? null,
         daysLeft: null,
+        billingCycle: business.billingCycle,
         plan: business.subscriptionPlan,
+        packageId: business.packageId,
+        needsPackageSelection,
+        package: pkg ? this.formatPackage(pkg) : null,
       };
     }
 
@@ -260,23 +274,47 @@ export class UsersService {
       : Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
     const status = isExpired ? 'expired' : (business.subscriptionStatus ?? 'trial');
+
     return {
       status,
       isActive: !isExpired,
       expiresAt: expiresAt.toISOString(),
+      trialEndsAt: business.trialEndsAt?.toISOString() ?? null,
       daysLeft,
+      billingCycle: business.billingCycle,
       plan: business.subscriptionPlan,
+      packageId: business.packageId,
+      needsPackageSelection,
+      package: pkg ? this.formatPackage(pkg) : null,
+    };
+  }
+
+  private formatPackage(pkg: PackageEntity) {
+    return {
+      id: pkg.id,
+      name: pkg.name,
+      badge: pkg.badge,
+      highlight: pkg.highlight,
+      monthlyPrice: Number(pkg.monthlyPrice),
+      yearlyPrice: Number(pkg.yearlyPrice),
+      maxUsers: pkg.maxUsers,
+      maxProducts: pkg.maxProducts,
+      maxWarehouses: pkg.maxWarehouses,
+      features: pkg.features,
     };
   }
 
   async verifyOtp(email: string, otp: string) {
     const redisKey = `pending_signup:${email}`;
+    console.log(`Verifying OTP for ${email} with OTP: ${otp}`);
     const data = await this.cacheManager.get<PendingSignup>(redisKey);
     if (!data) throw new BadRequestException('Invalid or expired OTP.');
 
     if (data.attempts >= MAX_ATTEMPTS) {
       await this.cacheManager.del(redisKey);
-      throw new BadRequestException('Too many incorrect attempts. Please register again.');
+      throw new BadRequestException(
+        'Too many incorrect attempts. Please register again.',
+      );
     }
 
     const inputHash = this.hashOtp(otp);
@@ -289,7 +327,9 @@ export class UsersService {
         OTP_TTL,
       );
       const remaining = MAX_ATTEMPTS - (data.attempts + 1);
-      throw new BadRequestException(`Invalid OTP. ${remaining} attempt(s) remaining.`);
+      throw new BadRequestException(
+        `Invalid OTP. ${remaining} attempt(s) remaining.`,
+      );
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -312,13 +352,16 @@ export class UsersService {
         referredBy: data.referralId ?? undefined,
       });
 
-      await queryRunner.manager.save(UserEntity, user);
+      const resData = await queryRunner.manager.save(UserEntity, user);
+      console.log('User created with ID:', resData);
+
       await queryRunner.commitTransaction();
       await this.cacheManager.del(redisKey);
 
       const tokens = await this.authService.generateTokens(user);
       return { message: 'Registration successful', userId: user.id, tokens };
     } catch (error) {
+      console.log('Error during OTP verification:', error);
       await queryRunner.rollbackTransaction();
       throw error;
     } finally {
@@ -333,7 +376,9 @@ export class UsersService {
     newRole: UserRole,
     requestingUser: { id: string; role: UserRole; businessId: string | null },
   ) {
-    const target = await this.userRepository.findOne({ where: { id: targetUserId } });
+    const target = await this.userRepository.findOne({
+      where: { id: targetUserId },
+    });
     if (!target) throw new NotFoundException('User not found');
 
     // Cannot change ADMIN/SUPER_ADMIN role (only SUPER_ADMIN can do that)
@@ -361,7 +406,9 @@ export class UsersService {
   // ─── Permission Management ───────────────────────────────────────────────────
 
   async updatePermissions(targetUserId: string, permissions: Permission[]) {
-    const target = await this.userRepository.findOne({ where: { id: targetUserId } });
+    const target = await this.userRepository.findOne({
+      where: { id: targetUserId },
+    });
     if (!target) throw new NotFoundException('User not found');
 
     target.customPermissions = permissions;
@@ -398,7 +445,9 @@ export class UsersService {
       (role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN) &&
       requestingUser.role !== UserRole.SUPER_ADMIN
     ) {
-      throw new ForbiddenException('Cannot invite users with admin-level roles');
+      throw new ForbiddenException(
+        'Cannot invite users with admin-level roles',
+      );
     }
 
     const exists = await this.userRepository.findOne({ where: { email } });
@@ -432,7 +481,9 @@ export class UsersService {
   // ─── Soft Delete ────────────────────────────────────────────────────────────
 
   async softDelete(targetUserId: string) {
-    const target = await this.userRepository.findOne({ where: { id: targetUserId } });
+    const target = await this.userRepository.findOne({
+      where: { id: targetUserId },
+    });
     if (!target) throw new NotFoundException('User not found');
 
     target.isDeleted = true;
@@ -446,7 +497,9 @@ export class UsersService {
     userRequest: { id: string },
     updateUserDto: UpdateUserDto,
   ) {
-    const user = await this.userRepository.findOne({ where: { id: userRequest.id } });
+    const user = await this.userRepository.findOne({
+      where: { id: userRequest.id },
+    });
     if (!user) throw new NotFoundException('User not found');
 
     if (updateUserDto.email && updateUserDto.email !== user.email) {

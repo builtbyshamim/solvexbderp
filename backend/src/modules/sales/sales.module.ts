@@ -6,6 +6,7 @@ import { QuotationEntity, QuotationItemEntity } from './entities/quotation.entit
 import { SaleReturnEntity, SaleReturnItemEntity } from './entities/sale-return.entity';
 import { CustomerLedgerAdjustmentEntity } from './entities/customer-adjustment.entity';
 import { SalesService } from './services/sales.service';
+import { CustomerImportExportService } from './services/customer-import-export.service';
 import { SalesController } from './controllers/sales.controller';
 import { ProductModule } from '../inventory/product/product.module';
 import { SmsMarketingModule } from '../sms-marketing/sms-marketing.module';
@@ -22,7 +23,7 @@ import { SmsMarketingModule } from '../sms-marketing/sms-marketing.module';
     SmsMarketingModule,
   ],
   controllers: [SalesController],
-  providers: [SalesService],
+  providers: [SalesService, CustomerImportExportService],
   exports: [SalesService],
 })
 export class SalesModule {}

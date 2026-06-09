@@ -84,6 +84,18 @@ export class BusinessEntity {
   @Column({ type: 'varchar', nullable: true })
   subscriptionPlan: string | null; // 'starter' | 'pro' | 'enterprise'
 
+  @ApiProperty()
+  @Column({ type: 'varchar', nullable: true })
+  packageId: string | null;
+
+  @ApiProperty()
+  @Column({ type: 'timestamp', nullable: true })
+  trialEndsAt: Date | null;
+
+  @ApiProperty()
+  @Column({ type: 'varchar', default: 'monthly' })
+  billingCycle: string; // 'monthly' | 'yearly'
+
   @OneToOne(() => UserEntity, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'owner_id' })
   owner: UserEntity;
