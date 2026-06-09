@@ -1,6 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, RefreshCw } from 'lucide-react';
+import JsBarcode from 'jsbarcode';
 import toast from 'react-hot-toast';
 import { useCreateProductMutation } from '../productApi';
 import { useGetAllCategoryQuery } from '../../category/categoryApi';
@@ -8,6 +10,7 @@ import { useGetAllBrandQuery } from '../../brand/brandApi';
 import { useGetAllUnitQuery } from '../../unit/unitApi';
 import { useGetAllWarrantyQuery } from '../../warranty/warrantyApi';
 import PageHeader from '../../../../components/shared/PageHeader';
+import { generateEAN13 } from '../../../../utils/barcodeUtils';
 
 const F = ({ label, required, error, children }: any) => (
   <div>
@@ -22,15 +25,56 @@ const F = ({ label, required, error, children }: any) => (
 const inp = (err?: any) =>
   `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] ${err ? 'border-red-300' : 'border-[#DBDFE9]'}`;
 
+// Inline barcode preview using JsBarcode
+function BarcodePreview({ value }: { value: string }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (!svgRef.current || !value) return;
+    try {
+      JsBarcode(svgRef.current, value, {
+        format: value.length === 13 ? 'EAN13' : 'CODE128',
+        width: 1.5,
+        height: 40,
+        displayValue: true,
+        fontSize: 9,
+        margin: 4,
+      });
+    } catch {
+      try {
+        JsBarcode(svgRef.current, value, {
+          format: 'CODE128',
+          width: 1.5,
+          height: 40,
+          displayValue: true,
+          fontSize: 9,
+          margin: 4,
+        });
+      } catch { /* invalid barcode value */ }
+    }
+  }, [value]);
+
+  if (!value) return null;
+  return (
+    <div className="mt-2 flex justify-center p-2 bg-white border border-dashed border-[#DBDFE9] rounded-lg">
+      <svg ref={svgRef} />
+    </div>
+  );
+}
+
 const AddProduct = () => {
   const navigate = useNavigate();
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
-    defaultValues: { isActive: true, productType: 'physical' },
+    defaultValues: { isActive: true, productType: 'physical', barcode: '' },
   });
+
+  const barcodeValue = watch('barcode') as string;
 
   const { data: catData } = useGetAllCategoryQuery({ limit: 500 });
   const { data: brandData } = useGetAllBrandQuery({ limit: 500 });
@@ -42,6 +86,10 @@ const AddProduct = () => {
   const brands = brandData?.data || [];
   const units = unitData?.data || [];
   const warranties = warrantyData?.data || [];
+
+  const handleGenerateBarcode = () => {
+    setValue('barcode', generateEAN13(), { shouldDirty: true });
+  };
 
   const onSubmit = async (data: any) => {
     const payload: any = {
@@ -64,7 +112,6 @@ const AddProduct = () => {
 
     try {
       const res = await createProduct(payload).unwrap();
-      console.log('Create product response:', res);
       if (res?.success) {
         toast.success('Product created');
         navigate('/admin/inventory/products');
@@ -72,7 +119,6 @@ const AddProduct = () => {
         toast.error(res?.message || 'Failed to create product');
       }
     } catch (err: any) {
-      console.error('Error creating product:', err);
       toast.error(err?.data?.message || 'Failed to create product');
     }
   };
@@ -118,12 +164,25 @@ const AddProduct = () => {
                 <F label="SKU">
                   <input {...register('sku')} placeholder="Auto if empty" className={inp()} />
                 </F>
+
                 <F label="Barcode">
-                  <input
-                    {...register('barcode')}
-                    placeholder="e.g. 8901234567890"
-                    className={inp()}
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      {...register('barcode')}
+                      placeholder="e.g. 8901234567890"
+                      className={`${inp()} flex-1 min-w-0`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGenerateBarcode}
+                      title="Auto-generate EAN-13 barcode"
+                      className="flex-shrink-0 px-3 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-xs hover:bg-gray-50 hover:border-[#ff6d29] transition-colors flex items-center gap-1"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Generate</span>
+                    </button>
+                  </div>
+                  <BarcodePreview value={barcodeValue} />
                 </F>
               </div>
 
@@ -146,70 +205,35 @@ const AddProduct = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <F label="Purchase Price">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                      ৳
-                    </span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      {...register('purchasePrice')}
-                      placeholder="0.00"
-                      className={`${inp()} pl-7`}
-                    />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
+                    <input type="number" step="0.01" min="0" {...register('purchasePrice')}
+                      placeholder="0.00" className={`${inp()} pl-7`} />
                   </div>
                 </F>
                 <F label="Selling Price">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                      ৳
-                    </span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      {...register('sellingPrice')}
-                      placeholder="0.00"
-                      className={`${inp()} pl-7`}
-                    />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
+                    <input type="number" step="0.01" min="0" {...register('sellingPrice')}
+                      placeholder="0.00" className={`${inp()} pl-7`} />
                   </div>
                 </F>
                 <F label="Wholesale Price">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                      ৳
-                    </span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      {...register('wholesalePrice')}
-                      placeholder="0.00"
-                      className={`${inp()} pl-7`}
-                    />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
+                    <input type="number" step="0.01" min="0" {...register('wholesalePrice')}
+                      placeholder="0.00" className={`${inp()} pl-7`} />
                   </div>
                 </F>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <F label="Opening Stock">
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    {...register('openingStock')}
-                    placeholder="0"
-                    className={inp()}
-                  />
+                  <input type="number" min="0" step="any" {...register('openingStock')}
+                    placeholder="0" className={inp()} />
                 </F>
                 <F label="Alert Quantity">
-                  <input
-                    type="number"
-                    min="0"
-                    {...register('alertQuantity')}
-                    placeholder="e.g. 5 (low-stock alert)"
-                    className={inp()}
-                  />
+                  <input type="number" min="0" {...register('alertQuantity')}
+                    placeholder="e.g. 5 (low-stock alert)" className={inp()} />
                 </F>
               </div>
             </div>
@@ -217,7 +241,6 @@ const AddProduct = () => {
 
           {/* Right Sidebar */}
           <div className="space-y-5">
-            {/* Organization */}
             <div className="bg-white border border-[#DBDFE9] rounded-lg p-5 space-y-4">
               <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-100 pb-2">
                 Organization
@@ -235,9 +258,7 @@ const AddProduct = () => {
                 <select {...register('categoryId')} className={inp()}>
                   <option value="">Select category...</option>
                   {categories.map((c: any) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
+                    <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </F>
@@ -246,9 +267,7 @@ const AddProduct = () => {
                 <select {...register('brandId')} className={inp()}>
                   <option value="">Select brand...</option>
                   {brands.map((b: any) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
+                    <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
               </F>
@@ -257,9 +276,7 @@ const AddProduct = () => {
                 <select {...register('unitId')} className={inp()}>
                   <option value="">Select unit...</option>
                   {units.map((u: any) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
+                    <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
                 </select>
               </F>
@@ -268,9 +285,7 @@ const AddProduct = () => {
                 <select {...register('warrantyId')} className={inp()}>
                   <option value="">No warranty</option>
                   {warranties.map((w: any) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                    </option>
+                    <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
                 </select>
               </F>
@@ -284,12 +299,7 @@ const AddProduct = () => {
                   <p className="text-xs text-gray-400 mt-0.5">Visible in inventory</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    {...register('isActive')}
-                    className="sr-only peer"
-                    defaultChecked
-                  />
+                  <input type="checkbox" {...register('isActive')} className="sr-only peer" defaultChecked />
                   <div className="w-9 h-5 bg-gray-200 peer-checked:bg-[#ff6d29] rounded-full transition-colors" />
                   <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
                 </label>

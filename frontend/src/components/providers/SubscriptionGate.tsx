@@ -1,4 +1,4 @@
-import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { useLocation, Link, useNavigate, Navigate } from 'react-router-dom';
 import {
   Lock, CreditCard, LogOut, Clock, AlertTriangle,
   CheckCircle2, Crown, Zap, Building2, ArrowRight, Phone,
@@ -24,7 +24,7 @@ function SubscriptionLockedPage({ status, daysLeft, expiresAt }: {
   const navigate = useNavigate();
   const [logout] = useLogoutMutation();
   const { data: packagesData } = useGetPublicPackagesQuery();
-  const plans = (packagesData?.data ?? []).filter((p) => p.isActive && !p.isEnterprise);
+  const plans = (packagesData ?? []).filter((p) => p.isActive && !p.isEnterprise);
 
   const handleLogout = async () => {
     try { await logout(undefined).unwrap(); } catch { /* ignore */ }
@@ -232,12 +232,17 @@ export default function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { data: meData, isLoading } = useFetchMeQuery();
   const { pathname } = useLocation();
 
-  // Always allow the subscription settings page
   const isSubscriptionPage = pathname === '/admin/settings/subscription';
+  const isSelectPlanPage = pathname === '/select-plan';
 
   if (isLoading) return null;
 
-  const subscription = meData?.data?.subscription;
+  const subscription = meData?.subscription;
+
+  // Redirect to plan selection if user hasn't picked a plan yet
+  if (!isSelectPlanPage && subscription?.needsPackageSelection) {
+    return <Navigate to="/select-plan" replace />;
+  }
 
   if (!isSubscriptionPage && subscription && !subscription.isActive) {
     return (

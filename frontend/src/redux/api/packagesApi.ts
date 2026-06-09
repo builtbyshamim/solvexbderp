@@ -5,11 +5,11 @@ const URL = '/packages';
 
 export const packagesApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    getPublicPackages: build.query<{ data: Package[] }, void>({
+    getPublicPackages: build.query<Package[], void>({
       query: () => ({ url: `${URL}/public`, method: 'GET' }),
       providesTags: [tagTypes.packages],
     }),
-    getAllPackages: build.query<{ data: Package[] }, void>({
+    getAllPackages: build.query<Package[], void>({
       query: () => ({ url: URL, method: 'GET' }),
       providesTags: [tagTypes.packages],
     }),
@@ -18,7 +18,7 @@ export const packagesApi = baseApi.injectEndpoints({
       invalidatesTags: [tagTypes.packages],
     }),
     updatePackage: build.mutation({
-      query: ({ id, ...data }: { id: string;[k: string]: any }) => ({
+      query: ({ id, ...data }: { id: string; [k: string]: any }) => ({
         url: `${URL}/${id}`,
         method: 'PATCH',
         data,
@@ -29,6 +29,20 @@ export const packagesApi = baseApi.injectEndpoints({
       query: (id: string) => ({ url: `${URL}/${id}`, method: 'DELETE' }),
       invalidatesTags: [tagTypes.packages],
     }),
+    subscribeToPackage: build.mutation<
+      { message: string; subscription: any },
+      { packageId: string; billingCycle: 'monthly' | 'yearly' }
+    >({
+      query: (data) => ({ url: '/business/subscribe', method: 'POST', data }),
+      invalidatesTags: [tagTypes.auth, tagTypes.packages],
+    }),
+    renewSubscription: build.mutation<
+      { message: string; subscription: any },
+      { billingCycle: 'monthly' | 'yearly' }
+    >({
+      query: (data) => ({ url: '/business/subscription/renew', method: 'POST', data }),
+      invalidatesTags: [tagTypes.auth],
+    }),
   }),
 });
 
@@ -38,6 +52,8 @@ export const {
   useCreatePackageMutation,
   useUpdatePackageMutation,
   useDeletePackageMutation,
+  useSubscribeToPackageMutation,
+  useRenewSubscriptionMutation,
 } = packagesApi;
 
 export interface Package {

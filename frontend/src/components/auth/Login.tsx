@@ -11,9 +11,16 @@ import {
 
 type Step = 1 | 2 | 3;
 
-interface MobileForm { mobile: string }
-interface OtpForm { code: string }
-interface RegisterForm { name: string; password: string }
+interface MobileForm {
+  mobile: string;
+}
+interface OtpForm {
+  code: string;
+}
+interface RegisterForm {
+  name: string;
+  password: string;
+}
 
 const BrandLogo = () => (
   <div className="flex items-center gap-3">
@@ -28,11 +35,15 @@ const StepIndicator = ({ step }: { step: Step }) => (
   <div className="flex items-center gap-2 mb-7">
     {([1, 2, 3] as Step[]).map((s) => (
       <div key={s} className="flex items-center gap-2">
-        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-          s < step ? 'bg-[#ff6d29] text-white' :
-          s === step ? 'bg-[#ff6d29]/20 border-2 border-[#ff6d29] text-[#ff6d29]' :
-          'bg-white/5 border border-white/20 text-gray-500'
-        }`}>
+        <div
+          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+            s < step
+              ? 'bg-[#ff6d29] text-white'
+              : s === step
+                ? 'bg-[#ff6d29]/20 border-2 border-[#ff6d29] text-[#ff6d29]'
+                : 'bg-white/5 border border-white/20 text-gray-500'
+          }`}
+        >
           {s < step ? <CheckCircle2 className="h-4 w-4" /> : s}
         </div>
         {s < 3 && <div className={`w-8 h-px ${s < step ? 'bg-[#ff6d29]' : 'bg-white/10'}`} />}
@@ -73,13 +84,12 @@ const LoginPage = () => {
   const handleVerifyOtp = async (data: OtpForm) => {
     try {
       const result = await verifyOtp({ mobile, code: data.code }).unwrap();
-      const payload = result?.data;
 
-      if (!payload?.isNewUser) {
-        toast.success(`Welcome back, ${payload?.user?.name || 'there'}!`);
+      if (!result.isNewUser) {
+        toast.success(`Welcome back, ${result.user?.name || 'there'}!`);
         navigate('/admin');
       } else {
-        setTempToken(payload.tempToken);
+        setTempToken(result.tempToken);
         setStep(3);
       }
     } catch (err: any) {
@@ -89,10 +99,13 @@ const LoginPage = () => {
 
   const handleRegister = async (data: RegisterForm) => {
     try {
-      const result = await register({ tempToken, name: data.name, password: data.password }).unwrap();
-      const payload = result?.data;
-      toast.success(`Welcome, ${payload?.user?.name || data.name}!`);
-      navigate('/admin');
+      const result = await register({
+        tempToken,
+        name: data.name,
+        password: data.password,
+      }).unwrap();
+      toast.success(`Welcome, ${result.user?.name || data.name}!`);
+      navigate('/select-plan', { replace: true });
     } catch (err: any) {
       toast.error(err?.message || 'Registration failed');
     }
@@ -105,14 +118,21 @@ const LoginPage = () => {
         <BrandLogo />
         <div>
           <h1 className="text-4xl font-bold text-white leading-tight mb-4">
-            Manage your<br />
+            Manage your
+            <br />
             <span className="text-[#ff6d29]">business smarter</span>
           </h1>
           <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
-            Complete ERP solution — Inventory, POS, Accounting, HRM, and Reports in one platform. Built for Bangladeshi businesses.
+            Complete ERP solution — Inventory, POS, Accounting, HRM, and Reports in one platform.
+            Built for Bangladeshi businesses.
           </p>
           <div className="mt-10 space-y-3">
-            {['Inventory & POS Management', 'Double-entry Accounting', 'HRM & Payroll', 'Sales & Purchase Reports'].map((item) => (
+            {[
+              'Inventory & POS Management',
+              'Double-entry Accounting',
+              'HRM & Payroll',
+              'Sales & Purchase Reports',
+            ].map((item) => (
               <div key={item} className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded-full bg-[#ff6d29]/20 flex items-center justify-center flex-shrink-0">
                   <div className="w-2 h-2 rounded-full bg-[#ff6d29]" />
@@ -122,7 +142,9 @@ const LoginPage = () => {
             ))}
           </div>
         </div>
-        <p className="text-gray-600 text-xs">&copy; {new Date().getFullYear()} BizCore ERP. All rights reserved.</p>
+        <p className="text-gray-600 text-xs">
+          &copy; {new Date().getFullYear()} BizCore ERP. All rights reserved.
+        </p>
       </div>
 
       {/* Right panel */}
@@ -145,21 +167,28 @@ const LoginPage = () => {
                 </div>
                 <form onSubmit={mobileForm.handleSubmit(handleSendOtp)} className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Mobile Number</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Mobile Number
+                    </label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                       <input
                         type="tel"
                         {...mobileForm.register('mobile', {
                           required: 'Mobile number is required',
-                          pattern: { value: /^01[3-9]\d{8}$/, message: 'Enter a valid BD mobile number' },
+                          pattern: {
+                            value: /^01[3-9]\d{8}$/,
+                            message: 'Enter a valid BD mobile number',
+                          },
                         })}
                         className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-[#ff6d29] focus:ring-1 focus:ring-[#ff6d29] outline-none transition"
                         placeholder="01XXXXXXXXX"
                       />
                     </div>
                     {mobileForm.formState.errors.mobile && (
-                      <p className="text-red-400 text-xs mt-1.5">{mobileForm.formState.errors.mobile.message}</p>
+                      <p className="text-red-400 text-xs mt-1.5">
+                        {mobileForm.formState.errors.mobile.message}
+                      </p>
                     )}
                   </div>
                   <button
@@ -168,9 +197,15 @@ const LoginPage = () => {
                     className="w-full py-3 bg-[#ff6d29] hover:bg-[#e65a1f] text-white font-semibold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isSending ? (
-                      <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Sending OTP...</>
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Sending OTP...
+                      </>
                     ) : (
-                      <><Shield className="h-4 w-4" />Send OTP</>
+                      <>
+                        <Shield className="h-4 w-4" />
+                        Send OTP
+                      </>
                     )}
                   </button>
                 </form>
@@ -194,7 +229,10 @@ const LoginPage = () => {
                 </div>
 
                 <div className="mb-5 px-4 py-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                  <p className="text-blue-300 text-xs font-medium">Development mode — Use OTP: <span className="font-mono font-bold text-blue-200">123456</span></p>
+                  <p className="text-blue-300 text-xs font-medium">
+                    Development mode — Use OTP:{' '}
+                    <span className="font-mono font-bold text-blue-200">123456</span>
+                  </p>
                 </div>
 
                 <form onSubmit={otpForm.handleSubmit(handleVerifyOtp)} className="space-y-5">
@@ -214,7 +252,9 @@ const LoginPage = () => {
                       placeholder="------"
                     />
                     {otpForm.formState.errors.code && (
-                      <p className="text-red-400 text-xs mt-1.5">{otpForm.formState.errors.code.message}</p>
+                      <p className="text-red-400 text-xs mt-1.5">
+                        {otpForm.formState.errors.code.message}
+                      </p>
                     )}
                   </div>
                   <button
@@ -223,9 +263,15 @@ const LoginPage = () => {
                     className="w-full py-3 bg-[#ff6d29] hover:bg-[#e65a1f] text-white font-semibold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isVerifying ? (
-                      <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Verifying...</>
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Verifying...
+                      </>
                     ) : (
-                      <><CheckCircle2 className="h-4 w-4" />Verify OTP</>
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        Verify OTP
+                      </>
                     )}
                   </button>
                   <button
@@ -249,7 +295,9 @@ const LoginPage = () => {
                 </div>
                 <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Full Name
+                    </label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                       <input
@@ -263,7 +311,9 @@ const LoginPage = () => {
                       />
                     </div>
                     {registerForm.formState.errors.name && (
-                      <p className="text-red-400 text-xs mt-1.5">{registerForm.formState.errors.name.message}</p>
+                      <p className="text-red-400 text-xs mt-1.5">
+                        {registerForm.formState.errors.name.message}
+                      </p>
                     )}
                   </div>
                   <div>
@@ -285,11 +335,17 @@ const LoginPage = () => {
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition"
                         tabIndex={-1}
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                     {registerForm.formState.errors.password && (
-                      <p className="text-red-400 text-xs mt-1.5">{registerForm.formState.errors.password.message}</p>
+                      <p className="text-red-400 text-xs mt-1.5">
+                        {registerForm.formState.errors.password.message}
+                      </p>
                     )}
                   </div>
                   <button
@@ -298,9 +354,15 @@ const LoginPage = () => {
                     className="w-full py-3 bg-[#ff6d29] hover:bg-[#e65a1f] text-white font-semibold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isRegistering ? (
-                      <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creating Account...</>
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Creating Account...
+                      </>
                     ) : (
-                      <><Shield className="h-4 w-4" />Create Account & Sign In</>
+                      <>
+                        <Shield className="h-4 w-4" />
+                        Create Account & Sign In
+                      </>
                     )}
                   </button>
                 </form>
@@ -308,7 +370,9 @@ const LoginPage = () => {
             )}
 
             <p className="text-center text-gray-600 text-xs mt-6">
-              {step === 1 ? 'New users will be registered automatically.' : 'Secure mobile OTP authentication.'}
+              {step === 1
+                ? 'New users will be registered automatically.'
+                : 'Secure mobile OTP authentication.'}
             </p>
           </div>
         </div>

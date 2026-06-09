@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, RefreshCw, Printer } from 'lucide-react';
+import JsBarcode from 'jsbarcode';
 import toast from 'react-hot-toast';
 import { useGetSingleProductQuery, useUpdateProductMutation } from '../productApi';
 import { useGetAllCategoryQuery } from '../../category/categoryApi';
@@ -10,6 +11,8 @@ import { useGetAllUnitQuery } from '../../unit/unitApi';
 import { useGetAllWarrantyQuery } from '../../warranty/warrantyApi';
 import { useGetAllWarehouseQuery } from '../../warehouse/warehouseApi';
 import PageHeader from '../../../../components/shared/PageHeader';
+import BarcodePrintModal from '../../../../components/shared/BarcodePrintModal';
+import { generateEAN13 } from '../../../../utils/barcodeUtils';
 
 const F = ({ label, required, error, children }: any) => (
   <div>
@@ -24,16 +27,58 @@ const F = ({ label, required, error, children }: any) => (
 const inp = (err?: any) =>
   `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] ${err ? 'border-red-300' : 'border-[#DBDFE9]'}`;
 
+function BarcodePreview({ value }: { value: string }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (!svgRef.current || !value) return;
+    try {
+      JsBarcode(svgRef.current, value, {
+        format: value.length === 13 ? 'EAN13' : 'CODE128',
+        width: 1.5,
+        height: 40,
+        displayValue: true,
+        fontSize: 9,
+        margin: 4,
+      });
+    } catch {
+      try {
+        JsBarcode(svgRef.current, value, {
+          format: 'CODE128',
+          width: 1.5,
+          height: 40,
+          displayValue: true,
+          fontSize: 9,
+          margin: 4,
+        });
+      } catch { /* invalid */ }
+    }
+  }, [value]);
+
+  if (!value) return null;
+  return (
+    <div className="mt-2 flex justify-center p-2 bg-white border border-dashed border-[#DBDFE9] rounded-lg">
+      <svg ref={svgRef} />
+    </div>
+  );
+}
+
 const EditProduct = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [printProduct, setPrintProduct] = useState<any | null>(null);
 
   const { data: productRes, isLoading: isFetching } = useGetSingleProductQuery(id as string);
   const product = productRes;
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({
-    defaultValues: { isActive: true, productType: 'physical' },
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm({
+    defaultValues: { isActive: true, productType: 'physical', barcode: '' },
   });
+
+  const barcodeValue = watch('barcode') as string;
+  const nameValue = watch('name') as string;
+  const sellingPriceValue = watch('sellingPrice') as number;
+  const skuValue = watch('sku') as string;
 
   const { data: catData } = useGetAllCategoryQuery({ limit: 500 });
   const { data: brandData } = useGetAllBrandQuery({ limit: 500 });
@@ -50,12 +95,10 @@ const EditProduct = () => {
 
   useEffect(() => {
     if (product) {
-      // If product has no warehouse, fall back to the business default warehouse
       const defaultWarehouseId =
         product.warehouseId ||
         warehouses.find((w: any) => w.isDefault)?.id ||
         '';
-
       reset({
         name: product.name || '',
         sku: product.sku || '',
@@ -76,6 +119,24 @@ const EditProduct = () => {
       });
     }
   }, [product?.id, warehouses.length]);
+
+  const handleGenerateBarcode = () => {
+    setValue('barcode', generateEAN13(), { shouldDirty: true });
+  };
+
+  const handleOpenPrint = () => {
+    if (!barcodeValue) {
+      toast.error('Generate or enter a barcode first');
+      return;
+    }
+    setPrintProduct({
+      id: id ?? '',
+      name: nameValue || product?.name || '',
+      barcode: barcodeValue,
+      sku: skuValue || product?.sku || '',
+      sellingPrice: sellingPriceValue || product?.sellingPrice,
+    });
+  };
 
   const onSubmit = async (data: any) => {
     const payload: any = {
@@ -120,6 +181,8 @@ const EditProduct = () => {
 
   return (
     <div>
+      <BarcodePrintModal product={printProduct} onClose={() => setPrintProduct(null)} />
+
       <PageHeader
         title="Edit Product"
         subtitle={product?.name || 'Edit product details'}
@@ -129,10 +192,21 @@ const EditProduct = () => {
           { label: 'Edit Product' },
         ]}
         actions={
-          <Link to="/admin/inventory/products"
-            className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Link>
+          <div className="flex items-center gap-2">
+            {barcodeValue && (
+              <button
+                type="button"
+                onClick={handleOpenPrint}
+                className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+              >
+                <Printer className="h-4 w-4" /> Print Barcode
+              </button>
+            )}
+            <Link to="/admin/inventory/products"
+              className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Link>
+          </div>
         }
       />
 
@@ -152,8 +226,35 @@ const EditProduct = () => {
                 <F label="SKU">
                   <input {...register('sku')} placeholder="SKU" className={inp()} />
                 </F>
+
                 <F label="Barcode">
-                  <input {...register('barcode')} placeholder="Barcode" className={inp()} />
+                  <div className="flex gap-2">
+                    <input
+                      {...register('barcode')}
+                      placeholder="Barcode"
+                      className={`${inp()} flex-1 min-w-0`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGenerateBarcode}
+                      title="Auto-generate EAN-13 barcode"
+                      className="flex-shrink-0 px-3 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-xs hover:bg-gray-50 hover:border-[#ff6d29] transition-colors flex items-center gap-1"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Generate</span>
+                    </button>
+                    {barcodeValue && (
+                      <button
+                        type="button"
+                        onClick={handleOpenPrint}
+                        title="Print barcode label"
+                        className="flex-shrink-0 px-3 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-xs hover:bg-gray-50 hover:border-[#ff6d29] transition-colors flex items-center gap-1"
+                      >
+                        <Printer className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <BarcodePreview value={barcodeValue} />
                 </F>
               </div>
 

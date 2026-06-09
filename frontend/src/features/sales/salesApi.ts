@@ -39,6 +39,14 @@ export const salesApi = baseApi.injectEndpoints({
       query: (data) => ({ url: CUSTOMER_URL, method: "POST", data }),
       invalidatesTags: [{ type: tagTypes.customer, id: "LIST" }],
     }),
+    importCustomers: build.mutation({
+      query: (formData: FormData) => ({
+        url: `${CUSTOMER_URL}/import`,
+        method: "POST",
+        data: formData,
+      }),
+      invalidatesTags: [{ type: tagTypes.customer, id: "LIST" }],
+    }),
     updateCustomer: build.mutation({
       query: ({ id, data }: { id: string; data: any }) => ({ url: `${CUSTOMER_URL}/${id}`, method: "PATCH", data }),
       invalidatesTags: (result, error, arg) => [
@@ -155,6 +163,7 @@ export const {
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
   useDeleteCustomerMutation,
+  useImportCustomersMutation,
   useGetAllSalesQuery,
   useGetSaleQuery,
   useCreateSaleMutation,

@@ -15,6 +15,7 @@ import PackageManagement from '../features/super-admin/PackageManagement';
 // Auth
 import LoginPage from '../components/auth/Login';
 import ForgotPassword from '../components/auth/ForgotPassword';
+import SelectPlan from '../features/subscription/SelectPlan';
 
 // Dashboard
 import Dashboard from '../components/dashboard/Dashboard';
@@ -169,6 +170,14 @@ const router = createBrowserRouter([
       <AuthUserNotAccessRoute>
         <LoginPage />
       </AuthUserNotAccessRoute>
+    ),
+  },
+  {
+    path: '/select-plan',
+    element: (
+      <ProtectedRoute>
+        <SelectPlan />
+      </ProtectedRoute>
     ),
   },
   {

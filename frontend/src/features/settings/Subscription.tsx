@@ -1,13 +1,18 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import {
   CheckCircle2, Crown, Zap, AlertCircle, Building2,
   MessageCircle, Send, Phone, User, Briefcase, MessageSquare,
-  ChevronDown, ChevronUp, TrendingUp, Clock, Shield,
+  ChevronDown, ChevronUp, TrendingUp, Clock, Shield, RefreshCw,
 } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import { useLanguage } from '../../context/LanguageContext';
 import { useFetchMeQuery } from '../../redux/api/authApi';
-import { MOCK_PACKAGES, yearlyDiscount, monthlyEquivalent, representativeYearlyDiscount } from '../../data/mockPackages';
+import {
+  useGetPublicPackagesQuery,
+  useSubscribeToPackageMutation,
+  useRenewSubscriptionMutation,
+} from '../../redux/api/packagesApi';
 import type { Package } from '../../redux/api/packagesApi';
 
 const WHATSAPP_NUMBER = '8801XXXXXXXXX';
@@ -16,13 +21,27 @@ const PLAN_ICONS: Record<string, React.ElementType> = {
   Starter: Zap, Pro: Crown, Enterprise: Building2,
 };
 
-// ── Billing toggle ─────────────────────────────────────────────────────────────
+function calcYearlyDiscount(pkg: Package) {
+  if (!pkg.monthlyPrice) return 0;
+  return Math.round((1 - pkg.yearlyPrice / (pkg.monthlyPrice * 12)) * 100);
+}
+function monthlyEquiv(pkg: Package) {
+  return Math.round(pkg.yearlyPrice / 12);
+}
+function representativeDiscount(plans: Package[]) {
+  const p = plans.find((pl) => !pl.isEnterprise && pl.monthlyPrice > 0);
+  return p ? calcYearlyDiscount(p) : 0;
+}
+
+// ── Billing toggle ──────────────────────────────────────────────────────────────
 const BillingToggle = ({
   value,
   onChange,
+  yearlySavePct,
 }: {
   value: 'monthly' | 'yearly';
   onChange: (v: 'monthly' | 'yearly') => void;
+  yearlySavePct: number;
 }) => (
   <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl self-center">
     {(['monthly', 'yearly'] as const).map((b) => (
@@ -34,7 +53,7 @@ const BillingToggle = ({
         }`}
       >
         {b === 'monthly' ? 'Monthly' : 'Yearly'}
-        {b === 'yearly' && (
+        {b === 'yearly' && yearlySavePct > 0 && (
           <span className="absolute -top-2.5 -right-2 bg-green-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none">
             -{yearlySavePct}%
           </span>
@@ -45,7 +64,7 @@ const BillingToggle = ({
 );
 
 // ── Enterprise contact ──────────────────────────────────────────────────────────
-const EnterpriseContact = ({ dark }: { dark?: boolean }) => {
+const EnterpriseContact = () => {
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -77,8 +96,11 @@ const EnterpriseContact = ({ dark }: { dark?: boolean }) => {
       </button>
 
       {open && (
-        <form onSubmit={async (e) => { e.preventDefault(); setLoading(true); await new Promise(r => setTimeout(r, 800)); setLoading(false); setSubmitted(true); }}
-          className="space-y-2.5">
+        <form onSubmit={async (e) => {
+          e.preventDefault(); setLoading(true);
+          await new Promise(r => setTimeout(r, 800));
+          setLoading(false); setSubmitted(true);
+        }} className="space-y-2.5">
           {[
             { name: 'name', icon: User, placeholder: 'Your Name', type: 'text' },
             { name: 'mobile', icon: Phone, placeholder: 'Mobile Number', type: 'tel' },
@@ -113,16 +135,47 @@ const EnterpriseContact = ({ dark }: { dark?: boolean }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const Subscription = () => {
   const { t } = useLanguage();
-  const { data: meData } = useFetchMeQuery();
-  const business = meData?.data?.business;
-  const subscription = business?.subscription;
+  const { data: meData, refetch: refetchMe } = useFetchMeQuery();
+  const subscription = meData?.subscription;
+  const currentPlanId = subscription?.packageId ?? null;
 
-  const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
+  const { data: packagesData, isLoading: loadingPlans } = useGetPublicPackagesQuery();
+  const [subscribe, { isLoading: isSubscribing }] = useSubscribeToPackageMutation();
+  const [renew, { isLoading: isRenewing }] = useRenewSubscriptionMutation();
 
-  const plans: Package[] = MOCK_PACKAGES.filter((p) => p.isActive);
-  const yearlySavePct = representativeYearlyDiscount(plans);
+  const [billing, setBilling] = useState<'monthly' | 'yearly'>(
+    (subscription?.billingCycle as 'monthly' | 'yearly') ?? 'monthly'
+  );
+  const [actionPlanId, setActionPlanId] = useState<string | null>(null);
 
-  const activePlanName = subscription?.plan?.name?.toLowerCase() ?? '';
+  const plans: Package[] = (packagesData ?? []).filter((p) => p.isActive);
+  const yearlySavePct = representativeDiscount(plans);
+
+  const handleSubscribe = async (packageId: string) => {
+    setActionPlanId(packageId);
+    try {
+      const result = await subscribe({ packageId, billingCycle: billing }).unwrap();
+      toast.success(result.message);
+      refetchMe();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to subscribe. Please try again.');
+    } finally {
+      setActionPlanId(null);
+    }
+  };
+
+  const handleRenew = async () => {
+    setActionPlanId('renew');
+    try {
+      const result = await renew({ billingCycle: billing }).unwrap();
+      toast.success(result.message);
+      refetchMe();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to renew. Please try again.');
+    } finally {
+      setActionPlanId(null);
+    }
+  };
 
   return (
     <div>
@@ -136,75 +189,85 @@ const Subscription = () => {
         ]}
       />
 
-      {/* ── Current Plan Banner ───────────────────────────────────────────── */}
+      {/* ── Current Plan Banner ────────────────────────────────────────────── */}
       {subscription && (
         <div className="bg-white border border-[#DBDFE9] rounded-xl p-5 mb-6 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-4 border-b border-gray-100">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
                 {(() => {
-                  const PlanIcon = PLAN_ICONS[subscription.plan?.name] ?? Shield;
+                  const PlanIcon = PLAN_ICONS[subscription.plan ?? ''] ?? Shield;
                   return <PlanIcon className="h-5 w-5 text-[#ff6d29]" />;
                 })()}
               </div>
               <div>
-                <p className="text-xs text-gray-400">Active Plan</p>
+                <p className="text-xs text-gray-400">Current Plan</p>
                 <p className="font-bold text-[#26272F] capitalize">
-                  {subscription.plan?.name ?? 'Free Trial'}
+                  {subscription.plan ?? 'No plan selected'}
                 </p>
               </div>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize self-start sm:self-auto ${
-              subscription.status === 'active' ? 'bg-green-100 text-green-700' :
-              subscription.status === 'trial'  ? 'bg-blue-100 text-blue-700' :
-              'bg-red-100 text-red-500'
-            }`}>
-              {subscription.status}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                subscription.status === 'active' ? 'bg-green-100 text-green-700' :
+                subscription.status === 'trial'  ? 'bg-blue-100 text-blue-700' :
+                'bg-red-100 text-red-500'
+              }`}>
+                {subscription.status}
+              </span>
+              {/* Renew button — shown when subscription expires soon or is expired */}
+              {currentPlanId && (subscription.status === 'expired' || (subscription.daysLeft !== null && subscription.daysLeft <= 7)) && (
+                <button
+                  onClick={handleRenew}
+                  disabled={isRenewing && actionPlanId === 'renew'}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ff6d29] hover:bg-[#e65a1f] text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-60"
+                >
+                  {isRenewing && actionPlanId === 'renew'
+                    ? <span className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <RefreshCw className="h-3 w-3" />
+                  }
+                  Renew Now
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
               <p className="text-xs text-gray-400">Expires</p>
               <p className="font-medium text-[#26272F] text-sm">
-                {subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString() : '—'}
+                {subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString() : 'Unlimited'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Trial Ends</p>
-              <p className="font-medium text-[#26272F] text-sm">
-                {subscription.trialEndsAt ? new Date(subscription.trialEndsAt).toLocaleDateString() : '—'}
+              <p className="text-xs text-gray-400">Days Left</p>
+              <p className={`font-medium text-sm ${
+                subscription.daysLeft !== null && subscription.daysLeft <= 7
+                  ? 'text-red-500' : 'text-[#26272F]'
+              }`}>
+                {subscription.daysLeft !== null ? `${subscription.daysLeft} days` : '—'}
               </p>
             </div>
-            {subscription.plan?.maxUsers && (
+            <div>
+              <p className="text-xs text-gray-400">Billing</p>
+              <p className="font-medium text-[#26272F] text-sm capitalize">
+                {subscription.billingCycle ?? '—'}
+              </p>
+            </div>
+            {subscription.package && (
               <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-400">Users</span>
-                  <span className="font-medium">{business.usersCount ?? 0}/{subscription.plan.maxUsers}</span>
-                </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#ff6d29] rounded-full"
-                    style={{ width: `${Math.min(((business.usersCount ?? 0) / subscription.plan.maxUsers) * 100, 100)}%` }} />
-                </div>
-              </div>
-            )}
-            {subscription.plan?.maxProducts && subscription.plan.maxProducts !== -1 && (
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-400">Products</span>
-                  <span className="font-medium">{business.productsCount ?? 0}/{subscription.plan.maxProducts}</span>
-                </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full"
-                    style={{ width: `${Math.min(((business.productsCount ?? 0) / subscription.plan.maxProducts) * 100, 100)}%` }} />
-                </div>
+                <p className="text-xs text-gray-400">Limits</p>
+                <p className="font-medium text-[#26272F] text-sm">
+                  {subscription.package.maxUsers === -1 ? 'Unlimited' : `${subscription.package.maxUsers}`} users ·&nbsp;
+                  {subscription.package.maxProducts === -1 ? 'Unlimited' : subscription.package.maxProducts} products
+                </p>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* ── Expired warning ───────────────────────────────────────────────── */}
+      {/* ── Expired warning ────────────────────────────────────────────────── */}
       {subscription?.status === 'expired' && (
         <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl mb-6 text-sm text-red-700">
           <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
@@ -215,141 +278,178 @@ const Subscription = () => {
         </div>
       )}
 
-      {/* ── Plan selector ─────────────────────────────────────────────────── */}
+      {/* ── Plan selector ──────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <h3 className="text-sm font-semibold text-gray-700">Available Plans</h3>
           <p className="text-xs text-gray-400 mt-0.5">Choose a plan that fits your business</p>
         </div>
-        <BillingToggle value={billing} onChange={setBilling} />
+        <BillingToggle value={billing} onChange={setBilling} yearlySavePct={yearlySavePct} />
       </div>
 
-      {billing === 'yearly' && (
+      {billing === 'yearly' && yearlySavePct > 0 && (
         <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-xl mb-4 text-sm text-green-700">
           <TrendingUp className="h-4 w-4 flex-shrink-0" />
           <span>Yearly billing saves you <strong>{yearlySavePct}%</strong> — billed once per year.</span>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {plans.map((plan) => {
-          const Icon = PLAN_ICONS[plan.name] ?? Shield;
-          const isHighlight = plan.highlight;
-          const isEnterprise = plan.isEnterprise;
-          const isCurrentPlan = plan.name.toLowerCase() === activePlanName;
-          const price = billing === 'monthly' ? plan.monthlyPrice : monthlyEquivalent(plan);
-          const discount = yearlyDiscount(plan);
+      {loadingPlans ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="w-8 h-8 border-4 border-[#ff6d29]/20 border-t-[#ff6d29] rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {plans.map((plan) => {
+            const Icon = PLAN_ICONS[plan.name] ?? Shield;
+            const isHighlight = plan.highlight;
+            const isEnterprise = plan.isEnterprise;
+            const isCurrentPlan = plan.id === currentPlanId;
+            const price = billing === 'monthly' ? plan.monthlyPrice : monthlyEquiv(plan);
+            const discount = calcYearlyDiscount(plan);
+            const isActing = (isSubscribing || isRenewing) && actionPlanId === plan.id;
 
-          return (
-            <div
-              key={plan.id}
-              className={`relative flex flex-col border-2 rounded-2xl overflow-hidden transition-all ${
-                isCurrentPlan
-                  ? 'border-[#ff6d29] shadow-md shadow-orange-100'
-                  : isHighlight
-                  ? 'border-purple-300 bg-gradient-to-br from-purple-50 to-white'
-                  : 'border-[#DBDFE9] bg-white hover:border-gray-300'
-              }`}
-            >
-              {/* current plan badge */}
-              {isCurrentPlan && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-[#ff6d29]" />
-              )}
-              {isHighlight && !isCurrentPlan && (
-                <div className="absolute top-3 right-3">
-                  <span className="text-[10px] font-bold bg-purple-600 text-white px-2 py-0.5 rounded-full">
-                    {plan.badge}
-                  </span>
-                </div>
-              )}
-
-              <div className="p-5 flex-1">
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className={`p-2 rounded-lg ${
-                    isEnterprise ? 'bg-orange-50' : isHighlight ? 'bg-purple-100' : 'bg-blue-50'
-                  }`}>
-                    <Icon className={`h-5 w-5 ${
-                      isEnterprise ? 'text-[#ff6d29]' : isHighlight ? 'text-purple-500' : 'text-blue-500'
-                    }`} />
-                  </div>
-                  <div>
-                    <h4 className="text-base font-bold text-[#26272F]">{plan.name}</h4>
-                    {isCurrentPlan && (
-                      <span className="text-[10px] font-semibold text-[#ff6d29] flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" /> Current Plan
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* price */}
-                {isEnterprise ? (
-                  <div className="mb-4">
-                    <p className="text-2xl font-black text-[#26272F]">Custom</p>
-                    <p className="text-xs text-gray-400">Contact us for pricing</p>
-                  </div>
-                ) : (
-                  <div className="mb-4">
-                    <div className="flex items-end gap-1">
-                      <span className="text-3xl font-black text-[#26272F]">৳{price.toLocaleString()}</span>
-                      <span className="text-sm text-gray-400 mb-1">/mo</span>
-                    </div>
-                    {billing === 'yearly' && discount > 0 && (
-                      <p className="text-xs text-green-600 font-medium">
-                        ৳{plan.yearlyPrice.toLocaleString()} billed yearly · Save {discount}%
-                      </p>
-                    )}
-                    {billing === 'monthly' && discount > 0 && (
-                      <p className="text-xs text-gray-400">Save {discount}% with yearly billing</p>
-                    )}
+            return (
+              <div
+                key={plan.id}
+                className={`relative flex flex-col border-2 rounded-2xl overflow-hidden transition-all ${
+                  isCurrentPlan
+                    ? 'border-[#ff6d29] shadow-md shadow-orange-100'
+                    : isHighlight
+                    ? 'border-purple-300 bg-gradient-to-br from-purple-50 to-white'
+                    : 'border-[#DBDFE9] bg-white hover:border-gray-300'
+                }`}
+              >
+                {isCurrentPlan && <div className="absolute top-0 left-0 right-0 h-1 bg-[#ff6d29]" />}
+                {isHighlight && !isCurrentPlan && (
+                  <div className="absolute top-3 right-3">
+                    <span className="text-[10px] font-bold bg-purple-600 text-white px-2 py-0.5 rounded-full">
+                      {plan.badge}
+                    </span>
                   </div>
                 )}
 
-                {/* trial */}
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-4 pb-4 border-b border-gray-100">
-                  <Clock className="h-3.5 w-3.5 text-green-500" />
-                  <span>{plan.trialDays}-day free trial included</span>
-                </div>
+                <div className="p-5 flex-1">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className={`p-2 rounded-lg ${
+                      isEnterprise ? 'bg-orange-50' : isHighlight ? 'bg-purple-100' : 'bg-blue-50'
+                    }`}>
+                      <Icon className={`h-5 w-5 ${
+                        isEnterprise ? 'text-[#ff6d29]' : isHighlight ? 'text-purple-500' : 'text-blue-500'
+                      }`} />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-bold text-[#26272F]">{plan.name}</h4>
+                      {isCurrentPlan && (
+                        <span className="text-[10px] font-semibold text-[#ff6d29] flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> Current Plan
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-                {/* features */}
-                <ul className="space-y-2">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
-                      <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-
-                {/* Enterprise contact */}
-                {isEnterprise && <EnterpriseContact />}
-              </div>
-
-              {/* CTA */}
-              {!isEnterprise && (
-                <div className="px-5 pb-5">
-                  {isCurrentPlan ? (
-                    <div className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-orange-50 border border-orange-200 text-sm font-semibold text-[#ff6d29]">
-                      <CheckCircle2 className="h-4 w-4" /> Current Plan
+                  {isEnterprise ? (
+                    <div className="mb-4">
+                      <p className="text-2xl font-black text-[#26272F]">Custom</p>
+                      <p className="text-xs text-gray-400">Contact us for pricing</p>
                     </div>
                   ) : (
-                    <button className={`w-full py-2.5 rounded-xl text-white text-sm font-semibold transition-colors min-h-[44px] ${
-                      isHighlight ? 'bg-purple-600 hover:bg-purple-700' : 'bg-[#26272F] hover:bg-gray-800'
-                    }`}>
-                      {activePlanName ? 'Switch to ' + plan.name : 'Start Free Trial'}
-                    </button>
+                    <div className="mb-4">
+                      <div className="flex items-end gap-1">
+                        <span className="text-3xl font-black text-[#26272F]">৳{price.toLocaleString()}</span>
+                        <span className="text-sm text-gray-400 mb-1">/mo</span>
+                      </div>
+                      {billing === 'yearly' && discount > 0 && (
+                        <p className="text-xs text-green-600 font-medium">
+                          ৳{plan.yearlyPrice.toLocaleString()} billed yearly · Save {discount}%
+                        </p>
+                      )}
+                      {billing === 'monthly' && discount > 0 && (
+                        <p className="text-xs text-gray-400">Save {discount}% with yearly billing</p>
+                      )}
+                    </div>
                   )}
-                  <p className="text-center text-xs text-gray-400 mt-2">Contact support to change your plan</p>
+
+                  {plan.trialDays > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-4 pb-4 border-b border-gray-100">
+                      <Clock className="h-3.5 w-3.5 text-green-500" />
+                      <span>{plan.trialDays}-day free trial included</span>
+                    </div>
+                  )}
+
+                  <ul className="space-y-2">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
+                        <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {isEnterprise && <EnterpriseContact />}
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+
+                {!isEnterprise && (
+                  <div className="px-5 pb-5">
+                    {isCurrentPlan ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-orange-50 border border-orange-200 text-sm font-semibold text-[#ff6d29]">
+                          <CheckCircle2 className="h-4 w-4" /> Current Plan
+                        </div>
+                        {(subscription?.status === 'expired' || (subscription?.daysLeft !== null && subscription?.daysLeft <= 7)) && (
+                          <button
+                            onClick={handleRenew}
+                            disabled={isRenewing}
+                            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#ff6d29] hover:bg-[#e65a1f] text-white text-sm font-semibold transition-colors disabled:opacity-60 min-h-[44px]"
+                          >
+                            {isRenewing && actionPlanId === 'renew'
+                              ? <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              : <RefreshCw className="h-4 w-4" />
+                            }
+                            Renew {billing === 'yearly' ? '(Yearly)' : '(Monthly)'}
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleSubscribe(plan.id)}
+                        disabled={isActing}
+                        className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-white text-sm font-semibold transition-colors min-h-[44px] disabled:opacity-60 ${
+                          isHighlight ? 'bg-purple-600 hover:bg-purple-700' : 'bg-[#26272F] hover:bg-gray-800'
+                        }`}
+                      >
+                        {isActing
+                          ? <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          : null
+                        }
+                        {isActing
+                          ? 'Activating...'
+                          : currentPlanId
+                          ? `Switch to ${plan.name}`
+                          : plan.trialDays > 0
+                          ? 'Start Free Trial'
+                          : 'Get Started'
+                        }
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <p className="text-center text-xs text-gray-400 mt-6">
         All prices are exclusive of VAT · Questions?{' '}
-        <a href="mailto:support@bizcore.com.bd" className="text-[#ff6d29] hover:underline">support@bizcore.com.bd</a>
+        <a
+          href={`https://wa.me/${WHATSAPP_NUMBER}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#ff6d29] hover:underline"
+        >
+          Contact us on WhatsApp
+        </a>
       </p>
     </div>
   );

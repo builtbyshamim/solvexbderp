@@ -109,6 +109,16 @@ export const productApi = baseApi.injectEndpoints({
         data: { orderedIds },
       }),
     }),
+
+    // ✅ IMPORT PRODUCTS
+    importProducts: build.mutation({
+      query: (formData: FormData) => ({
+        url: `${COMMON_URL}/import`,
+        method: "POST",
+        data: formData,
+      }),
+      invalidatesTags: [{ type: tagTypes.product, id: "LIST" }],
+    }),
   }),
 });
 
@@ -123,4 +133,5 @@ export const {
   useDeleteProductImageMutation,
   useSetThumbnailMutation,
   useReorderImagesMutation,
+  useImportProductsMutation,
 } = productApi;
