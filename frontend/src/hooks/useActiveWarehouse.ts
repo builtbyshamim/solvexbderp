@@ -22,9 +22,7 @@ export function useActiveWarehouse() {
 
   // After axiosBaseQuery unwrap: data is { data: [...], meta: {} } for paginated,
   // or [...] for plain array — handle both shapes
-  const warehouses: Warehouse[] = Array.isArray(raw)
-    ? raw
-    : (raw as any)?.data ?? [];
+  const warehouses: Warehouse[] = Array.isArray(raw) ? raw : ((raw as any)?.data ?? []);
 
   const hasWarehouses = warehouses.length > 0;
 
@@ -34,8 +32,7 @@ export function useActiveWarehouse() {
 
     const stillExists = selectedId && warehouses.some((w) => w.id === selectedId);
     if (!stillExists) {
-      const pick =
-        warehouses.find((w) => w.isDefault) ?? warehouses[0];
+      const pick = warehouses.find((w) => w.isDefault) ?? warehouses[0];
       dispatch(setActiveWarehouse({ id: pick.id, name: pick.name }));
     }
   }, [warehouses.length, selectedId]);

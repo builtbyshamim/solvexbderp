@@ -10,7 +10,7 @@ export const store = configureStore({
         getDefaultMiddleware({
             serializableCheck: {
                 ignoredActions: ["persist/PERSIST"],
-                ignoredActionPaths: ["register"],
+                ignoredActionPaths: ["register", "meta.arg.originalArgs"],
                 ignoredPaths: ["register"],
             },
         }).concat(baseApi.middleware),

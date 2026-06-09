@@ -102,23 +102,15 @@ const ProductMediaManager = () => {
     }, 200);
 
     try {
-      const response = await uploadImages({ 
-        productId: productId!, 
-        formData 
-      }).unwrap();
-
-      if (response.success) {
-        // Clean up preview URLs
-        selectedFiles.forEach(file => URL.revokeObjectURL(file.preview));
-        setSelectedFiles([]);
-        setUploadProgress({});
-        refetch();
-        toast.success('Images uploaded successfully');
-      }
-    } catch (err) {
+      await uploadImages({ productId: productId!, formData }).unwrap();
+      selectedFiles.forEach(file => URL.revokeObjectURL(file.preview));
+      setSelectedFiles([]);
+      setUploadProgress({});
+      refetch();
+      toast.success('Images uploaded successfully');
+    } catch (err: any) {
       setUploadError('Upload failed. Please try again.');
-      console.error('Upload failed:', err);
-      toast.error('Upload failed');
+      toast.error(err?.data?.message || 'Upload failed');
     } finally {
       clearInterval(progressInterval);
       setUploadProgress({});
@@ -129,15 +121,10 @@ const ProductMediaManager = () => {
   const handleDelete = async (imageId: string) => {
     if (!window.confirm('Are you sure you want to delete this image?')) return;
     try {
-      const res = await deleteImage({ productId: productId!, imageId }).unwrap();
-      if (res.success) {
-        toast.success('Image deleted successfully');
-        refetch();
-      } else {
-        toast.error(res?.message || 'Failed to delete image');
-      }
-    } catch (err) {
-      console.error('Delete failed:', err);
+      await deleteImage({ productId: productId!, imageId }).unwrap();
+      toast.success('Image deleted successfully');
+      refetch();
+    } catch (err: any) {
       toast.error(err?.data?.message || 'Failed to delete image');
     }
   };
@@ -145,14 +132,10 @@ const ProductMediaManager = () => {
   // Set as thumbnail
   const handleSetThumbnail = async (imageId: string) => {
     try {
-      const res = await setThumbnail({ productId: productId!, imageId }).unwrap();
-      if (res.success) {
-        toast.success('Thumbnail set successfully');
-        refetch();
-      } else {
-        toast.error(res?.message || 'Failed to set thumbnail');
-      }
-    } catch (err) {
+      await setThumbnail({ productId: productId!, imageId }).unwrap();
+      toast.success('Thumbnail set successfully');
+      refetch();
+    } catch (err: any) {
       toast.error(err?.data?.message || 'Failed to set thumbnail');
     }
   };
@@ -198,21 +181,12 @@ const ProductMediaManager = () => {
     const orderedIds = newImages.map(img => img.id);
 
     try {
-      // Optimistically update UI
-      console.log(orderedIds,'orderedIdsorderedIds')
-      const result = await reorderImages({
-        productId: productId!,
-        orderedIds
-      }).unwrap();
-
-      if (result.success) {
-        toast.success('Images reordered successfully');
-        refetch(); // Refetch to ensure sync with server
-      }
-    } catch (err) {
-      console.error('Reorder failed:', err);
-      toast.error('Failed to reorder images');
-      refetch(); // Revert to original order
+      await reorderImages({ productId: productId!, orderedIds }).unwrap();
+      toast.success('Images reordered successfully');
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Failed to reorder images');
+      refetch();
     } finally {
       setDraggedImage(null);
       setDragOverIndex(null);

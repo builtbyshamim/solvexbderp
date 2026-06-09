@@ -5,7 +5,12 @@ import { useForm } from 'react-hook-form';
 import { useCreateCategoryMutation } from '../categoryApi';
 
 const AddCategory = ({ onClose }: { onClose: () => void }) => {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm({
     defaultValues: { name: '', isActive: true },
   });
   const [image, setImage] = useState<{ file: File; preview: string } | null>(null);
@@ -16,17 +21,12 @@ const AddCategory = ({ onClose }: { onClose: () => void }) => {
     formData.append('name', data.name);
     formData.append('isActive', data.isActive ? 'true' : 'false');
     if (image?.file) formData.append('image', image.file);
-
     try {
-      const result = await createCategory(formData).unwrap();
-      if (result?.success) {
-        toast.success('Category added');
-        reset();
-        setImage(null);
-        onClose();
-      } else {
-        toast.error(result?.message || 'Failed to add category');
-      }
+      await createCategory(formData).unwrap();
+      toast.success('Category added');
+      reset();
+      setImage(null);
+      onClose();
     } catch (err: any) {
       toast.error(err?.data?.message || 'Failed to add category');
     }
@@ -44,14 +44,20 @@ const AddCategory = ({ onClose }: { onClose: () => void }) => {
           placeholder="e.g. Electronics"
           className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
         />
-        {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message as string}</p>}
+        {errors.name && (
+          <p className="text-red-500 text-xs mt-1">{errors.name.message as string}</p>
+        )}
       </div>
 
       {/* Image */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
         <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center">
-          <input type="file" id="cat-img-add" accept="image/*" className="hidden"
+          <input
+            type="file"
+            id="cat-img-add"
+            accept="image/*"
+            className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) setImage({ file, preview: URL.createObjectURL(file) });
@@ -59,14 +65,24 @@ const AddCategory = ({ onClose }: { onClose: () => void }) => {
           />
           {image ? (
             <div className="relative inline-block">
-              <img src={image.preview} alt="Category" className="h-20 w-20 object-cover rounded-lg mx-auto" />
-              <button type="button" onClick={() => setImage(null)}
-                className="absolute -top-1.5 -right-1.5 p-0.5 bg-red-500 text-white rounded-full">
+              <img
+                src={image.preview}
+                alt="Category"
+                className="h-20 w-20 object-cover rounded-lg mx-auto"
+              />
+              <button
+                type="button"
+                onClick={() => setImage(null)}
+                className="absolute -top-1.5 -right-1.5 p-0.5 bg-red-500 text-white rounded-full"
+              >
                 <X size={12} />
               </button>
             </div>
           ) : (
-            <label htmlFor="cat-img-add" className="cursor-pointer flex flex-col items-center gap-1 text-gray-400">
+            <label
+              htmlFor="cat-img-add"
+              className="cursor-pointer flex flex-col items-center gap-1 text-gray-400"
+            >
               <Upload size={20} />
               <span className="text-xs">Click to upload</span>
             </label>
@@ -78,20 +94,33 @@ const AddCategory = ({ onClose }: { onClose: () => void }) => {
       <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
         <span className="text-sm font-medium text-gray-700">Active Status</span>
         <label className="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" {...register('isActive')} className="sr-only peer" defaultChecked />
+          <input
+            type="checkbox"
+            {...register('isActive')}
+            className="sr-only peer"
+            defaultChecked
+          />
           <div className="w-9 h-5 bg-gray-200 peer-checked:bg-[#ff6d29] rounded-full transition-colors" />
           <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
         </label>
       </div>
 
       <div className="flex gap-3 pt-1">
-        <button type="button" onClick={onClose}
-          className="flex-1 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-1 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50"
+        >
           Cancel
         </button>
-        <button type="submit" disabled={isLoading}
-          className="flex-1 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-60 flex items-center justify-center gap-2">
-          {isLoading && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="flex-1 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          {isLoading && (
+            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
           <Save size={14} /> Save Category
         </button>
       </div>

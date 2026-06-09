@@ -50,7 +50,9 @@ function BarcodePreview({ value }: { value: string }) {
           fontSize: 9,
           margin: 4,
         });
-      } catch { /* invalid barcode value */ }
+      } catch {
+        /* invalid barcode value */
+      }
     }
   }, [value]);
 
@@ -111,13 +113,9 @@ const AddProduct = () => {
     if (data.alertQuantity) payload.alertQuantity = Number(data.alertQuantity);
 
     try {
-      const res = await createProduct(payload).unwrap();
-      if (res?.success) {
-        toast.success('Product created');
-        navigate('/admin/inventory/products');
-      } else {
-        toast.error(res?.message || 'Failed to create product');
-      }
+      await createProduct(payload).unwrap();
+      toast.success('Product created successfully');
+      navigate('/admin/inventory/products');
     } catch (err: any) {
       toast.error(err?.data?.message || 'Failed to create product');
     }
@@ -205,35 +203,70 @@ const AddProduct = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <F label="Purchase Price">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
-                    <input type="number" step="0.01" min="0" {...register('purchasePrice')}
-                      placeholder="0.00" className={`${inp()} pl-7`} />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                      ৳
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...register('purchasePrice')}
+                      placeholder="0.00"
+                      className={`${inp()} pl-7`}
+                    />
                   </div>
                 </F>
                 <F label="Selling Price">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
-                    <input type="number" step="0.01" min="0" {...register('sellingPrice')}
-                      placeholder="0.00" className={`${inp()} pl-7`} />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                      ৳
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...register('sellingPrice')}
+                      placeholder="0.00"
+                      className={`${inp()} pl-7`}
+                    />
                   </div>
                 </F>
                 <F label="Wholesale Price">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
-                    <input type="number" step="0.01" min="0" {...register('wholesalePrice')}
-                      placeholder="0.00" className={`${inp()} pl-7`} />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                      ৳
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...register('wholesalePrice')}
+                      placeholder="0.00"
+                      className={`${inp()} pl-7`}
+                    />
                   </div>
                 </F>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <F label="Opening Stock">
-                  <input type="number" min="0" step="any" {...register('openingStock')}
-                    placeholder="0" className={inp()} />
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    {...register('openingStock')}
+                    placeholder="0"
+                    className={inp()}
+                  />
                 </F>
                 <F label="Alert Quantity">
-                  <input type="number" min="0" {...register('alertQuantity')}
-                    placeholder="e.g. 5 (low-stock alert)" className={inp()} />
+                  <input
+                    type="number"
+                    min="0"
+                    {...register('alertQuantity')}
+                    placeholder="e.g. 5 (low-stock alert)"
+                    className={inp()}
+                  />
                 </F>
               </div>
             </div>
@@ -258,7 +291,9 @@ const AddProduct = () => {
                 <select {...register('categoryId')} className={inp()}>
                   <option value="">Select category...</option>
                   {categories.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
               </F>
@@ -267,7 +302,9 @@ const AddProduct = () => {
                 <select {...register('brandId')} className={inp()}>
                   <option value="">Select brand...</option>
                   {brands.map((b: any) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
                   ))}
                 </select>
               </F>
@@ -276,7 +313,9 @@ const AddProduct = () => {
                 <select {...register('unitId')} className={inp()}>
                   <option value="">Select unit...</option>
                   {units.map((u: any) => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
                   ))}
                 </select>
               </F>
@@ -285,7 +324,9 @@ const AddProduct = () => {
                 <select {...register('warrantyId')} className={inp()}>
                   <option value="">No warranty</option>
                   {warranties.map((w: any) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
                   ))}
                 </select>
               </F>
@@ -299,7 +340,12 @@ const AddProduct = () => {
                   <p className="text-xs text-gray-400 mt-0.5">Visible in inventory</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" {...register('isActive')} className="sr-only peer" defaultChecked />
+                  <input
+                    type="checkbox"
+                    {...register('isActive')}
+                    className="sr-only peer"
+                    defaultChecked
+                  />
                   <div className="w-9 h-5 bg-gray-200 peer-checked:bg-[#ff6d29] rounded-full transition-colors" />
                   <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
                 </label>

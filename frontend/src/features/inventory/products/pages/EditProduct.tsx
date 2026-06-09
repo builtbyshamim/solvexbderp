@@ -51,7 +51,9 @@ function BarcodePreview({ value }: { value: string }) {
           fontSize: 9,
           margin: 4,
         });
-      } catch { /* invalid */ }
+      } catch {
+        /* invalid */
+      }
     }
   }, [value]);
 
@@ -71,7 +73,14 @@ const EditProduct = () => {
   const { data: productRes, isLoading: isFetching } = useGetSingleProductQuery(id as string);
   const product = productRes;
 
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm({
     defaultValues: { isActive: true, productType: 'physical', barcode: '' },
   });
 
@@ -96,9 +105,7 @@ const EditProduct = () => {
   useEffect(() => {
     if (product) {
       const defaultWarehouseId =
-        product.warehouseId ||
-        warehouses.find((w: any) => w.isDefault)?.id ||
-        '';
+        product.warehouseId || warehouses.find((w: any) => w.isDefault)?.id || '';
       reset({
         name: product.name || '',
         sku: product.sku || '',
@@ -159,13 +166,9 @@ const EditProduct = () => {
     if (data.alertQuantity !== '') payload.alertQuantity = Number(data.alertQuantity);
 
     try {
-      const res = await updateProduct({ id, data: payload }).unwrap();
-      if (res?.success) {
-        toast.success('Product updated');
-        navigate('/admin/inventory/products');
-      } else {
-        toast.error(res?.message || 'Update failed');
-      }
+      await updateProduct({ id, data: payload }).unwrap();
+      toast.success('Product updated successfully');
+      navigate('/admin/inventory/products');
     } catch (err: any) {
       toast.error(err?.data?.message || 'Failed to update product');
     }
@@ -202,8 +205,10 @@ const EditProduct = () => {
                 <Printer className="h-4 w-4" /> Print Barcode
               </button>
             )}
-            <Link to="/admin/inventory/products"
-              className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
+            <Link
+              to="/admin/inventory/products"
+              className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50"
+            >
               <ArrowLeft className="h-4 w-4" /> Back
             </Link>
           </div>
@@ -215,11 +220,16 @@ const EditProduct = () => {
           {/* Main Info */}
           <div className="lg:col-span-2 space-y-5">
             <div className="bg-white border border-[#DBDFE9] rounded-lg p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-100 pb-2">Basic Information</h3>
+              <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-100 pb-2">
+                Basic Information
+              </h3>
 
               <F label="Product Name" required error={errors.name?.message as string}>
-                <input {...register('name', { required: 'Name is required' })} placeholder="Product name"
-                  className={inp(errors.name)} />
+                <input
+                  {...register('name', { required: 'Name is required' })}
+                  placeholder="Product name"
+                  className={inp(errors.name)}
+                />
               </F>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -259,48 +269,88 @@ const EditProduct = () => {
               </div>
 
               <F label="Description">
-                <textarea {...register('description')} rows={3}
+                <textarea
+                  {...register('description')}
+                  rows={3}
                   placeholder="Product description"
-                  className={`${inp()} resize-none`} />
+                  className={`${inp()} resize-none`}
+                />
               </F>
             </div>
 
             {/* Pricing & Stock */}
             <div className="bg-white border border-[#DBDFE9] rounded-lg p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-100 pb-2">Pricing & Stock</h3>
+              <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-100 pb-2">
+                Pricing & Stock
+              </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <F label="Purchase Price">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
-                    <input type="number" step="0.01" min="0" {...register('purchasePrice')}
-                      placeholder="0.00" className={`${inp()} pl-7`} />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                      ৳
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...register('purchasePrice')}
+                      placeholder="0.00"
+                      className={`${inp()} pl-7`}
+                    />
                   </div>
                 </F>
                 <F label="Selling Price">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
-                    <input type="number" step="0.01" min="0" {...register('sellingPrice')}
-                      placeholder="0.00" className={`${inp()} pl-7`} />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                      ৳
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...register('sellingPrice')}
+                      placeholder="0.00"
+                      className={`${inp()} pl-7`}
+                    />
                   </div>
                 </F>
                 <F label="Wholesale Price">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">৳</span>
-                    <input type="number" step="0.01" min="0" {...register('wholesalePrice')}
-                      placeholder="0.00" className={`${inp()} pl-7`} />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                      ৳
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...register('wholesalePrice')}
+                      placeholder="0.00"
+                      className={`${inp()} pl-7`}
+                    />
                   </div>
                 </F>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <F label="Opening Stock">
-                  <input type="number" min="0" step="any" {...register('openingStock')}
-                    placeholder="0" className={inp()} />
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    {...register('openingStock')}
+                    placeholder="0"
+                    className={inp()}
+                  />
                 </F>
                 <F label="Alert Quantity">
-                  <input type="number" min="0" {...register('alertQuantity')}
-                    placeholder="e.g. 5" className={inp()} />
+                  <input
+                    type="number"
+                    min="0"
+                    {...register('alertQuantity')}
+                    placeholder="e.g. 5"
+                    className={inp()}
+                  />
                 </F>
               </div>
             </div>
@@ -309,7 +359,9 @@ const EditProduct = () => {
           {/* Right Sidebar */}
           <div className="space-y-5">
             <div className="bg-white border border-[#DBDFE9] rounded-lg p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-100 pb-2">Organization</h3>
+              <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-100 pb-2">
+                Organization
+              </h3>
 
               <F label="Product Type">
                 <select {...register('productType')} className={inp()}>
@@ -323,7 +375,9 @@ const EditProduct = () => {
                 <select {...register('categoryId')} className={inp()}>
                   <option value="">Select category...</option>
                   {categories.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
               </F>
@@ -332,7 +386,9 @@ const EditProduct = () => {
                 <select {...register('brandId')} className={inp()}>
                   <option value="">Select brand...</option>
                   {brands.map((b: any) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
                   ))}
                 </select>
               </F>
@@ -341,7 +397,9 @@ const EditProduct = () => {
                 <select {...register('unitId')} className={inp()}>
                   <option value="">Select unit...</option>
                   {units.map((u: any) => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
                   ))}
                 </select>
               </F>
@@ -350,7 +408,9 @@ const EditProduct = () => {
                 <select {...register('warrantyId')} className={inp()}>
                   <option value="">No warranty</option>
                   {warranties.map((w: any) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
                   ))}
                 </select>
               </F>
@@ -360,7 +420,8 @@ const EditProduct = () => {
                   <option value="">Business profile (default)</option>
                   {warehouses.map((w: any) => (
                     <option key={w.id} value={w.id}>
-                      {w.name}{w.isDefault ? ' ★ Default' : ''}
+                      {w.name}
+                      {w.isDefault ? ' ★ Default' : ''}
                     </option>
                   ))}
                 </select>
@@ -384,12 +445,17 @@ const EditProduct = () => {
 
             {/* Actions */}
             <div className="flex gap-3">
-              <Link to="/admin/inventory/products"
-                className="flex-1 py-2.5 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm text-center hover:bg-gray-50">
+              <Link
+                to="/admin/inventory/products"
+                className="flex-1 py-2.5 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm text-center hover:bg-gray-50"
+              >
                 Cancel
               </Link>
-              <button type="submit" disabled={isLoading || isSubmitting}
-                className="flex-1 py-2.5 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-60 flex items-center justify-center gap-2">
+              <button
+                type="submit"
+                disabled={isLoading || isSubmitting}
+                className="flex-1 py-2.5 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-60 flex items-center justify-center gap-2"
+              >
                 {(isLoading || isSubmitting) && (
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 )}

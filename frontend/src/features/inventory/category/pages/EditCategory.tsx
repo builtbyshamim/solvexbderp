@@ -30,13 +30,9 @@ const EditCategory = ({ category, onClose }: { category: any; onClose: () => voi
     if (image?.file) formData.append('image', image.file);
 
     try {
-      const result = await updateCategory({ id: category.id, data: formData }).unwrap();
-      if (result?.success) {
-        toast.success('Category updated');
-        onClose();
-      } else {
-        toast.error(result?.message || 'Update failed');
-      }
+      await updateCategory({ id: category.id, data: formData }).unwrap();
+      toast.success('Category updated successfully');
+      onClose();
     } catch (err: any) {
       toast.error(err?.data?.message || 'Failed to update category');
     }
