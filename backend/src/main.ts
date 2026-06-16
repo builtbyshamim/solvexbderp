@@ -19,7 +19,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:5173', // Apnar local frontend development port
-      'http://localhost:3000', 
+      'http://localhost:3000',
       'https://www.yourdomain.com', // Apnar main domain
       'https://admin.yourdomain.com', // Admin panel domain (jodi thake)
     ],
@@ -56,7 +56,7 @@ async function bootstrap() {
   // Swagger documentation
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
-  const port = configService.get('PORT') || 5000;
+  const port = configService.get('PORT') || 5004;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
   console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
