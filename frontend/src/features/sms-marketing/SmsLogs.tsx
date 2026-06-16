@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search, MessageSquare, CheckCircle, XCircle, Clock, Filter, Download } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import { useGetSmsLogsQuery } from './smsMarketingApi';
+import { useLanguage } from '../../context/LanguageContext';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Status' },
@@ -19,6 +20,7 @@ const statusConfig: Record<string, { cls: string; icon: React.ReactNode; label: 
 };
 
 const SmsLogs = () => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -26,7 +28,7 @@ const SmsLogs = () => {
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useGetSmsLogsQuery({ search, status, dateFrom, dateTo, page, limit: 20 });
-  const logs = data?.data ?? [];
+  const logs = data ?? [];
   const meta = data?.meta;
 
   const exportCsv = () => {
@@ -55,17 +57,17 @@ const SmsLogs = () => {
   return (
     <div>
       <PageHeader
-        title="SMS Logs"
-        subtitle="View complete history of all sent messages"
+        title={t('sms.logs.title')}
+        subtitle={t('sms.logs.subtitle')}
         breadcrumbs={[
-          { label: 'Home', path: '/admin' },
-          { label: 'SMS Marketing', path: '/admin/sms-marketing' },
-          { label: 'SMS Logs' },
+          { label: t('common.home'), path: '/admin' },
+          { label: t('sms.overview.title'), path: '/admin/sms-marketing' },
+          { label: t('sms.logs.title') },
         ]}
         actions={
           <button onClick={exportCsv}
             className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-            <Download className="h-4 w-4" /> Export CSV
+            <Download className="h-4 w-4" /> {t('sms.logs.exportCsv')}
           </button>
         }
       />
@@ -75,7 +77,7 @@ const SmsLogs = () => {
         <div className="p-4 flex flex-col sm:flex-row flex-wrap gap-3">
           <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Search phone or name..." value={search}
+            <input type="text" placeholder={t('sms.logs.searchPlaceholder')} value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
@@ -89,7 +91,7 @@ const SmsLogs = () => {
           <div className="flex items-center gap-2">
             <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
               className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
-            <span className="text-gray-400 text-xs">to</span>
+            <span className="text-gray-400 text-xs">{t('sms.logs.to')}</span>
             <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
               className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
@@ -105,8 +107,8 @@ const SmsLogs = () => {
         ) : !logs.length ? (
           <div className="p-16 text-center">
             <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 font-medium">No SMS logs found</p>
-            <p className="text-gray-400 text-sm mt-1">Sent messages will appear here</p>
+            <p className="text-gray-500 font-medium">{t('sms.logs.noLogs')}</p>
+            <p className="text-gray-400 text-sm mt-1">{t('sms.logs.noLogsHint')}</p>
           </div>
         ) : (
           <>
@@ -115,7 +117,7 @@ const SmsLogs = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                    {['Phone', 'Name', 'Campaign', 'Message', 'Status', 'Sent At'].map(h => (
+                    {[t('sms.logs.colPhone'), t('common.name'), t('sms.logs.colCampaign'), t('sms.logs.colMessage'), t('common.status'), t('sms.logs.colSentAt')].map(h => (
                       <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
@@ -130,7 +132,7 @@ const SmsLogs = () => {
                         <td className="px-4 py-3">
                           {l.campaignName
                             ? <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{l.campaignName}</span>
-                            : <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">Quick Send</span>}
+                            : <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">{t('sms.logs.quickSend')}</span>}
                         </td>
                         <td className="px-4 py-3 max-w-[200px]">
                           <p className="text-gray-600 text-xs truncate">{l.messageContent}</p>
@@ -172,7 +174,7 @@ const SmsLogs = () => {
                     </div>
                     <p className="text-xs text-gray-600 line-clamp-2">{l.messageContent}</p>
                     <div className="flex items-center justify-between text-xs text-gray-400">
-                      <span>{l.campaignName || 'Quick Send'}</span>
+                      <span>{l.campaignName || t('sms.logs.quickSend')}</span>
                       <span>{l.sentAt ? new Date(l.sentAt).toLocaleString() : '—'}</span>
                     </div>
                   </div>
@@ -183,13 +185,13 @@ const SmsLogs = () => {
             {/* Pagination */}
             {meta && meta.totalPages > 1 && (
               <div className="p-4 border-t border-[#DBDFE9] flex items-center justify-between text-sm text-gray-500">
-                <span>{meta.totalItems} messages</span>
+                <span>{meta.totalItems} {t('sms.logs.messages')}</span>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                    className="px-3 py-1.5 border border-[#DBDFE9] rounded-lg hover:bg-gray-50 disabled:opacity-40">Prev</button>
+                    className="px-3 py-1.5 border border-[#DBDFE9] rounded-lg hover:bg-gray-50 disabled:opacity-40">{t('common.prev')}</button>
                   <span className="px-3 py-1.5 bg-[#ff6d29] text-white rounded-lg">{page}</span>
                   <button onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))} disabled={page === meta.totalPages}
-                    className="px-3 py-1.5 border border-[#DBDFE9] rounded-lg hover:bg-gray-50 disabled:opacity-40">Next</button>
+                    className="px-3 py-1.5 border border-[#DBDFE9] rounded-lg hover:bg-gray-50 disabled:opacity-40">{t('common.next')}</button>
                 </div>
               </div>
             )}

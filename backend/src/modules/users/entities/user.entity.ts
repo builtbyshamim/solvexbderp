@@ -36,13 +36,21 @@ export class UserEntity {
   @Column({ type: 'boolean', nullable: true, default: false })
   isVerified?: boolean;
 
-  @ApiProperty({ enum: UserRole, example: UserRole.USER })
+  @ApiProperty({ enum: UserRole, example: UserRole.EMPLOYEE })
   @Column({
     type: 'enum',
     enum: UserRole,
-    default: UserRole.USER,
+    default: UserRole.EMPLOYEE,
   })
   role: UserRole;
+
+  @ApiProperty({ type: [String], description: 'Custom permission overrides beyond role defaults' })
+  @Column({ type: 'simple-json', nullable: true, default: null })
+  customPermissions: string[] | null;
+
+  @ApiProperty({ description: 'Business this user belongs to (non-owner staff)' })
+  @Column({ type: 'uuid', nullable: true, default: null })
+  businessId: string | null;
 
   @ApiProperty({ example: 'hashedpassword' })
   @Column({ type: 'varchar', nullable: true })

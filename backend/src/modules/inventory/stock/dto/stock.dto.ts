@@ -1,24 +1,24 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min,
-} from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AdjustmentType } from '../entities/stock-adjustment.entity';
 
 export class CreateAdjustmentDto {
-  @ApiProperty()
   @IsUUID()
+  @IsNotEmpty()
   productId: string;
 
-  @ApiProperty()
+  /**
+   * Optional — if omitted the business-default location is used automatically.
+   */
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsUUID()
-  warehouseId: string;
+  warehouseId?: string;
 
-  @ApiProperty({ enum: AdjustmentType })
   @IsEnum(AdjustmentType)
   type: AdjustmentType;
 
-  @ApiProperty()
   @Type(() => Number)
   @IsNumber()
   @Min(0.0001)
@@ -36,19 +36,39 @@ export class CreateAdjustmentDto {
 }
 
 export class CreateTransferDto {
-  @ApiProperty()
   @IsUUID()
+  @IsNotEmpty()
   productId: string;
 
-  @ApiProperty()
+  /**
+   * Source — omit to use business-default location.
+   */
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsUUID()
-  fromWarehouseId: string;
+  fromWarehouseId?: string;
 
-  @ApiProperty()
+  /**
+   * Destination — omit to use business-default location.
+   */
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsUUID()
-  toWarehouseId: string;
+  toWarehouseId?: string;
 
-  @ApiProperty()
+  /**
+   * Alternatively pass location IDs directly (takes priority over warehouse IDs).
+   */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  fromLocationId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  toLocationId?: string;
+
   @Type(() => Number)
   @IsNumber()
   @Min(0.0001)
@@ -69,7 +89,7 @@ export class GetStockLedgerDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
-  warehouseId?: string;
+  locationId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -90,6 +110,53 @@ export class GetStockLedgerDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  limit?: number;
+}
+
+export class GetAdjustmentsDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  productId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  limit?: number;
+}
+
+export class GetTransfersDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

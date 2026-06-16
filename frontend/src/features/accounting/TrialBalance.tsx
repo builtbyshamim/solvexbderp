@@ -1,6 +1,7 @@
 import { Download, Loader2, RefreshCw } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import { useGetTrialBalanceQuery } from './accountingApi';
+import { useLanguage } from '../../context/LanguageContext';
 
 const typeColors: Record<string, string> = {
   cash: 'bg-green-100 text-green-700',
@@ -14,6 +15,7 @@ const typeColors: Record<string, string> = {
 };
 
 const TrialBalance = () => {
+  const { t } = useLanguage();
   const { data, isLoading, refetch } = useGetTrialBalanceQuery(undefined);
 
   const accounts: any[] = data?.accounts ?? [];
@@ -21,15 +23,23 @@ const TrialBalance = () => {
   const totalCredit = data?.totalCredit ?? 0;
   const isBalanced = data?.isBalanced ?? false;
 
+  const tableHeaders = [
+    t('accounting.trialBalance.accountName'),
+    t('common.type'),
+    t('accounting.trialBalance.debit'),
+    t('accounting.trialBalance.credit'),
+    t('accounting.trialBalance.currentBalance'),
+  ];
+
   return (
     <div>
       <PageHeader
-        title="Trial Balance"
-        subtitle="Verify that total debits equal total credits"
+        title={t('accounting.trialBalance.title')}
+        subtitle={t('accounting.trialBalance.subtitle')}
         breadcrumbs={[
-          { label: 'Home', path: '/admin' },
-          { label: 'Accounting', path: '/admin/accounting/accounts' },
-          { label: 'Trial Balance' },
+          { label: t('common.home'), path: '/admin' },
+          { label: t('nav.accounting'), path: '/admin/accounting/accounts' },
+          { label: t('accounting.trialBalance.title') },
         ]}
         actions={
           <div className="flex gap-2">
@@ -40,7 +50,7 @@ const TrialBalance = () => {
               <RefreshCw className="h-4 w-4" />
             </button>
             <button className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
-              <Download className="h-4 w-4" /> Export
+              <Download className="h-4 w-4" /> {t('common.export')}
             </button>
           </div>
         }
@@ -56,10 +66,10 @@ const TrialBalance = () => {
             <div className={`h-3 w-3 rounded-full flex-shrink-0 ${isBalanced || accounts.length === 0 ? 'bg-green-500' : 'bg-red-500'}`} />
             <span className={`text-sm font-medium ${isBalanced || accounts.length === 0 ? 'text-green-700' : 'text-red-600'}`}>
               {accounts.length === 0
-                ? 'No accounts found. Create accounts first.'
+                ? t('accounting.trialBalance.noAccountsFirst')
                 : isBalanced
-                  ? 'Trial Balance is Balanced ✓'
-                  : 'Trial Balance is NOT balanced — please review'
+                  ? t('accounting.trialBalance.balanced')
+                  : t('accounting.trialBalance.notBalanced')
               }
             </span>
           </div>
@@ -69,7 +79,7 @@ const TrialBalance = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                    {['Account Name', 'Type', 'Debit (৳)', 'Credit (৳)', 'Current Balance'].map((h) => (
+                    {tableHeaders.map((h) => (
                       <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
@@ -77,7 +87,9 @@ const TrialBalance = () => {
                 <tbody className="divide-y divide-gray-100">
                   {accounts.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-12 text-center text-gray-400">No accounts found.</td>
+                      <td colSpan={5} className="px-4 py-12 text-center text-gray-400">
+                        {t('accounting.trialBalance.noAccounts')}
+                      </td>
                     </tr>
                   ) : (
                     accounts.map((account: any) => (
@@ -104,7 +116,7 @@ const TrialBalance = () => {
                 {accounts.length > 0 && (
                   <tfoot>
                     <tr className="bg-gray-100 border-t-2 border-[#DBDFE9] font-bold">
-                      <td colSpan={2} className="px-4 py-4 text-[#26272F]">TOTALS</td>
+                      <td colSpan={2} className="px-4 py-4 text-[#26272F]">{t('accounting.trialBalance.totals')}</td>
                       <td className="px-4 py-4 text-green-600 text-base">৳{Number(totalDebit).toLocaleString()}</td>
                       <td className="px-4 py-4 text-red-500 text-base">৳{Number(totalCredit).toLocaleString()}</td>
                       <td className="px-4 py-4 text-[#26272F]">—</td>

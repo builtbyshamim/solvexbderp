@@ -10,14 +10,9 @@ export default function AuthUserNotAccessRoute({ children }: Props) {
 
   const authToken = Cookies.get("access_token");
 
-  // If user is already logged in, block access (login/register pages)
+  // If user is already logged in, block access to auth pages (login/register)
   if (authToken) {
     return <Navigate to="/admin" replace />;
-  }
-
-  // If user hits root without auth, send to login
-  if (pathname === "/") {
-    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;

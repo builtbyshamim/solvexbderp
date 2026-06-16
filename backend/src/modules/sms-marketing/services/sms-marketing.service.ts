@@ -16,8 +16,30 @@ import {
   SaveSmsConfigDto, TestSmsDto,
   PurchasePackageDto,
   CreateDueReminderDto, UpdateDueReminderDto, GetDueReminderLogsDto,
+  SaveTransactionalSmsDto,
 } from '../dto/sms-marketing.dto';
 import { CustomerEntity } from 'src/modules/sales/entities/customer.entity';
+import { BusinessEntity } from 'src/modules/business/entities/business.entity';
+import {
+  TransactionalSmsSettingEntity,
+  TransactionalSmsEvent,
+  DEFAULT_TEMPLATES,
+  EVENT_LABELS,
+  EVENT_VARIABLES,
+} from '../entities/transactional-sms.entity';
+
+export interface TransactionalSmsData {
+  customerName: string;
+  customerPhone: string;
+  invoiceNo?: string;
+  invoiceLink?: string;
+  totalAmount?: number;
+  paidAmount?: number;
+  dueAmount?: number;
+  paymentAmount?: number;
+  returnAmount?: number;
+  saleDate?: string;
+}
 
 @Injectable()
 export class SmsMarketingService {
@@ -44,6 +66,10 @@ export class SmsMarketingService {
     private readonly reminderLogRepo: Repository<DueReminderLogEntity>,
     @InjectRepository(CustomerEntity)
     private readonly customerRepo: Repository<CustomerEntity>,
+    @InjectRepository(BusinessEntity)
+    private readonly businessRepo: Repository<BusinessEntity>,
+    @InjectRepository(TransactionalSmsSettingEntity)
+    private readonly transactionalRepo: Repository<TransactionalSmsSettingEntity>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -575,5 +601,104 @@ export class SmsMarketingService {
 
     const [data, totalItems] = await qb.getManyAndCount();
     return { data, meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: Number(page) } };
+  }
+
+  // ── Transactional SMS ─────────────────────────────────────────────────────
+
+  async getTransactionalSettings(businessId: string) {
+    const saved = await this.transactionalRepo.find({ where: { businessId } });
+    const savedMap = new Map(saved.map((s) => [s.event, s]));
+
+    return Object.values(TransactionalSmsEvent).map((event) => {
+      const existing = savedMap.get(event);
+      return {
+        event,
+        label: EVENT_LABELS[event],
+        isEnabled: existing?.isEnabled ?? false,
+        template: existing?.template ?? DEFAULT_TEMPLATES[event],
+        defaultTemplate: DEFAULT_TEMPLATES[event],
+        variables: EVENT_VARIABLES[event],
+      };
+    });
+  }
+
+  async saveTransactionalSettings(businessId: string, dto: SaveTransactionalSmsDto) {
+    const results = await Promise.all(
+      dto.settings.map(async (item) => {
+        let setting = await this.transactionalRepo.findOne({
+          where: { businessId, event: item.event },
+        });
+        if (!setting) {
+          setting = this.transactionalRepo.create({ businessId, event: item.event });
+        }
+        setting.isEnabled = item.isEnabled;
+        setting.template = item.template;
+        return this.transactionalRepo.save(setting);
+      }),
+    );
+    return { message: 'Transactional SMS settings saved', count: results.length };
+  }
+
+  previewTransactional(template: string) {
+    const sample: Record<string, string> = {
+      customer_name: 'রহিম সাহেব',
+      invoice_no: 'INV-20250001',
+      invoice_link: 'https://app.bizcore.io/i/INV-20250001',
+      total_amount: '5,500',
+      paid_amount: '3,000',
+      due_amount: '2,500',
+      payment_amount: '1,500',
+      return_amount: '800',
+      sale_date: new Date().toLocaleDateString('bn-BD'),
+      business_name: 'আপনার শপের নাম',
+    };
+    const rendered = template.replace(/\{\{(\w+)\}\}/g, (_, key) => sample[key] ?? `{{${key}}}`);
+    return { rendered, charCount: rendered.length, smsCount: Math.ceil(rendered.length / 160) };
+  }
+
+  async sendTransactionalSms(
+    businessId: string,
+    event: TransactionalSmsEvent,
+    data: TransactionalSmsData,
+  ): Promise<void> {
+    if (!data.customerPhone) return;
+
+    const setting = await this.transactionalRepo.findOne({ where: { businessId, event } });
+    if (!setting?.isEnabled) return;
+
+    const business = await this.businessRepo.findOne({ where: { id: businessId }, select: ['id', 'name'] });
+    const businessName = business?.name ?? 'BizCore';
+
+    const template = setting.template || DEFAULT_TEMPLATES[event];
+    const formatNum = (n?: number) => (n != null ? Number(n).toLocaleString('en-BD') : '0');
+
+    const rendered = template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => {
+      switch (key) {
+        case 'customer_name': return data.customerName;
+        case 'invoice_no': return data.invoiceNo ?? '';
+        case 'invoice_link': return data.invoiceLink ?? '';
+        case 'total_amount': return formatNum(data.totalAmount);
+        case 'paid_amount': return formatNum(data.paidAmount);
+        case 'due_amount': return formatNum(data.dueAmount);
+        case 'payment_amount': return formatNum(data.paymentAmount);
+        case 'return_amount': return formatNum(data.returnAmount);
+        case 'sale_date': return data.saleDate ?? '';
+        case 'business_name': return businessName;
+        default: return `{{${key}}}`;
+      }
+    });
+
+    const ok = Math.random() > 0.05;
+    await this.logRepo.save(
+      this.logRepo.create({
+        businessId,
+        recipientPhone: data.customerPhone,
+        recipientName: data.customerName,
+        messageContent: rendered,
+        status: ok ? SmsLogStatus.SENT : SmsLogStatus.FAILED,
+        sentAt: new Date(),
+        errorMessage: ok ? undefined : 'Delivery failed',
+      }),
+    );
   }
 }

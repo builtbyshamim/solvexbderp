@@ -1,227 +1,122 @@
-import { useState, useEffect } from "react";
-import { FiSave, FiUpload, FiX } from "react-icons/fi";
-import InputString from "../../../../components/ui/InputString";
-import InputTextarea from "../../../../components/ui/InputTextarea";
-import toast from "react-hot-toast";
-import { useForm } from "react-hook-form";
-import {
-  useUpdateCategoryMutation,
-  useGetAllCategoryQuery,
-} from "../categoryApi";
-import SelectAndSearch from "../../../../components/ui/SelectAndSearch";
-import ToggleSwitch from "../../../../components/ui/toggle/ToggleSwitch";
+import { useState, useEffect } from 'react';
+import { Upload, X, Save } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useForm } from 'react-hook-form';
+import { useUpdateCategoryMutation, useGetAllCategoryQuery } from '../categoryApi';
 
-const EditCategory = ({ onClose, category }: any) => {
-  const {
-    register,
-    formState: { errors },
-    clearErrors,
-    setValue,
-    handleSubmit,
-    reset,
-    trigger,
-  } = useForm({
+const EditCategory = ({ category, onClose }: { category: any; onClose: () => void }) => {
+  const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
+      name: category?.name || '',
+      parentId: category?.parentId || '',
       isActive: category?.isActive ?? true,
-      name: category?.name || "",
-      description: category?.description || "",
-      metaDescription: category?.metaDescription || "",
-      metaTitle: category?.metaTitle || "",
-      parentId: category?.parentId || "",
     },
   });
-
-  const [images, setImages] = useState<any>(null);
-  const { data: categoryData } = useGetAllCategoryQuery({ search: "" });
+  const [image, setImage] = useState<{ file: File | null; preview: string } | null>(
+    category?.image ? { file: null, preview: category.image } : null,
+  );
+  const { data: categoryData } = useGetAllCategoryQuery({ limit: 200 });
   const [updateCategory, { isLoading }] = useUpdateCategoryMutation();
 
-  // show old image preview in edit mode
   useEffect(() => {
-    if (category?.image) {
-      setImages({
-        file: null,
-        preview: category.image,
-      });
-    }
+    if (category?.image) setImage({ file: null, preview: category.image });
   }, [category]);
 
   const onSubmit = async (data: any) => {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('isActive', data.isActive ? 'true' : 'false');
+    if (data.parentId) formData.append('parentId', data.parentId);
+    if (image?.file) formData.append('image', image.file);
+
     try {
-      const formData = new FormData();
-
-      // ✅ append fields safely
-      Object.keys(data).forEach((key) => {
-        const value = data[key];
-
-        if (value === undefined || value === null || value === "") return;
-
-        if (typeof value === "boolean") {
-          formData.append(key, value ? "true" : "false");
-        } else {
-          formData.append(key, value);
-        }
-      });
-
-      // ✅ only append image if new file selected
-      if (images?.file) {
-        formData.append("image", images.file);
-      }
-
-      const result = await updateCategory({
-        id: category.id,
-        data: formData,
-      }).unwrap();
-
-      if (result?.success) {
-        toast.success("Category updated successfully!");
-        reset();
-        onClose();
-      } else {
-        toast.error(result?.message || "Update failed");
-      }
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to update category");
+      await updateCategory({ id: category.id, data: formData }).unwrap();
+      toast.success('Category updated successfully');
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Failed to update category');
     }
   };
 
-  const handleImageUpload = (e: any) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const preview = URL.createObjectURL(file);
-    setImages({ file, preview });
-  };
-
-  const removeImage = () => {
-    setImages(null);
-  };
+  const otherCategories = (categoryData?.data || []).filter((c: any) => c.id !== category?.id);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Parent */}
-      <SelectAndSearch
-        clearErrors={clearErrors}
-        trigger={trigger}
-        setValue={setValue}
-        register={register}
-        required={false}
-        name="parentId"
-        errors={errors}
-        label="Parent Category"
-        placeholder="Select parent"
-        options={categoryData?.data?.data?.map((item: any) => ({
-          label: item?.name,
-          value: item?.id,
-        }))}
-      />
-
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Name */}
-      <InputString
-        placeholder="Enter name"
-        name="name"
-        label="Category Name"
-        register={register}
-        errors={errors}
-      />
-
-      {/* Image */}
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Category Name <span className="text-red-500">*</span>
+        </label>
         <input
-          type="file"
-          id="image-upload"
-          accept="image/*"
-          onChange={handleImageUpload}
-          className="hidden"
+          {...register('name', { required: 'Name is required' })}
+          placeholder="e.g. Electronics"
+          className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
         />
-
-        {images ? (
-          <div className="relative group">
-            <img
-              src={images.preview}
-              className="w-full max-h-62.5 object-cover rounded-md"
-            />
-            <button
-              type="button"
-              onClick={removeImage}
-              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full"
-            >
-              <FiX size={12} />
-            </button>
-          </div>
-        ) : (
-          <label htmlFor="image-upload" className="cursor-pointer">
-            <div className="flex flex-col items-center">
-              <FiUpload className="text-3xl text-gray-400 mb-2" />
-              <p className="text-sm font-medium text-gray-700">
-                Click to upload
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                PNG, JPG, GIF up to 10MB
-              </p>
-              <p className="text-xs text-gray-400 mt-1">(Max 10 images)</p>
-            </div>
-            Click to upload
-          </label>
-        )}
+        {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message as string}</p>}
       </div>
 
-      {/* Description */}
-      <InputTextarea
-        name="description"
-        required={false}
-        label="Description"
-        register={register}
-        errors={errors}
-        rows={2}
-      />
+      {/* Parent */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Parent Category</label>
+        <select
+          {...register('parentId')}
+          className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
+        >
+          <option value="">No parent (top-level)</option>
+          {otherCategories.map((c: any) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </div>
 
-      <InputTextarea
-        name="metaTitle"
-        required={false}
-        label="Meta Title"
-        register={register}
-        errors={errors}
-        rows={2}
-      />
+      {/* Image */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+        <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center">
+          <input type="file" id="cat-img-edit" accept="image/*" className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setImage({ file, preview: URL.createObjectURL(file) });
+            }}
+          />
+          {image ? (
+            <div className="relative inline-block">
+              <img src={image.preview} alt="Category" className="h-20 w-20 object-cover rounded-lg mx-auto" />
+              <button type="button" onClick={() => setImage(null)}
+                className="absolute -top-1.5 -right-1.5 p-0.5 bg-red-500 text-white rounded-full">
+                <X size={12} />
+              </button>
+            </div>
+          ) : (
+            <label htmlFor="cat-img-edit" className="cursor-pointer flex flex-col items-center gap-1 text-gray-400">
+              <Upload size={20} />
+              <span className="text-xs">Click to upload</span>
+            </label>
+          )}
+        </div>
+      </div>
 
-      <InputTextarea
-        name="metaDescription"
-        label="Meta Description"
-        register={register}
-        errors={errors}
-        required={false}
-        rows={2}
-      />
+      {/* Status */}
+      <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+        <span className="text-sm font-medium text-gray-700">Active Status</span>
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" {...register('isActive')} className="sr-only peer" />
+          <div className="w-9 h-5 bg-gray-200 peer-checked:bg-[#ff6d29] rounded-full transition-colors" />
+          <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
+        </label>
+      </div>
 
-      {/* Toggle */}
-      <ToggleSwitch
-        name="isActive"
-        label="Category Status"
-        register={register}
-        errors={errors}
-        defaultValue={category?.isActive ?? true}
-        onToggle={(v) => setValue("isActive", v)}
-        helperText="Enable to make this category visible"
-      />
-
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={isLoading}
-        className="px-6 py-2.5 cursor-pointer bg-primary-500 text-white rounded-md hover:bg-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-      >
-        {isLoading ? (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            Updating...
-          </>
-        ) : (
-          <>
-            <FiSave className="mr-2" />
-            Update Category
-          </>
-        )}
-      </button>
+      <div className="flex gap-3 pt-1">
+        <button type="button" onClick={onClose}
+          className="flex-1 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
+          Cancel
+        </button>
+        <button type="submit" disabled={isLoading}
+          className="flex-1 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-60 flex items-center justify-center gap-2">
+          {isLoading && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+          <Save size={14} /> Update Category
+        </button>
+      </div>
     </form>
   );
 };

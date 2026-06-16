@@ -1,0 +1,624 @@
+import { useState } from 'react';
+import {
+  Package,
+  Plus,
+  Edit2,
+  Trash2,
+  ToggleLeft,
+  ToggleRight,
+  Star,
+  Users,
+  ShoppingBag,
+  Warehouse,
+  Clock,
+  CheckCircle2,
+  X,
+  Save,
+  AlertCircle,
+  Crown,
+  Building2,
+  Zap,
+  Loader2,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import {
+  useGetAllPackagesQuery,
+  useCreatePackageMutation,
+  useUpdatePackageMutation,
+  useDeletePackageMutation,
+} from '../../redux/api/packagesApi';
+import type { Package as PkgType } from '../../redux/api/packagesApi';
+import { yearlyDiscount, monthlyEquivalent } from '../../data/mockPackages';
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+const fmt = (n: number) => (n === -1 ? 'Unlimited' : n.toLocaleString());
+const ICONS: Record<string, React.ElementType> = {
+  Starter: Zap,
+  Pro: Crown,
+  Enterprise: Building2,
+};
+
+// ─── Defaults ─────────────────────────────────────────────────────────────────
+const PKG_DEFAULTS: Omit<PkgType, 'id'> = {
+  name: '',
+  badge: '',
+  highlight: false,
+  isEnterprise: false,
+  isActive: true,
+  monthlyPrice: 0,
+  yearlyPrice: 0,
+  trialDays: 15,
+  maxUsers: 3,
+  maxProducts: 500,
+  maxWarehouses: 1,
+  features: [],
+  sortOrder: 99,
+};
+
+type FormPkg = Omit<PkgType, 'id'> & { id?: string };
+
+// ─── Edit / Create modal ──────────────────────────────────────────────────────
+function PackageModal({
+  initial,
+  onClose,
+  onSave,
+  saving,
+}: {
+  initial: FormPkg | null;
+  onClose: () => void;
+  onSave: (pkg: FormPkg) => void;
+  saving: boolean;
+}) {
+  const [form, setForm] = useState<FormPkg>(initial ?? { ...PKG_DEFAULTS });
+  const [featureInput, setFeatureInput] = useState('');
+
+  const set = (key: keyof FormPkg, value: any) => setForm((p) => ({ ...p, [key]: value }));
+
+  const addFeature = () => {
+    const f = featureInput.trim();
+    if (!f) return;
+    setForm((p) => ({ ...p, features: [...p.features, f] }));
+    setFeatureInput('');
+  };
+
+  const removeFeature = (i: number) =>
+    setForm((p) => ({ ...p, features: p.features.filter((_, idx) => idx !== i) }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) {
+      toast.error('Package name is required');
+      return;
+    }
+    onSave(form);
+  };
+
+  const inputCls =
+    'w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/30 focus:border-[#ff6d29] transition-colors';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h3 className="text-base font-bold text-[#26272F]">
+            {initial?.id ? 'Edit Package' : 'Create Package'}
+          </h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                Package Name *
+              </label>
+              <input
+                value={form.name}
+                onChange={(e) => set('name', e.target.value)}
+                placeholder="e.g. Starter"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                Badge (optional)
+              </label>
+              <input
+                value={form.badge ?? ''}
+                onChange={(e) => set('badge', e.target.value)}
+                placeholder="e.g. Most Popular"
+                className={inputCls}
+              />
+            </div>
+          </div>
+
+          <div className="p-4 bg-gray-50 rounded-xl space-y-4">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Pricing</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Monthly Price (৳)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.monthlyPrice}
+                  onChange={(e) => set('monthlyPrice', Number(e.target.value))}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Yearly Price (৳)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.yearlyPrice}
+                  onChange={(e) => set('yearlyPrice', Number(e.target.value))}
+                  className={inputCls}
+                />
+              </div>
+            </div>
+            {!form.isEnterprise && form.monthlyPrice > 0 && form.yearlyPrice > 0 && (
+              <p className="text-xs text-green-600 font-medium">
+                Yearly saves {yearlyDiscount({ ...form, id: '' } as PkgType)}% vs monthly (≈ ৳
+                {monthlyEquivalent({ ...form, id: '' } as PkgType)}/mo equivalent)
+              </p>
+            )}
+          </div>
+
+          <div className="p-4 bg-gray-50 rounded-xl space-y-4">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+              Limits (-1 = Unlimited)
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { label: 'Max Users', key: 'maxUsers' },
+                { label: 'Max Products', key: 'maxProducts' },
+                { label: 'Max Warehouses', key: 'maxWarehouses' },
+                { label: 'Trial Days', key: 'trialDays' },
+              ].map(({ label, key }) => (
+                <div key={key}>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                    {label}
+                  </label>
+                  <input
+                    type="number"
+                    min={key === 'trialDays' ? 0 : -1}
+                    max={key === 'trialDays' ? 90 : undefined}
+                    value={form[key as keyof FormPkg] as number}
+                    onChange={(e) => set(key as keyof FormPkg, Number(e.target.value))}
+                    className={inputCls}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-2">Features</label>
+            <div className="flex gap-2 mb-2">
+              <input
+                value={featureInput}
+                onChange={(e) => setFeatureInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addFeature();
+                  }
+                }}
+                placeholder="Type a feature and press Enter or +"
+                className={`${inputCls} flex-1`}
+              />
+              <button
+                type="button"
+                onClick={addFeature}
+                className="px-3 py-2.5 bg-[#ff6d29] text-white rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+            {form.features.length > 0 && (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {form.features.map((f, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                    <span className="flex-1 text-gray-600">{f}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFeature(i)}
+                      className="text-gray-300 hover:text-red-400"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-4">
+            {[
+              { key: 'highlight', label: 'Mark as highlighted' },
+              { key: 'isEnterprise', label: 'Enterprise (no fixed price)' },
+              { key: 'isActive', label: 'Active (visible to users)' },
+            ].map(({ key, label }) => (
+              <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!form[key as keyof FormPkg]}
+                  onChange={(e) => set(key as keyof FormPkg, e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-[#ff6d29] focus:ring-[#ff6d29]"
+                />
+                <span className="text-sm text-gray-600">{label}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="flex gap-3 pt-2 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-2.5 bg-[#ff6d29] hover:bg-orange-600 text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {initial?.id ? 'Save Changes' : 'Create Package'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Delete confirm ───────────────────────────────────────────────────────────
+function DeleteConfirm({
+  name,
+  onConfirm,
+  onClose,
+  loading,
+}: {
+  name: string;
+  onConfirm: () => void;
+  onClose: () => void;
+  loading: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+        <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+          <Trash2 className="h-5 w-5 text-red-500" />
+        </div>
+        <h3 className="font-bold text-[#26272F] mb-1">Delete "{name}"?</h3>
+        <p className="text-sm text-gray-500 mb-5">
+          This package will be removed from the pricing page. Existing subscribers keep their plan.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Skeleton card ─────────────────────────────────────────────────────────────
+const SkeletonCard = () => (
+  <div className="bg-white border-2 border-[#DBDFE9] rounded-2xl overflow-hidden animate-pulse">
+    <div className="px-5 py-4 bg-gray-50 border-b border-gray-100">
+      <div className="flex items-center gap-2.5">
+        <div className="h-9 w-9 rounded-lg bg-gray-200" />
+        <div className="space-y-1.5">
+          <div className="h-3 w-20 bg-gray-200 rounded" />
+          <div className="h-2.5 w-14 bg-gray-100 rounded" />
+        </div>
+      </div>
+    </div>
+    <div className="p-5 space-y-4">
+      <div className="h-8 w-24 bg-gray-100 rounded" />
+      <div className="grid grid-cols-2 gap-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-12 bg-gray-50 rounded-lg" />
+        ))}
+      </div>
+      <div className="space-y-1.5">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-3 bg-gray-50 rounded w-full" />
+        ))}
+      </div>
+    </div>
+    <div className="px-5 pb-5 flex gap-2">
+      <div className="flex-1 h-9 bg-gray-100 rounded-lg" />
+      <div className="flex-1 h-9 bg-gray-100 rounded-lg" />
+      <div className="h-9 w-9 bg-gray-100 rounded-lg" />
+    </div>
+  </div>
+);
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+const PackageManagement = () => {
+  const [editPkg, setEditPkg] = useState<FormPkg | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [deletePkg, setDeletePkg] = useState<PkgType | null>(null);
+
+  const { data: apiData, isLoading } = useGetAllPackagesQuery();
+  const [createPackage, { isLoading: creating }] = useCreatePackageMutation();
+  const [updatePackage, { isLoading: updating }] = useUpdatePackageMutation();
+  const [deletePackage, { isLoading: deleting }] = useDeletePackageMutation();
+
+  const packages: PkgType[] = apiData ?? [];
+  console.log(apiData, 'packagespackages');
+
+  const handleSave = async (form: FormPkg) => {
+    try {
+      if (form.id) {
+        await updatePackage({ id: form.id, ...form }).unwrap();
+        toast.success('Package updated!');
+      } else {
+        await createPackage(form).unwrap();
+        toast.success('Package created!');
+      }
+      setEditPkg(null);
+      setShowCreate(false);
+    } catch {
+      toast.error('Failed to save package');
+    }
+  };
+
+  const handleToggleActive = async (pkg: PkgType) => {
+    try {
+      await updatePackage({ id: pkg.id, isActive: !pkg.isActive }).unwrap();
+      toast.success(`"${pkg.name}" ${pkg.isActive ? 'deactivated' : 'activated'}`);
+    } catch {
+      toast.error('Failed to update package');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletePkg) return;
+    try {
+      await deletePackage(deletePkg.id).unwrap();
+      toast.success(`"${deletePkg.name}" deleted`);
+      setDeletePkg(null);
+    } catch {
+      toast.error('Failed to delete package');
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold text-[#26272F]">Package Management</h1>
+          <p className="text-sm text-gray-400 mt-0.5">
+            Control pricing, trial days, limits, and features shown to customers
+          </p>
+        </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#ff6d29] hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-colors self-start sm:self-auto"
+        >
+          <Plus className="h-4 w-4" /> New Package
+        </button>
+      </div>
+
+      <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+        <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+        Changes here update the pricing page and subscription screen immediately. Existing
+        subscribers keep their current plan until they upgrade or renew.
+      </div>
+
+      {/* Package cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        {isLoading ? (
+          Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
+        ) : (
+          <>
+            {packages.map((pkg) => {
+              const Icon = ICONS[pkg.name] ?? Package;
+              const discount = yearlyDiscount(pkg);
+
+              return (
+                <div
+                  key={pkg.id}
+                  className={`bg-white border-2 rounded-2xl overflow-hidden flex flex-col transition-all ${pkg.isActive ? 'border-[#DBDFE9] shadow-sm' : 'border-gray-200 opacity-60'} ${pkg.highlight ? 'ring-2 ring-orange-400/30' : ''}`}
+                >
+                  <div
+                    className={`px-5 py-4 flex items-center justify-between ${pkg.highlight ? 'bg-[#26272F]' : 'bg-gray-50'} border-b border-gray-100`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`p-2 rounded-lg ${pkg.highlight ? 'bg-orange-500/20' : 'bg-white border border-gray-200'}`}
+                      >
+                        <Icon
+                          className={`h-4 w-4 ${pkg.highlight ? 'text-orange-400' : 'text-[#ff6d29]'}`}
+                        />
+                      </div>
+                      <div>
+                        <p
+                          className={`font-bold text-sm ${pkg.highlight ? 'text-white' : 'text-[#26272F]'}`}
+                        >
+                          {pkg.name}
+                        </p>
+                        {pkg.badge && (
+                          <span className="text-[10px] font-semibold text-orange-500">
+                            {pkg.badge}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${pkg.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
+                    >
+                      {pkg.isActive ? 'Active' : 'Hidden'}
+                    </span>
+                  </div>
+
+                  <div className="p-5 flex-1 space-y-4">
+                    {pkg.isEnterprise ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-black text-[#26272F]">Custom</span>
+                        <span className="text-xs text-gray-400">pricing</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-3">
+                        <div>
+                          <p className="text-xs text-gray-400">Monthly</p>
+                          <p className="text-xl font-black text-[#26272F]">
+                            ৳{pkg.monthlyPrice.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="text-gray-300">|</div>
+                        <div>
+                          <p className="text-xs text-gray-400">Yearly</p>
+                          <p className="text-xl font-black text-[#26272F]">
+                            ৳{pkg.yearlyPrice.toLocaleString()}
+                          </p>
+                        </div>
+                        {discount > 0 && (
+                          <span className="self-end mb-0.5 text-xs font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                            -{discount}% yearly
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { icon: Users, label: 'Users', val: fmt(pkg.maxUsers) },
+                        { icon: ShoppingBag, label: 'Products', val: fmt(pkg.maxProducts) },
+                        { icon: Warehouse, label: 'Warehouses', val: fmt(pkg.maxWarehouses) },
+                        { icon: Clock, label: 'Trial Days', val: `${pkg.trialDays} days` },
+                      ].map(({ icon: Icon2, label, val }) => (
+                        <div
+                          key={label}
+                          className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg"
+                        >
+                          <Icon2 className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-gray-400">{label}</p>
+                            <p className="text-xs font-semibold text-[#26272F] truncate">{val}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                        Features ({pkg.features.length})
+                      </p>
+                      <ul className="space-y-1">
+                        {pkg.features.slice(0, 4).map((f) => (
+                          <li key={f} className="flex items-center gap-1.5 text-xs text-gray-500">
+                            <CheckCircle2 className="h-3 w-3 text-green-500 flex-shrink-0" />
+                            {f}
+                          </li>
+                        ))}
+                        {pkg.features.length > 4 && (
+                          <li className="text-xs text-gray-400 pl-4.5">
+                            +{pkg.features.length - 4} more features
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="px-5 pb-5 flex gap-2">
+                    <button
+                      onClick={() => setEditPkg({ ...pkg })}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" /> Edit
+                    </button>
+                    <button
+                      onClick={() => handleToggleActive(pkg)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors ${pkg.isActive ? 'border border-gray-200 text-gray-600 hover:bg-gray-50' : 'border border-green-200 text-green-600 hover:bg-green-50'}`}
+                    >
+                      {pkg.isActive ? (
+                        <>
+                          <ToggleLeft className="h-3.5 w-3.5" /> Deactivate
+                        </>
+                      ) : (
+                        <>
+                          <ToggleRight className="h-3.5 w-3.5" /> Activate
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setDeletePkg(pkg)}
+                      className="p-2 border border-red-100 rounded-lg text-red-400 hover:bg-red-50 hover:border-red-200 transition-colors"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Add card */}
+            <button
+              onClick={() => setShowCreate(true)}
+              className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 hover:border-[#ff6d29] hover:bg-orange-50/30 transition-all group min-h-[300px]"
+            >
+              <div className="h-12 w-12 rounded-xl bg-gray-100 group-hover:bg-orange-100 flex items-center justify-center transition-colors">
+                <Plus className="h-6 w-6 text-gray-400 group-hover:text-[#ff6d29]" />
+              </div>
+              <p className="text-sm font-medium text-gray-400 group-hover:text-[#ff6d29]">
+                Add New Package
+              </p>
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Modals */}
+      {(editPkg || showCreate) && (
+        <PackageModal
+          initial={editPkg}
+          onClose={() => {
+            setEditPkg(null);
+            setShowCreate(false);
+          }}
+          onSave={handleSave}
+          saving={creating || updating}
+        />
+      )}
+      {deletePkg && (
+        <DeleteConfirm
+          name={deletePkg.name}
+          onConfirm={handleDelete}
+          onClose={() => setDeletePkg(null)}
+          loading={deleting}
+        />
+      )}
+    </div>
+  );
+};
+
+export default PackageManagement;

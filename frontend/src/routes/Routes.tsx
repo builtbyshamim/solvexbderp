@@ -1,11 +1,21 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
+import SuperAdminLayout from '../layouts/SuperAdminLayout';
 import AuthUserNotAccessRoute from '../components/providers/AuthUserNotAccessRoute';
 import ProtectedRoute from '../components/providers/ProtectedRoute';
+import SuperAdminRoute from '../components/providers/SuperAdminRoute';
+
+// Super Admin
+import SuperAdminLogin from '../features/super-admin/SuperAdminLogin';
+import SuperAdminDashboard from '../features/super-admin/SuperAdminDashboard';
+import BusinessesList from '../features/super-admin/BusinessesList';
+import ComingSoonPage from '../features/super-admin/ComingSoonPage';
+import PackageManagement from '../features/super-admin/PackageManagement';
 
 // Auth
 import LoginPage from '../components/auth/Login';
 import ForgotPassword from '../components/auth/ForgotPassword';
+import SelectPlan from '../features/subscription/SelectPlan';
 
 // Dashboard
 import Dashboard from '../components/dashboard/Dashboard';
@@ -25,18 +35,26 @@ import StockReport from '../features/inventory/stock/StockReport';
 
 // Purchase
 import AllSupplier from '../features/purchase/supplier/AllSupplier';
+import SupplierDetail from '../features/purchase/supplier/SupplierDetail';
 import PurchaseList from '../features/purchase/PurchaseList';
 import AddPurchase from '../features/purchase/AddPurchase';
 import PurchaseReturns from '../features/purchase/PurchaseReturns';
 import SupplierLedger from '../features/purchase/SupplierLedger';
+import SupplierPayment from '../features/purchase/SupplierPayment';
 
 // Sales
 import AllCustomer from '../features/sales/customer/AllCustomer';
+import CustomerDetail from '../features/sales/customer/CustomerDetail';
 import SaleList from '../features/sales/SaleList';
 import AddSale from '../features/sales/AddSale';
+import SaleDetail from '../features/sales/SaleDetail';
 import SaleReturns from '../features/sales/SaleReturns';
 import Quotations from '../features/sales/Quotations';
 import CustomerLedger from '../features/sales/CustomerLedger';
+import CustomerCollection from '../features/sales/CustomerCollection';
+import CollectionReport from '../features/sales/CollectionReport';
+import InvoiceA4 from '../features/sales/print/InvoiceA4';
+import InvoicePOS from '../features/sales/print/InvoicePOS';
 
 // POS
 import POSTerminal from '../features/pos/POSTerminal';
@@ -70,6 +88,7 @@ import ProfitLossReport from '../features/reports/ProfitLossReport';
 import CustomerReport from '../features/reports/CustomerReport';
 import SupplierReport from '../features/reports/SupplierReport';
 import HRMReport from '../features/reports/HRMReport';
+import TopProductsReport from '../features/reports/TopProductsReport';
 
 // SMS Marketing
 import SmsOverview from '../features/sms-marketing/SmsOverview';
@@ -81,6 +100,7 @@ import SmsLogs from '../features/sms-marketing/SmsLogs';
 import SmsConfiguration from '../features/sms-marketing/SmsConfiguration';
 import SmsPackages from '../features/sms-marketing/SmsPackages';
 import DueReminder from '../features/sms-marketing/DueReminder';
+import SmsNotifications from '../features/sms-marketing/SmsNotifications';
 
 // Settings
 import BusinessProfile from '../features/settings/BusinessProfile';
@@ -88,10 +108,61 @@ import UsersRoles from '../features/settings/UsersRoles';
 import Subscription from '../features/settings/Subscription';
 import InvoiceSettings from '../features/settings/InvoiceSettings';
 
+// Affiliate
+import MyAffiliate from '../features/affiliate/MyAffiliate';
+import AffiliateManagement from '../features/affiliate/AffiliateManagement';
+import AffiliateDetail from '../features/affiliate/AffiliateDetail';
+
+// Landing
+import LandingPage from '../pages/LandingPage';
+
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/admin" replace />,
+    element: <LandingPage />,
+  },
+
+  // ── Super Admin area ──────────────────────────────────────────────────────
+  {
+    path: '/super-admin/login',
+    element: <SuperAdminLogin />,
+  },
+  {
+    path: '/super-admin',
+    element: (
+      <SuperAdminRoute>
+        <SuperAdminLayout />
+      </SuperAdminRoute>
+    ),
+    children: [
+      { index: true, element: <Navigate to="/super-admin/dashboard" replace /> },
+      { path: 'dashboard', element: <SuperAdminDashboard /> },
+      { path: 'businesses', element: <BusinessesList /> },
+      { path: 'users', element: <ComingSoonPage title="All Users" /> },
+      { path: 'subscriptions', element: <ComingSoonPage title="Subscriptions" /> },
+      { path: 'packages', element: <PackageManagement /> },
+      { path: 'reports', element: <ComingSoonPage title="Platform Reports" /> },
+      { path: 'announcements', element: <ComingSoonPage title="Announcements" /> },
+      { path: 'settings', element: <ComingSoonPage title="Platform Settings" /> },
+    ],
+  },
+  // ─────────────────────────────────────────────────────────────────────────
+  // Standalone print pages (no layout, no sidebar)
+  {
+    path: '/print/invoice/a4/:id',
+    element: (
+      <ProtectedRoute>
+        <InvoiceA4 />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/print/invoice/pos/:id',
+    element: (
+      <ProtectedRoute>
+        <InvoicePOS />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/login',
@@ -99,6 +170,14 @@ const router = createBrowserRouter([
       <AuthUserNotAccessRoute>
         <LoginPage />
       </AuthUserNotAccessRoute>
+    ),
+  },
+  {
+    path: '/select-plan',
+    element: (
+      <ProtectedRoute>
+        <SelectPlan />
+      </ProtectedRoute>
     ),
   },
   {
@@ -134,18 +213,24 @@ const router = createBrowserRouter([
 
       // Purchase
       { path: 'purchase/suppliers', element: <AllSupplier /> },
+      { path: 'purchase/suppliers/:id', element: <SupplierDetail /> },
       { path: 'purchase/list', element: <PurchaseList /> },
       { path: 'purchase/add', element: <AddPurchase /> },
       { path: 'purchase/returns', element: <PurchaseReturns /> },
       { path: 'purchase/supplier-ledger', element: <SupplierLedger /> },
+      { path: 'purchase/supplier-payment', element: <SupplierPayment /> },
 
       // Sales
       { path: 'sales/customers', element: <AllCustomer /> },
+      { path: 'sales/customers/:id', element: <CustomerDetail /> },
       { path: 'sales/list', element: <SaleList /> },
       { path: 'sales/add', element: <AddSale /> },
       { path: 'sales/returns', element: <SaleReturns /> },
       { path: 'sales/quotations', element: <Quotations /> },
       { path: 'sales/customer-ledger', element: <CustomerLedger /> },
+      { path: 'sales/collection', element: <CustomerCollection /> },
+      { path: 'sales/collection-report', element: <CollectionReport /> },
+      { path: 'sales/:id', element: <SaleDetail /> },
 
       // POS
       { path: 'pos', element: <POSTerminal /> },
@@ -179,6 +264,7 @@ const router = createBrowserRouter([
       { path: 'reports/customers', element: <CustomerReport /> },
       { path: 'reports/suppliers', element: <SupplierReport /> },
       { path: 'reports/hrm', element: <HRMReport /> },
+      { path: 'reports/top-products', element: <TopProductsReport /> },
 
       // SMS Marketing
       { path: 'sms-marketing', element: <SmsOverview /> },
@@ -190,12 +276,18 @@ const router = createBrowserRouter([
       { path: 'sms-marketing/configuration', element: <SmsConfiguration /> },
       { path: 'sms-marketing/packages', element: <SmsPackages /> },
       { path: 'sms-marketing/due-reminder', element: <DueReminder /> },
+      { path: 'sms-marketing/notifications', element: <SmsNotifications /> },
 
       // Settings
       { path: 'settings/business', element: <BusinessProfile /> },
       { path: 'settings/users', element: <UsersRoles /> },
       { path: 'settings/subscription', element: <Subscription /> },
       { path: 'settings/invoice', element: <InvoiceSettings /> },
+      { path: 'settings/affiliate', element: <MyAffiliate /> },
+
+      // Super Admin - Affiliate
+      { path: 'super-admin/affiliates', element: <AffiliateManagement /> },
+      { path: 'super-admin/affiliates/:id', element: <AffiliateDetail /> },
     ],
   },
 ]);

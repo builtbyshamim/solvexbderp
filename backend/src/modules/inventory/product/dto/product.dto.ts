@@ -118,6 +118,11 @@ export class UpdateProductDto {
   @IsString()
   barcode?: string;
 
+  @ApiPropertyOptional({ enum: ProductType })
+  @IsOptional()
+  @IsEnum(ProductType)
+  productType?: ProductType;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -154,6 +159,13 @@ export class UpdateProductDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0)
+  openingStock?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
   alertQuantity?: number;
 
   @ApiPropertyOptional()
@@ -175,6 +187,11 @@ export class UpdateProductDto {
   @IsOptional()
   @IsUUID()
   warrantyId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  warehouseId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

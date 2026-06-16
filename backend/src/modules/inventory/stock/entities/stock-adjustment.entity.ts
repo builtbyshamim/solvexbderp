@@ -1,12 +1,15 @@
 import { Entity, Column, Index, CreateDateColumn, PrimaryGeneratedColumn } from 'typeorm';
 
 export enum AdjustmentType {
-  ADD = 'add',
-  REMOVE = 'remove',
+  ADD     = 'add',
+  REMOVE  = 'remove',
+  DAMAGED = 'damaged',
+  LOST    = 'lost',
 }
 
 @Entity('stock_adjustments')
 @Index(['businessId'])
+@Index(['businessId', 'productId'])
 export class StockAdjustmentEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -14,8 +17,12 @@ export class StockAdjustmentEntity {
   @Column({ name: 'business_id' })
   businessId: string;
 
-  @Column({ name: 'warehouse_id' })
-  warehouseId: string;
+  /**
+   * References stock_locations.id.
+   * If no warehouse selected, this points to the business-default location.
+   */
+  @Column({ name: 'location_id' })
+  locationId: string;
 
   @Column({ name: 'product_id' })
   productId: string;
@@ -32,15 +39,15 @@ export class StockAdjustmentEntity {
   @Column({ nullable: true })
   note?: string;
 
-  @Column({ nullable: true })
-  adjustedBy?: string;
-
-  @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
+  @Column({ name: 'balance_before', type: 'decimal', precision: 15, scale: 4, default: 0 })
   balanceBefore: number;
 
-  @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
+  @Column({ name: 'balance_after', type: 'decimal', precision: 15, scale: 4, default: 0 })
   balanceAfter: number;
 
-  @CreateDateColumn()
+  @Column({ name: 'adjusted_by', nullable: true })
+  adjustedBy?: string;
+
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

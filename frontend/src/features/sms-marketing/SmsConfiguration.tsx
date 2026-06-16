@@ -3,6 +3,7 @@ import { Settings, Eye, EyeOff, Send, CheckCircle, XCircle, Shield, Zap, Globe, 
 import PageHeader from '../../components/shared/PageHeader';
 import { smsMarketingApi } from './smsMarketingApi';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
 
 const { useGetSmsConfigQuery, useSaveSmsConfigMutation, useTestSmsMutation } = smsMarketingApi;
 
@@ -50,6 +51,7 @@ const PROVIDERS = [
 ];
 
 const SmsConfiguration = () => {
+  const { t } = useLanguage();
   const { data: config, isLoading } = useGetSmsConfigQuery(undefined);
   const [saveConfig, { isLoading: isSaving }] = useSaveSmsConfigMutation();
   const [testSms, { isLoading: isTesting }] = useTestSmsMutation();
@@ -102,18 +104,18 @@ const SmsConfiguration = () => {
   return (
     <div>
       <PageHeader
-        title="SMS Configuration"
-        subtitle="Configure your SMS gateway provider and API credentials"
+        title={t('sms.config.title')}
+        subtitle={t('sms.config.subtitle')}
         breadcrumbs={[
-          { label: 'Home', path: '/admin' },
-          { label: 'SMS Marketing', path: '/admin/sms-marketing' },
-          { label: 'Configuration' },
+          { label: t('common.home'), path: '/admin' },
+          { label: t('sms.overview.title'), path: '/admin/sms-marketing' },
+          { label: t('sms.config.title') },
         ]}
         actions={
           <button onClick={handleSave} disabled={isSaving}
             className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-50 transition-colors">
             <Settings className="h-4 w-4" />
-            {isSaving ? 'Saving...' : 'Save Configuration'}
+            {isSaving ? t('sms.config.saving') : t('sms.config.saveConfiguration')}
           </button>
         }
       />
@@ -129,7 +131,7 @@ const SmsConfiguration = () => {
             <div className="bg-white border border-[#DBDFE9] rounded-xl shadow-sm">
               <div className="p-5 border-b border-[#DBDFE9] flex items-center gap-2">
                 <Globe className="h-4 w-4 text-[#ff6d29]" />
-                <h2 className="font-semibold text-[#26272F]">SMS Provider</h2>
+                <h2 className="font-semibold text-[#26272F]">{t('sms.config.smsProvider')}</h2>
               </div>
               <div className="p-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -141,7 +143,7 @@ const SmsConfiguration = () => {
                       <p className="text-xs text-gray-500 mt-0.5">{p.desc}</p>
                       {form.provider === p.value && (
                         <div className="mt-2 flex items-center gap-1 text-xs font-medium text-green-600">
-                          <CheckCircle className="h-3.5 w-3.5" /> Selected
+                          <CheckCircle className="h-3.5 w-3.5" /> {t('sms.config.selected')}
                         </div>
                       )}
                     </button>
@@ -154,9 +156,9 @@ const SmsConfiguration = () => {
             <div className="bg-white border border-[#DBDFE9] rounded-xl shadow-sm">
               <div className="p-5 border-b border-[#DBDFE9] flex items-center gap-2">
                 <Shield className="h-4 w-4 text-[#ff6d29]" />
-                <h2 className="font-semibold text-[#26272F]">API Credentials</h2>
+                <h2 className="font-semibold text-[#26272F]">{t('sms.config.apiCredentials')}</h2>
                 <span className="ml-auto text-xs text-gray-400 flex items-center gap-1">
-                  <Shield className="h-3 w-3" /> Credentials are encrypted
+                  <Shield className="h-3 w-3" /> {t('sms.config.encrypted')}
                 </span>
               </div>
               <div className="p-5 space-y-4">
@@ -164,7 +166,7 @@ const SmsConfiguration = () => {
                   {/* API Key */}
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      API Key {form.provider !== 'custom' && <span className="text-red-500">*</span>}
+                      {t('sms.config.apiKey')} {form.provider !== 'custom' && <span className="text-red-500">*</span>}
                     </label>
                     <div className="relative">
                       <input
@@ -181,7 +183,7 @@ const SmsConfiguration = () => {
                     </div>
                     {config?.apiKey && !form.apiKey && (
                       <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                        <CheckCircle className="h-3 w-3" /> Key configured — leave blank to keep existing
+                        <CheckCircle className="h-3 w-3" /> {t('sms.config.keyConfigured')}
                       </p>
                     )}
                   </div>
@@ -189,7 +191,7 @@ const SmsConfiguration = () => {
                   {/* API Secret (Twilio / Nexmo) */}
                   {['twilio', 'nexmo'].includes(form.provider) && (
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">API Secret / Auth Token <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('sms.config.apiSecret')} <span className="text-red-500">*</span></label>
                       <div className="relative">
                         <input
                           type={showApiSecret ? 'text' : 'password'}
@@ -208,18 +210,18 @@ const SmsConfiguration = () => {
 
                   {/* Sender ID */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Sender ID <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{t('sms.config.senderId')} <span className="text-red-500">*</span></label>
                     <input type="text" placeholder="e.g. BizCore or 01700000000"
                       value={form.senderId}
                       onChange={(e) => setForm({ ...form, senderId: e.target.value })}
                       className="w-full px-3 py-2.5 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
-                    <p className="text-xs text-gray-400 mt-1">The name or number recipients will see</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('sms.config.senderIdHint')}</p>
                   </div>
 
                   {/* Custom API URL */}
                   {form.provider === 'custom' && (
                     <div className="sm:col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">API Endpoint URL <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('sms.config.apiUrl')} <span className="text-red-500">*</span></label>
                       <input type="url" placeholder="https://your-sms-gateway.com/api/send"
                         value={form.apiUrl}
                         onChange={(e) => setForm({ ...form, apiUrl: e.target.value })}
@@ -234,8 +236,8 @@ const SmsConfiguration = () => {
                   <div className="flex items-center gap-3">
                     <AlertTriangle className={`h-5 w-5 ${form.testMode ? 'text-yellow-600' : 'text-gray-400'}`} />
                     <div>
-                      <p className="text-sm font-medium text-[#26272F]">Test Mode</p>
-                      <p className="text-xs text-gray-500">SMS will be simulated — no real messages sent</p>
+                      <p className="text-sm font-medium text-[#26272F]">{t('sms.config.testMode')}</p>
+                      <p className="text-xs text-gray-500">{t('sms.config.testModeHint')}</p>
                     </div>
                   </div>
                   <div className={`w-11 h-6 rounded-full transition-colors relative ${form.testMode ? 'bg-yellow-400' : 'bg-gray-300'}`}>
@@ -249,10 +251,10 @@ const SmsConfiguration = () => {
             <div className="bg-white border border-[#DBDFE9] rounded-xl shadow-sm">
               <div className="p-5 border-b border-[#DBDFE9] flex items-center gap-2">
                 <Zap className="h-4 w-4 text-[#ff6d29]" />
-                <h2 className="font-semibold text-[#26272F]">Test Connection</h2>
+                <h2 className="font-semibold text-[#26272F]">{t('sms.config.testConnection')}</h2>
               </div>
               <div className="p-5">
-                <p className="text-sm text-gray-500 mb-4">Send a test SMS to verify your configuration is working correctly.</p>
+                <p className="text-sm text-gray-500 mb-4">{t('sms.config.testConnectionDesc')}</p>
                 <div className="flex gap-3">
                   <input type="text" placeholder="Test phone number (e.g. 01700000000)" value={testPhone}
                     onChange={(e) => setTestPhone(e.target.value)}
@@ -260,7 +262,7 @@ const SmsConfiguration = () => {
                   <button onClick={handleTest} disabled={isTesting}
                     className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors shrink-0">
                     <Send className="h-4 w-4" />
-                    {isTesting ? 'Testing...' : 'Send Test'}
+                    {isTesting ? t('sms.config.testing') : t('sms.config.sendTest')}
                   </button>
                 </div>
                 {testResult && (
@@ -280,27 +282,27 @@ const SmsConfiguration = () => {
             {/* Current Status */}
             <div className="bg-white border border-[#DBDFE9] rounded-xl shadow-sm">
               <div className="p-4 border-b border-[#DBDFE9]">
-                <h2 className="font-semibold text-[#26272F] text-sm">Current Status</h2>
+                <h2 className="font-semibold text-[#26272F] text-sm">{t('sms.config.currentStatus')}</h2>
               </div>
               <div className="p-4 space-y-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Provider</span>
+                  <span className="text-gray-500">{t('sms.config.provider')}</span>
                   <span className="font-medium text-[#26272F]">{selectedProvider?.label ?? '—'}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Sender ID</span>
+                  <span className="text-gray-500">{t('sms.config.senderId')}</span>
                   <span className="font-medium text-[#26272F]">{config?.senderId || '—'}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Mode</span>
+                  <span className="text-gray-500">{t('sms.config.mode')}</span>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config?.testMode ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                    {config?.testMode ? 'Test Mode' : 'Live'}
+                    {config?.testMode ? t('sms.config.testModeLabel') : t('sms.config.live')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">API Key</span>
+                  <span className="text-gray-500">{t('sms.config.apiKey')}</span>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config?.apiKey ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                    {config?.apiKey ? 'Configured' : 'Not set'}
+                    {config?.apiKey ? t('sms.config.configured') : t('sms.config.notSet')}
                   </span>
                 </div>
               </div>
@@ -338,7 +340,7 @@ const SmsConfiguration = () => {
             {/* Save Button */}
             <button onClick={handleSave} disabled={isSaving}
               className="w-full py-2.5 bg-[#ff6d29] text-white rounded-xl text-sm font-semibold hover:bg-[#e65a1f] disabled:opacity-50 transition-colors">
-              {isSaving ? 'Saving...' : 'Save Configuration'}
+              {isSaving ? t('sms.config.saving') : t('sms.config.saveConfiguration')}
             </button>
           </div>
         </div>

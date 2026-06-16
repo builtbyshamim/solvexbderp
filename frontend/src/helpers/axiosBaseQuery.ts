@@ -1,4 +1,4 @@
-import { instance as axiosInstance } from "./axiosInstance";
+import { instance as axiosInstance } from './axiosInstance';
 export const axiosBaseQuery =
   ({ baseUrl } = { baseUrl: import.meta.env.VITE_PUBLIC_API_URL }) =>
   async ({ url, method, data, params, headers, contentType }: any) => {
@@ -13,17 +13,18 @@ export const axiosBaseQuery =
           ...headers,
           ...(isFormData
             ? {} // FormData হলে Content-Type দেবেন না!
-            : { "Content-Type": contentType || "application/json" }),
+            : { 'Content-Type': contentType || 'application/json' }),
         },
       });
-
-      return { data: result.data };
-    } catch (axiosError) {
-      const err = axiosError;
+      // Unwrap the backend's TransformInterceptor envelope { success, data, ... }
+      return { data: result.data?.data ?? result.data };
+    } catch (axiosError: any) {
       return {
         error: {
-          status: err.statusCode || 500,
-          message: err.message || "Network or server error!",
+          status: axiosError?.statusCode || 500,
+          data: {
+            message: axiosError?.message || 'Something went wrong!',
+          },
         },
       };
     }

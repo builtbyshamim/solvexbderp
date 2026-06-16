@@ -175,8 +175,8 @@ const UserList: React.FC = () => {
   });
 
   // ✅ Correct: backend returns { data: { data: [...], meta: {...} } }
-  const users = userData?.data?.data ?? [];
-  const meta = userData?.data?.meta ?? { totalItems: 0, totalPages: 1 };
+  const users = userData?.data ?? [];
+  const meta = userData?.meta ?? { totalItems: 0, totalPages: 1 };
 
   const handleSort = (field: string) => {
     setSearchValue((prev) => ({

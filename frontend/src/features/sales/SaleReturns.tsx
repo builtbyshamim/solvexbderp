@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Plus, Loader2, CheckCircle, X } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
 import {
   useGetAllSaleReturnsQuery,
   useCreateSaleReturnMutation,
@@ -28,6 +29,7 @@ interface ReturnItem {
 }
 
 const NewReturnModal = ({ onClose }: { onClose: () => void }) => {
+  const { t } = useLanguage();
   const [invoiceSearch, setInvoiceSearch] = useState('');
   const [selectedSaleId, setSelectedSaleId] = useState('');
   const [showSaleList, setShowSaleList] = useState(false);
@@ -40,10 +42,10 @@ const NewReturnModal = ({ onClose }: { onClose: () => void }) => {
     { search: invoiceSearch, limit: 10 },
     { skip: invoiceSearch.length < 2 },
   );
-  const foundSales: any[] = salesData?.data?.data ?? [];
+  const foundSales: any[] = salesData?.data ?? [];
 
   const { data: saleDetailData } = useGetSaleQuery(selectedSaleId, { skip: !selectedSaleId });
-  const saleDetail = saleDetailData?.data;
+  const saleDetail = saleDetailData;
 
   useEffect(() => {
     if (saleDetail?.items) {
@@ -91,7 +93,7 @@ const NewReturnModal = ({ onClose }: { onClose: () => void }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#DBDFE9]">
-          <h2 className="text-base font-semibold text-[#26272F]">New Sale Return</h2>
+          <h2 className="text-base font-semibold text-[#26272F]">{t('sales.returns.modalTitle')}</h2>
           <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
             <X className="h-5 w-5" />
           </button>
@@ -100,12 +102,12 @@ const NewReturnModal = ({ onClose }: { onClose: () => void }) => {
         <div className="p-6 space-y-5">
           {/* Invoice Search */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">Sale Invoice *</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('sales.returns.saleInvoice')} *</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search invoice number..."
+                placeholder={t('sales.returns.searchPlaceholder')}
                 value={invoiceSearch}
                 onChange={(e) => { setInvoiceSearch(e.target.value); setShowSaleList(true); setSelectedSaleId(''); }}
                 className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:border-[#ff6d29]"
@@ -135,23 +137,23 @@ const NewReturnModal = ({ onClose }: { onClose: () => void }) => {
           {/* Sale Items */}
           {selectedSaleId && (
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-2">Select Items to Return</label>
+              <label className="block text-xs font-medium text-gray-600 mb-2">{t('sales.returns.selectItems')}</label>
               {!saleDetail ? (
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="h-5 w-5 animate-spin text-[#ff6d29]" />
                 </div>
               ) : returnItems.length === 0 ? (
-                <p className="text-sm text-gray-400 py-4 text-center">No items in this sale</p>
+                <p className="text-sm text-gray-400 py-4 text-center">{t('sales.returns.noItemsInSale')}</p>
               ) : (
                 <div className="border border-[#DBDFE9] rounded-lg overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gray-50 border-b border-[#DBDFE9]">
                         <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 w-10"></th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Product</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Unit Price</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Return Qty</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">Max</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">{t('sales.returns.product')}</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">{t('sales.returns.unitPrice')}</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">{t('sales.returns.returnQty')}</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500">{t('sales.returns.max')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -183,7 +185,7 @@ const NewReturnModal = ({ onClose }: { onClose: () => void }) => {
 
           {/* Return Date */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">Return Date *</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('sales.returns.returnDate')} *</label>
             <input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)}
               className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:border-[#ff6d29]"
             />
@@ -191,7 +193,7 @@ const NewReturnModal = ({ onClose }: { onClose: () => void }) => {
 
           {/* Reason */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">Reason for Return *</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('sales.returns.reasonForReturn')} *</label>
             <textarea
               value={reason} onChange={(e) => setReason(e.target.value)}
               placeholder="Describe why the customer is returning..."
@@ -203,14 +205,14 @@ const NewReturnModal = ({ onClose }: { onClose: () => void }) => {
 
         <div className="px-6 py-4 border-t border-[#DBDFE9] flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSubmit} disabled={isLoading}
             className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-40"
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Submit Return
+            {t('sales.returns.submitReturn')}
           </button>
         </div>
       </div>
@@ -221,6 +223,7 @@ const NewReturnModal = ({ onClose }: { onClose: () => void }) => {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 const SaleReturns = () => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
@@ -229,8 +232,8 @@ const SaleReturns = () => {
   const { data, isLoading, isFetching } = useGetAllSaleReturnsQuery({ search, page, limit: 15 });
   const [approveReturn] = useApproveReturnMutation();
 
-  const returns: any[] = data?.data?.data ?? [];
-  const meta = data?.data?.meta;
+  const returns: any[] = data?.data ?? [];
+  const meta = data?.meta;
 
   const handleApprove = async (id: string, ref: string) => {
     if (!confirm(`Approve return ${ref}? This will restore stock.`)) return;
@@ -250,19 +253,19 @@ const SaleReturns = () => {
       {showModal && <NewReturnModal onClose={() => setShowModal(false)} />}
 
       <PageHeader
-        title="Sale Returns"
-        subtitle="Manage returned items from customers"
+        title={t('sales.returns.title')}
+        subtitle={t('sales.returns.subtitle')}
         breadcrumbs={[
-          { label: 'Home', path: '/admin' },
-          { label: 'Sales', path: '/admin/sales/list' },
-          { label: 'Returns' },
+          { label: t('common.home'), path: '/admin' },
+          { label: t('nav.sales'), path: '/admin/sales/list' },
+          { label: t('sales.returns.title') },
         ]}
         actions={
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]"
           >
-            <Plus className="h-4 w-4" /> New Return
+            <Plus className="h-4 w-4" /> {t('sales.returns.newReturn')}
           </button>
         }
       />
@@ -272,7 +275,7 @@ const SaleReturns = () => {
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
-              type="text" placeholder="Search returns..."
+              type="text" placeholder={t('sales.returns.searchPlaceholder')}
               value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
             />
@@ -283,7 +286,17 @@ const SaleReturns = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Reference', 'Date', 'Sale Invoice', 'Customer', 'Items', 'Total', 'Reason', 'Status', 'Action'].map((h) => (
+                {[
+                  t('common.reference'),
+                  t('common.date'),
+                  t('sales.returns.colSaleInvoice'),
+                  t('common.customer'),
+                  t('sales.returns.colItems'),
+                  t('common.total'),
+                  t('sales.returns.colReason'),
+                  t('common.status'),
+                  t('common.actions'),
+                ].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -297,7 +310,7 @@ const SaleReturns = () => {
                 </tr>
               ) : returns.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-gray-400">No returns found</td>
+                  <td colSpan={9} className="px-4 py-12 text-center text-gray-400">{t('sales.returns.noReturns')}</td>
                 </tr>
               ) : (
                 returns.map((item: any) => (
@@ -322,12 +335,12 @@ const SaleReturns = () => {
                           onClick={() => handleApprove(item.id, item.referenceNo ?? item.id)}
                           disabled={approvingId === item.id}
                           className="flex items-center gap-1 px-2.5 py-1.5 text-green-600 hover:bg-green-50 rounded-lg text-xs font-medium disabled:opacity-40"
-                          title="Approve Return"
+                          title={t('sales.returns.approve')}
                         >
                           {approvingId === item.id
                             ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             : <CheckCircle className="h-3.5 w-3.5" />}
-                          Approve
+                          {t('sales.returns.approve')}
                         </button>
                       )}
                     </td>
@@ -340,12 +353,12 @@ const SaleReturns = () => {
 
         {meta && meta.totalPages > 1 && (
           <div className="p-4 border-t border-[#DBDFE9] flex items-center justify-between">
-            <span className="text-xs text-gray-500">{meta.totalItems} records — Page {meta.currentPage} of {meta.totalPages}</span>
+            <span className="text-xs text-gray-500">{meta.totalItems} records — {t('common.page')} {meta.currentPage} {t('common.of')} {meta.totalPages}</span>
             <div className="flex gap-2">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                className="px-3 py-1 border border-[#DBDFE9] rounded text-xs disabled:opacity-40 hover:bg-gray-50">Prev</button>
+                className="px-3 py-1 border border-[#DBDFE9] rounded text-xs disabled:opacity-40 hover:bg-gray-50">{t('common.prev')}</button>
               <button onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))} disabled={page === meta.totalPages}
-                className="px-3 py-1 border border-[#DBDFE9] rounded text-xs disabled:opacity-40 hover:bg-gray-50">Next</button>
+                className="px-3 py-1 border border-[#DBDFE9] rounded text-xs disabled:opacity-40 hover:bg-gray-50">{t('common.next')}</button>
             </div>
           </div>
         )}

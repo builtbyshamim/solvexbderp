@@ -1,5 +1,6 @@
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { TenantBaseEntity } from 'src/common/entities/tenant-base.entity';
+import { EmployeeEntity } from './employee.entity';
 
 export enum LeaveType {
   ANNUAL = 'annual',
@@ -20,6 +21,10 @@ export enum LeaveStatus {
 export class LeaveEntity extends TenantBaseEntity {
   @Column({ name: 'employee_id' })
   employeeId: string;
+
+  @ManyToOne(() => EmployeeEntity, { nullable: true, onDelete: 'SET NULL', eager: false })
+  @JoinColumn({ name: 'employee_id' })
+  employee?: EmployeeEntity;
 
   @Column({ type: 'enum', enum: LeaveType })
   leaveType: LeaveType;

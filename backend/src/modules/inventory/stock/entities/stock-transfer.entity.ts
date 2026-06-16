@@ -1,13 +1,14 @@
 import { Entity, Column, Index, CreateDateColumn, UpdateDateColumn, PrimaryGeneratedColumn } from 'typeorm';
 
 export enum TransferStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
+  PENDING   = 'pending',
+  APPROVED  = 'approved',
   CANCELLED = 'cancelled',
 }
 
 @Entity('stock_transfers')
 @Index(['businessId'])
+@Index(['businessId', 'productId'])
 export class StockTransferEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -15,11 +16,18 @@ export class StockTransferEntity {
   @Column({ name: 'business_id' })
   businessId: string;
 
-  @Column({ name: 'from_warehouse_id' })
-  fromWarehouseId: string;
+  /**
+   * Source location (stock_locations.id).
+   * Can be business-default or a warehouse location.
+   */
+  @Column({ name: 'from_location_id' })
+  fromLocationId: string;
 
-  @Column({ name: 'to_warehouse_id' })
-  toWarehouseId: string;
+  /**
+   * Destination location (stock_locations.id).
+   */
+  @Column({ name: 'to_location_id' })
+  toLocationId: string;
 
   @Column({ name: 'product_id' })
   productId: string;
@@ -33,15 +41,15 @@ export class StockTransferEntity {
   @Column({ nullable: true })
   note?: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'created_by', nullable: true })
   createdBy?: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'approved_by', nullable: true })
   approvedBy?: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

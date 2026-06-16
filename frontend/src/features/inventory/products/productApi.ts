@@ -12,16 +12,7 @@ export const productApi = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
-      providesTags: (result) =>
-        result?.data?.data
-          ? [
-              { type: tagTypes.product, id: "LIST" },
-              ...result.data.data.map((item: any) => ({
-                type: tagTypes.product,
-                id: item.id,
-              })),
-            ]
-          : [{ type: tagTypes.product, id: "LIST" }],
+      providesTags: [{ type: tagTypes.product, id: "LIST" }],
     }),
 
     // ✅ GET SINGLE PRODUCT
@@ -118,6 +109,16 @@ export const productApi = baseApi.injectEndpoints({
         data: { orderedIds },
       }),
     }),
+
+    // ✅ IMPORT PRODUCTS
+    importProducts: build.mutation({
+      query: (formData: FormData) => ({
+        url: `${COMMON_URL}/import`,
+        method: "POST",
+        data: formData,
+      }),
+      invalidatesTags: [{ type: tagTypes.product, id: "LIST" }],
+    }),
   }),
 });
 
@@ -132,4 +133,5 @@ export const {
   useDeleteProductImageMutation,
   useSetThumbnailMutation,
   useReorderImagesMutation,
+  useImportProductsMutation,
 } = productApi;

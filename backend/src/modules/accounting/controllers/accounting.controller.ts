@@ -4,6 +4,7 @@ import { AccountingService } from '../services/accounting.service';
 import {
   AccountTransferDto, CreateAccountDto, CreateExpenseDto, CreateIncomeDto,
   GetAccountsDto, GetLedgerDto, GetReportDto, GetTransactionsDto, UpdateAccountDto,
+  CreateAccountingCategoryDto, UpdateAccountingCategoryDto, GetAccountingCategoriesDto,
 } from '../dto/accounting.dto';
 import { BusinessId } from 'src/common/decorators/business-id.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -13,6 +14,32 @@ import { UserEntity } from 'src/modules/users/entities/user.entity';
 @Controller({ path: 'accounting', version: '1' })
 export class AccountingController {
   constructor(private readonly accountingService: AccountingService) {}
+
+  // ── Categories ────────────────────────────────────────────────────────────
+
+  @Post('categories')
+  @ApiOperation({ summary: 'Create income/expense category' })
+  createCategory(@BusinessId() biz: string, @Body() dto: CreateAccountingCategoryDto) {
+    return this.accountingService.createCategory(biz, dto);
+  }
+
+  @Get('categories')
+  @ApiOperation({ summary: 'Get categories (filter by type: income | expense | both)' })
+  getCategories(@BusinessId() biz: string, @Query() q: GetAccountingCategoriesDto) {
+    return this.accountingService.getCategories(biz, q);
+  }
+
+  @Patch('categories/:id')
+  @ApiOperation({ summary: 'Update category' })
+  updateCategory(@BusinessId() biz: string, @Param('id') id: string, @Body() dto: UpdateAccountingCategoryDto) {
+    return this.accountingService.updateCategory(biz, id, dto);
+  }
+
+  @Delete('categories/:id')
+  @ApiOperation({ summary: 'Delete category' })
+  deleteCategory(@BusinessId() biz: string, @Param('id') id: string) {
+    return this.accountingService.deleteCategory(biz, id);
+  }
 
   // ── Accounts ──────────────────────────────────────────────────────────────
 

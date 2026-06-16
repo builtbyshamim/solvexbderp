@@ -1,11 +1,12 @@
 import {
   IsString, IsNotEmpty, IsOptional, IsEnum, IsArray, IsDateString, IsNumber,
-  IsBoolean, IsUUID, Min,
+  IsBoolean, IsUUID, Min, ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SmsTemplateCategory } from '../entities/sms-template.entity';
 import { TargetType } from '../entities/sms-campaign.entity';
 import { SmsProvider } from '../entities/sms-config.entity';
+import { TransactionalSmsEvent } from '../entities/transactional-sms.entity';
 
 // ── Templates ────────────────────────────────────────────────────────────────
 
@@ -293,4 +294,29 @@ export class GetDueReminderLogsDto {
 
   @IsOptional() @Type(() => Number) @IsNumber()
   limit?: number;
+}
+
+// ── Transactional SMS ─────────────────────────────────────────────────────────
+
+export class TransactionalSmsSettingItemDto {
+  @IsEnum(TransactionalSmsEvent)
+  event: TransactionalSmsEvent;
+
+  @IsBoolean()
+  isEnabled: boolean;
+
+  @IsString() @IsNotEmpty()
+  template: string;
+}
+
+export class SaveTransactionalSmsDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TransactionalSmsSettingItemDto)
+  settings: TransactionalSmsSettingItemDto[];
+}
+
+export class PreviewTransactionalSmsDto {
+  @IsString() @IsNotEmpty()
+  template: string;
 }

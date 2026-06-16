@@ -2,8 +2,8 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PurchaseService } from '../services/purchase.service';
 import {
-  CreatePurchaseDto, CreateSupplierDto, GetPurchasesDto,
-  GetSuppliersDto, UpdateSupplierDto,
+  CreatePurchaseDto, CreateSupplierAdjustmentDto, CreateSupplierDto, GetPurchasesDto,
+  GetSuppliersDto, UpdateSupplierDto, PaySupplierDto,
 } from '../dto/purchase.dto';
 import { BusinessId } from 'src/common/decorators/business-id.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -66,5 +66,43 @@ export class PurchaseController {
   @ApiOperation({ summary: 'Get purchase by ID' })
   findOne(@BusinessId() biz: string, @Param('id') id: string) {
     return this.purchaseService.findPurchase(biz, id);
+  }
+
+  @Get('suppliers/:id/due-purchases')
+  @ApiOperation({ summary: 'Get unpaid/partial purchases for a supplier' })
+  getSupplierDuePurchases(@BusinessId() biz: string, @Param('id') id: string) {
+    return this.purchaseService.getSupplierDuePurchases(biz, id);
+  }
+
+  @Post('suppliers/:id/pay')
+  @ApiOperation({ summary: 'Record supplier payment (invoice-wise or bulk)' })
+  paySupplier(
+    @BusinessId() biz: string,
+    @Param('id') id: string,
+    @Body() dto: PaySupplierDto,
+  ) {
+    return this.purchaseService.paySupplier(biz, id, dto);
+  }
+
+  @Get('suppliers/:id/ledger')
+  @ApiOperation({ summary: 'Get supplier ledger' })
+  getSupplierLedger(
+    @BusinessId() biz: string,
+    @Param('id') id: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.purchaseService.getSupplierLedger(biz, id, { page, limit });
+  }
+
+  @Post('suppliers/:id/adjust')
+  @ApiOperation({ summary: 'Add manual debit/credit adjustment to supplier ledger' })
+  adjustSupplierLedger(
+    @BusinessId() biz: string,
+    @Param('id') id: string,
+    @CurrentUser() user: UserEntity,
+    @Body() dto: CreateSupplierAdjustmentDto,
+  ) {
+    return this.purchaseService.createSupplierAdjustment(biz, id, dto, user.id);
   }
 }

@@ -12,8 +12,8 @@ export class ReportsController {
   @ApiOperation({ summary: 'Sales summary for a date range' })
   salesSummary(
     @BusinessId() biz: string,
-    @Query('dateFrom') dateFrom: string,
-    @Query('dateTo') dateTo: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
   ) {
     return this.reportsService.getSalesSummary(biz, dateFrom, dateTo);
   }
@@ -22,8 +22,8 @@ export class ReportsController {
   @ApiOperation({ summary: 'Purchase summary for a date range' })
   purchaseSummary(
     @BusinessId() biz: string,
-    @Query('dateFrom') dateFrom: string,
-    @Query('dateTo') dateTo: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
   ) {
     return this.reportsService.getPurchaseSummary(biz, dateFrom, dateTo);
   }
@@ -32,8 +32,8 @@ export class ReportsController {
   @ApiOperation({ summary: 'Daily sales breakdown' })
   salesByDate(
     @BusinessId() biz: string,
-    @Query('dateFrom') dateFrom: string,
-    @Query('dateTo') dateTo: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
   ) {
     return this.reportsService.getSalesByDate(biz, dateFrom, dateTo);
   }
@@ -42,8 +42,8 @@ export class ReportsController {
   @ApiOperation({ summary: 'Top selling products by revenue' })
   topProducts(
     @BusinessId() biz: string,
-    @Query('dateFrom') dateFrom: string,
-    @Query('dateTo') dateTo: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
     @Query('limit') limit?: string,
   ) {
     return this.reportsService.getTopProducts(biz, dateFrom, dateTo, limit ? Number(limit) : 10);
@@ -53,11 +53,22 @@ export class ReportsController {
   @ApiOperation({ summary: 'Top customers by spend' })
   topCustomers(
     @BusinessId() biz: string,
-    @Query('dateFrom') dateFrom: string,
-    @Query('dateTo') dateTo: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.reportsService.getTopCustomers(biz, dateFrom, dateTo, limit ? Number(limit) : 10);
+    return this.reportsService.getTopCustomers(biz, dateFrom, dateTo, limit ? Number(limit) : 20);
+  }
+
+  @Get('top-suppliers')
+  @ApiOperation({ summary: 'Top suppliers by purchase volume' })
+  topSuppliers(
+    @BusinessId() biz: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.reportsService.getTopSuppliers(biz, dateFrom, dateTo, limit ? Number(limit) : 20);
   }
 
   @Get('stock-valuation')
@@ -70,10 +81,30 @@ export class ReportsController {
   @ApiOperation({ summary: 'P&L statement for a date range' })
   profitLoss(
     @BusinessId() biz: string,
-    @Query('dateFrom') dateFrom: string,
-    @Query('dateTo') dateTo: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
   ) {
     return this.reportsService.getProfitLoss(biz, dateFrom, dateTo);
+  }
+
+  @Get('category-sales')
+  @ApiOperation({ summary: 'Sales revenue breakdown by product category' })
+  categorySales(
+    @BusinessId() biz: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.reportsService.getCategorySales(biz, dateFrom, dateTo);
+  }
+
+  @Get('payment-methods')
+  @ApiOperation({ summary: 'Sales breakdown by payment method' })
+  paymentMethods(
+    @BusinessId() biz: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.reportsService.getPaymentMethodBreakdown(biz, dateFrom, dateTo);
   }
 
   @Get('receivables')

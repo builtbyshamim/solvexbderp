@@ -34,8 +34,8 @@ export class PurchaseEntity {
   @JoinColumn({ name: 'supplier_id' })
   supplier?: SupplierEntity;
 
-  @Column({ name: 'warehouse_id' })
-  warehouseId: string;
+  @Column({ nullable: true, name: 'warehouse_id' })
+  warehouseId?: string;
 
   @Column({ unique: false })
   invoiceNo: string;

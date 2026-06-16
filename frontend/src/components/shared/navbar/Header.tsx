@@ -7,12 +7,15 @@ import { Bell, Search, Menu, LogOut, User, Settings, ChevronDown } from 'lucide-
 import { asideToggle } from '../../../redux/features/toggleSlice';
 import { accessTokenKey, refreshTokenKey } from '../../../contents/token';
 import { useFetchMeQuery } from '../../../redux/api/authApi';
+import { useLanguage } from '../../../context/LanguageContext';
+import WarehouseSelector from '../WarehouseSelector';
 
 const Header = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { data, isLoading } = useFetchMeQuery(null);
-  const userInfo = data?.data;
+  const { lang, toggleLang, t } = useLanguage();
+  const userInfo = data;
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -40,9 +43,9 @@ const Header = () => {
     : 'AD';
 
   const notifications = [
-    { id: 1, text: '3 products are low on stock', time: '5m ago', type: 'warning' },
-    { id: 2, text: 'New sale INV-004 created', time: '22m ago', type: 'info' },
-    { id: 3, text: 'Payroll for May is pending', time: '2h ago', type: 'warning' },
+    { id: 1, text: t('header.notif1'), time: '5m ago', type: 'warning' },
+    { id: 2, text: t('header.notif2'), time: '22m ago', type: 'info' },
+    { id: 3, text: t('header.notif3'), time: '2h ago', type: 'warning' },
   ];
 
   return (
@@ -63,14 +66,26 @@ const Header = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             <input
               type="search"
-              placeholder="Search..."
+              placeholder={t('header.searchPlaceholder')}
               className="pl-9 pr-4 py-2 bg-gray-50 border border-[#DBDFE9] rounded-lg text-sm w-52 lg:w-64 focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] transition-colors"
             />
           </div>
         </div>
 
-        {/* Right: notifications + user */}
+        {/* Right: warehouse selector + language toggle + notifications + user */}
         <div className="flex items-center gap-2">
+          <WarehouseSelector />
+
+          {/* Language Toggle */}
+          <button
+            onClick={toggleLang}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#DBDFE9] bg-gray-50 hover:bg-gray-100 transition-colors text-xs font-semibold text-[#26272F] select-none"
+            title={lang === 'en' ? 'Switch to Bangla' : 'Switch to English'}
+          >
+            <span className={lang === 'en' ? 'text-[#ff6d29]' : 'text-gray-400'}>EN</span>
+            <span className="text-gray-300 mx-0.5">|</span>
+            <span className={lang === 'bn' ? 'text-[#ff6d29]' : 'text-gray-400'}>বাং</span>
+          </button>
 
           {/* Notifications */}
           <div className="relative" ref={notifRef}>
@@ -85,7 +100,7 @@ const Header = () => {
             {notifOpen && (
               <div className="absolute right-0 top-12 w-80 bg-white border border-[#DBDFE9] rounded-xl shadow-lg z-50 overflow-hidden">
                 <div className="px-4 py-3 border-b border-[#DBDFE9] flex items-center justify-between">
-                  <span className="text-sm font-semibold text-[#26272F]">Notifications</span>
+                  <span className="text-sm font-semibold text-[#26272F]">{t('header.notifications')}</span>
                   <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">{notifications.length}</span>
                 </div>
                 <div className="divide-y divide-gray-50">
@@ -102,7 +117,7 @@ const Header = () => {
                   ))}
                 </div>
                 <div className="px-4 py-2.5 border-t border-[#DBDFE9]">
-                  <button className="text-xs text-[#ff6d29] hover:underline w-full text-center">View all notifications</button>
+                  <button className="text-xs text-[#ff6d29] hover:underline w-full text-center">{t('header.viewAllNotifications')}</button>
                 </div>
               </div>
             )}
@@ -141,21 +156,21 @@ const Header = () => {
                   onClick={() => setDropdownOpen(false)}
                   className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#26272F] transition-colors"
                 >
-                  <User className="h-4 w-4" /> Profile
+                  <User className="h-4 w-4" /> {t('common.profile')}
                 </Link>
                 <Link
                   to="/admin/settings/users"
                   onClick={() => setDropdownOpen(false)}
                   className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#26272F] transition-colors"
                 >
-                  <Settings className="h-4 w-4" /> Settings
+                  <Settings className="h-4 w-4" /> {t('common.settings')}
                 </Link>
                 <div className="border-t border-gray-50 mt-1" />
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
                 >
-                  <LogOut className="h-4 w-4" /> Logout
+                  <LogOut className="h-4 w-4" /> {t('common.logout')}
                 </button>
               </div>
             )}

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Search, Eye, Plus, Download, Loader2, XCircle } from 'lucide-react';
+import { Search, Eye, Plus, Download, Loader2, XCircle, Printer } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useGetAllSalesQuery, useCancelSaleMutation } from './salesApi';
+import { useLanguage } from '../../context/LanguageContext';
 
 const paymentColors: Record<string, string> = {
   paid: 'bg-green-100 text-green-700',
@@ -19,6 +20,7 @@ const statusColors: Record<string, string> = {
 };
 
 const SaleList = () => {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -27,9 +29,9 @@ const SaleList = () => {
   const { data, isLoading, isFetching } = useGetAllSalesQuery({ search, paymentStatus: paymentFilter || undefined, page, limit: 15 });
   const [cancelSale] = useCancelSaleMutation();
 
-  const sales: any[] = data?.data?.data ?? [];
-  const meta = data?.data?.meta;
-  const totals = data?.data?.totals ?? { revenue: 0, profit: 0, due: 0 };
+  const sales: any[] = data?.data ?? [];
+  const meta = data?.meta;
+  const totals = data?.totals ?? { revenue: 0, profit: 0, due: 0 };
 
   const handleCancel = async (id: string, invoiceNo: string) => {
     if (!confirm(`Cancel sale ${invoiceNo}? This will reverse stock.`)) return;
@@ -44,32 +46,51 @@ const SaleList = () => {
     }
   };
 
+  const tableHeaders = [
+    t('common.invoice'),
+    t('common.date'),
+    t('common.customer'),
+    t('common.total'),
+    t('common.paid'),
+    t('common.due'),
+    t('common.profit'),
+    t('common.payment'),
+    t('common.status'),
+    t('common.action'),
+  ];
+
+  const summaryCards = [
+    { labelKey: 'sales.saleList.totalRevenue', value: `৳${Number(totals.revenue).toLocaleString()}`, cls: 'text-[#26272F]' },
+    { labelKey: 'sales.saleList.totalProfit', value: `৳${Number(totals.profit).toLocaleString()}`, cls: 'text-green-600' },
+    { labelKey: 'sales.saleList.totalDue', value: `৳${Number(totals.due).toLocaleString()}`, cls: 'text-red-600' },
+  ] as const;
+
   return (
     <div>
       <PageHeader
-        title="Sale List"
-        subtitle="View and manage all sales invoices"
-        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'Sales' }, { label: 'Sale List' }]}
+        title={t('sales.saleList.title')}
+        subtitle={t('sales.saleList.subtitle')}
+        breadcrumbs={[
+          { label: t('common.home'), path: '/admin' },
+          { label: t('nav.sales') },
+          { label: t('sales.saleList.title') },
+        ]}
         actions={
           <div className="flex gap-2">
             <button className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
-              <Download className="h-4 w-4" /> Export
+              <Download className="h-4 w-4" /> {t('common.export')}
             </button>
             <Link to="/admin/sales/add" className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]">
-              <Plus className="h-4 w-4" /> New Sale
+              <Plus className="h-4 w-4" /> {t('sales.saleList.newSale')}
             </Link>
           </div>
         }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {[
-          { label: 'Total Revenue', value: `৳${Number(totals.revenue).toLocaleString()}`, cls: 'text-[#26272F]' },
-          { label: 'Total Profit', value: `৳${Number(totals.profit).toLocaleString()}`, cls: 'text-green-600' },
-          { label: 'Total Due', value: `৳${Number(totals.due).toLocaleString()}`, cls: 'text-red-600' },
-        ].map((s) => (
-          <div key={s.label} className="bg-white border border-[#DBDFE9] rounded-lg p-4">
-            <p className="text-xs text-gray-500">{s.label}</p>
+        {summaryCards.map((s) => (
+          <div key={s.labelKey} className="bg-white border border-[#DBDFE9] rounded-lg p-4">
+            <p className="text-xs text-gray-500">{t(s.labelKey)}</p>
             <p className={`text-2xl font-bold mt-1 ${s.cls}`}>{s.value}</p>
           </div>
         ))}
@@ -79,16 +100,16 @@ const SaleList = () => {
         <div className="p-4 border-b border-[#DBDFE9] flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1 sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Search invoice or customer..." value={search}
+            <input type="text" placeholder={t('sales.saleList.searchPlaceholder')} value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
           <select value={paymentFilter} onChange={(e) => { setPaymentFilter(e.target.value); setPage(1); }}
             className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none">
-            <option value="">All Payment Status</option>
-            <option value="paid">Paid</option>
-            <option value="partial">Partial</option>
-            <option value="unpaid">Unpaid</option>
+            <option value="">{t('sales.saleList.allPaymentStatus')}</option>
+            <option value="paid">{t('common.paid')}</option>
+            <option value="partial">{t('dashboard.statusPartial')}</option>
+            <option value="unpaid">{t('dashboard.statusUnpaid')}</option>
           </select>
         </div>
 
@@ -96,7 +117,7 @@ const SaleList = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Invoice', 'Date', 'Customer', 'Total', 'Paid', 'Due', 'Profit', 'Payment', 'Status', 'Action'].map((h) => (
+                {tableHeaders.map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -107,13 +128,13 @@ const SaleList = () => {
                   <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#ff6d29]" />
                 </td></tr>
               ) : sales.length === 0 ? (
-                <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400">No sales found</td></tr>
+                <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400">{t('sales.saleList.noSales')}</td></tr>
               ) : (
                 sales.map((item: any) => (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs font-medium text-[#ff6d29] whitespace-nowrap">{item.invoiceNo}</td>
                     <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{new Date(item.saleDate).toLocaleDateString()}</td>
-                    <td className="px-4 py-3 font-medium text-[#26272F]">{item.customer?.name ?? 'Walk-in'}</td>
+                    <td className="px-4 py-3 font-medium text-[#26272F]">{item.customer?.name ?? t('sales.saleList.walkIn')}</td>
                     <td className="px-4 py-3 font-semibold whitespace-nowrap">৳{Number(item.grandTotal).toLocaleString()}</td>
                     <td className="px-4 py-3 text-green-600 whitespace-nowrap">৳{Number(item.paidAmount).toLocaleString()}</td>
                     <td className="px-4 py-3 text-red-500 whitespace-nowrap">
@@ -132,8 +153,19 @@ const SaleList = () => {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        <button className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg" title="View">
+                        <Link
+                          to={`/admin/sales/${item.id}`}
+                          className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg"
+                          title="View"
+                        >
                           <Eye className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => window.open(`/print/invoice/a4/${item.id}`, '_blank', 'width=900,height=700')}
+                          className="p-1.5 text-[#ff6d29] hover:bg-orange-50 rounded-lg"
+                          title="Print Invoice"
+                        >
+                          <Printer className="h-4 w-4" />
                         </button>
                         {item.status !== 'cancelled' && (
                           <button
@@ -159,12 +191,14 @@ const SaleList = () => {
 
         {meta && meta.totalPages > 1 && (
           <div className="p-4 border-t border-[#DBDFE9] flex items-center justify-between">
-            <span className="text-xs text-gray-500">{meta.totalItems} records — Page {meta.currentPage} of {meta.totalPages}</span>
+            <span className="text-xs text-gray-500">
+              {meta.totalItems} {t('common.records')} — {t('common.page')} {meta.currentPage} {t('common.of')} {meta.totalPages}
+            </span>
             <div className="flex gap-2">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                className="px-3 py-1 border border-[#DBDFE9] rounded text-xs disabled:opacity-40 hover:bg-gray-50">Prev</button>
+                className="px-3 py-1 border border-[#DBDFE9] rounded text-xs disabled:opacity-40 hover:bg-gray-50">{t('common.prev')}</button>
               <button onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))} disabled={page === meta.totalPages}
-                className="px-3 py-1 border border-[#DBDFE9] rounded text-xs disabled:opacity-40 hover:bg-gray-50">Next</button>
+                className="px-3 py-1 border border-[#DBDFE9] rounded text-xs disabled:opacity-40 hover:bg-gray-50">{t('common.next')}</button>
             </div>
           </div>
         )}

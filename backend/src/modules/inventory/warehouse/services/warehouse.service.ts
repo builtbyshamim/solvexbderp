@@ -3,28 +3,34 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { WarehouseEntity } from '../entities/warehouse.entity';
 import { CreateWarehouseDto, GetWarehousesDto, UpdateWarehouseDto } from '../dto/warehouse.dto';
+import { StockLocationService } from './stock-location.service';
 
 @Injectable()
 export class WarehouseService {
   constructor(
     @InjectRepository(WarehouseEntity)
     private readonly repo: Repository<WarehouseEntity>,
+    private readonly locationService: StockLocationService,
   ) {}
 
   async create(businessId: string, dto: CreateWarehouseDto) {
     const exists = await this.repo.findOne({ where: { businessId, name: ILike(dto.name) } });
     if (exists) throw new ConflictException('Warehouse name already exists');
 
-    // If first warehouse or explicitly set as default, ensure only one default
     if (dto.isDefault) {
       await this.repo.update({ businessId }, { isDefault: false });
     }
 
     const count = await this.repo.count({ where: { businessId } });
-    const isDefault = dto.isDefault ?? count === 0; // first warehouse is default
+    const isDefault = dto.isDefault ?? count === 0;
 
     const warehouse = this.repo.create({ ...dto, businessId, isDefault });
-    return this.repo.save(warehouse);
+    const saved = await this.repo.save(warehouse);
+
+    // Auto-create the corresponding StockLocation
+    await this.locationService.createForWarehouse(saved);
+
+    return saved;
   }
 
   async findAll(businessId: string, query: GetWarehousesDto) {
@@ -37,7 +43,10 @@ export class WarehouseService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    return { data, meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: Number(page), limit: Number(limit) } };
+    return {
+      data,
+      meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: Number(page), limit: Number(limit) },
+    };
   }
 
   async findOne(businessId: string, id: string) {
@@ -47,7 +56,7 @@ export class WarehouseService {
   }
 
   async setDefault(businessId: string, id: string) {
-    await this.findOne(businessId, id); // validate ownership
+    await this.findOne(businessId, id);
     await this.repo.update({ businessId }, { isDefault: false });
     await this.repo.update({ id, businessId }, { isDefault: true });
     return { message: 'Default warehouse updated' };
@@ -56,15 +65,26 @@ export class WarehouseService {
   async update(businessId: string, id: string, dto: UpdateWarehouseDto) {
     const warehouse = await this.findOne(businessId, id);
     Object.assign(warehouse, dto);
-    return this.repo.save(warehouse);
+    const saved = await this.repo.save(warehouse);
+
+    // Keep StockLocation name in sync
+    if (dto.name) {
+      await this.locationService.syncWarehouseName(businessId, id, dto.name);
+    }
+
+    return saved;
   }
 
   async remove(businessId: string, id: string) {
     const warehouse = await this.findOne(businessId, id);
     if (warehouse.isDefault) {
-      throw new ConflictException('Cannot delete the default warehouse. Set another warehouse as default first.');
+      throw new ConflictException('Cannot delete the default warehouse. Set another as default first.');
     }
     await this.repo.remove(warehouse);
+
+    // Remove the corresponding StockLocation
+    await this.locationService.deleteForWarehouse(businessId, id);
+
     return { message: 'Warehouse deleted successfully' };
   }
 

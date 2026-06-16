@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, ILike, Repository } from 'typeorm';
+import { StockLocationService } from 'src/modules/inventory/warehouse/services/stock-location.service';
 import { CustomerEntity } from '../entities/customer.entity';
 import { SaleEntity, SaleItemEntity, SaleStatus, PaymentStatus } from '../entities/sale.entity';
 import { QuotationEntity, QuotationItemEntity, QuotationStatus } from '../entities/quotation.entity';
@@ -13,10 +14,13 @@ import { SaleReturnEntity, SaleReturnItemEntity, ReturnStatus } from '../entitie
 import { ProductStockEntity } from 'src/modules/inventory/product/entities/product-stock.entity';
 import { StockLedgerEntity, StockTransactionType } from 'src/modules/inventory/product/entities/stock-ledger.entity';
 import {
-  CreateCustomerDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
+  CreateCustomerDto, CreateCustomerAdjustmentDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
   CollectPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
   ConvertQuotationDto, CreateSaleReturnDto, GetSaleReturnsDto, GetCustomerStatementDto,
 } from '../dto/sales.dto';
+import { CustomerLedgerAdjustmentEntity, AdjustmentType } from '../entities/customer-adjustment.entity';
+import { SmsMarketingService } from 'src/modules/sms-marketing/services/sms-marketing.service';
+import { TransactionalSmsEvent } from 'src/modules/sms-marketing/entities/transactional-sms.entity';
 
 @Injectable()
 export class SalesService {
@@ -28,7 +32,11 @@ export class SalesService {
     @InjectRepository(SaleReturnEntity) private readonly returnRepo: Repository<SaleReturnEntity>,
     @InjectRepository(ProductStockEntity) private readonly stockRepo: Repository<ProductStockEntity>,
     @InjectRepository(StockLedgerEntity) private readonly ledgerRepo: Repository<StockLedgerEntity>,
+    @InjectRepository(CustomerLedgerAdjustmentEntity)
+    private readonly customerAdjustmentRepo: Repository<CustomerLedgerAdjustmentEntity>,
+    private readonly locationService: StockLocationService,
     private readonly dataSource: DataSource,
+    private readonly smsService: SmsMarketingService,
   ) {}
 
   // ─── Customer CRUD ────────────────────────────────────────────────────────
@@ -73,6 +81,32 @@ export class SalesService {
     return { message: 'Customer deleted successfully' };
   }
 
+  async createCustomerAdjustment(
+    businessId: string,
+    customerId: string,
+    dto: CreateCustomerAdjustmentDto,
+    userId: string,
+  ) {
+    const customer = await this.findCustomer(businessId, customerId);
+    const adj = this.customerAdjustmentRepo.create({
+      businessId,
+      customerId,
+      date: new Date(dto.date),
+      type: dto.type as AdjustmentType,
+      amount: dto.amount,
+      note: dto.note,
+      createdBy: userId,
+    });
+    await this.customerAdjustmentRepo.save(adj);
+
+    // Debit = customer owes more; Credit = customer owes less
+    const delta = dto.type === 'debit' ? Number(dto.amount) : -Number(dto.amount);
+    const newBalance = Math.max(0, Number(customer.currentBalance) + delta);
+    await this.customerRepo.update({ id: customerId, businessId }, { currentBalance: newBalance });
+
+    return adj;
+  }
+
   async getCustomerStatement(businessId: string, customerId: string, query: GetCustomerStatementDto) {
     const customer = await this.findCustomer(businessId, customerId);
     const { dateFrom, dateTo } = query;
@@ -86,7 +120,41 @@ export class SalesService {
     if (dateTo) qb.andWhere('s.saleDate <= :dateTo', { dateTo });
     qb.orderBy('s.saleDate', 'ASC').addOrderBy('s.createdAt', 'ASC');
 
-    const sales = await qb.getMany();
+    const [sales, adjustments] = await Promise.all([
+      qb.getMany(),
+      this.customerAdjustmentRepo.find({
+        where: { businessId, customerId },
+        order: { date: 'ASC', createdAt: 'ASC' },
+      }),
+    ]);
+
+    // Build unified list of entries
+    const rawEntries: any[] = [
+      ...sales.map((s) => ({
+        id: s.id,
+        _sortKey: new Date(s.saleDate).getTime(),
+        _tieBreak: s.createdAt,
+        date: s.saleDate,
+        reference: s.invoiceNo,
+        type: 'sale',
+        debit: Number(s.grandTotal),
+        credit: Number(s.paidAmount),
+        note: `Sale invoice — ${s.paymentStatus}`,
+      })),
+      ...adjustments.map((a) => ({
+        id: a.id,
+        _sortKey: new Date(a.date).getTime(),
+        _tieBreak: a.createdAt,
+        date: a.date,
+        reference: `ADJ-${a.id.slice(0, 8).toUpperCase()}`,
+        type: 'adjustment',
+        debit: a.type === AdjustmentType.DEBIT ? Number(a.amount) : 0,
+        credit: a.type === AdjustmentType.CREDIT ? Number(a.amount) : 0,
+        note: a.note,
+      })),
+    ];
+
+    rawEntries.sort((a, b) => a._sortKey - b._sortKey || (a._tieBreak > b._tieBreak ? 1 : -1));
 
     let runningBalance = Number(customer.openingBalance);
     const entries: any[] = [];
@@ -103,18 +171,9 @@ export class SalesService {
       });
     }
 
-    for (const s of sales) {
-      runningBalance += Number(s.dueAmount);
-      entries.push({
-        id: s.id,
-        date: s.saleDate,
-        reference: s.invoiceNo,
-        type: 'sale',
-        debit: Number(s.grandTotal),
-        credit: Number(s.paidAmount),
-        balance: runningBalance,
-        note: `Sale invoice — ${s.paymentStatus}`,
-      });
+    for (const e of rawEntries) {
+      runningBalance += e.debit - e.credit;
+      entries.push({ ...e, balance: runningBalance });
     }
 
     return {
@@ -142,6 +201,9 @@ export class SalesService {
 
   async createSale(businessId: string, userId: string, dto: CreateSaleDto) {
     return this.dataSource.transaction(async (tx) => {
+      // Resolve stock location — defaults to business if no warehouse specified
+      const location = await this.locationService.resolve(businessId, dto.warehouseId, tx);
+
       let subtotal = 0;
       let totalProfit = 0;
 
@@ -152,7 +214,7 @@ export class SalesService {
 
       for (const item of dto.items) {
         const stock = await tx.findOne(ProductStockEntity, {
-          where: { businessId, productId: item.productId, warehouseId: dto.warehouseId },
+          where: { businessId, productId: item.productId, locationId: location.id },
         });
         if (!stock || Number(stock.currentQty) < Number(item.quantity)) {
           throw new BadRequestException(
@@ -170,19 +232,31 @@ export class SalesService {
 
       const discount = dto.discountAmount ?? 0;
       const tax = dto.taxAmount ?? 0;
-      const grandTotal = subtotal - discount + tax;
-      const paid = dto.paidAmount ?? 0;
-      const due = grandTotal - paid;
+      const delivery = dto.deliveryCharge ?? 0;
+      const grandTotal = subtotal - discount + tax + delivery;
+
+      // Resolve paid amount from payments array (multi-method) or single paidAmount
+      const paymentEntries = dto.payments ?? [];
+      const paid = paymentEntries.length > 0
+        ? paymentEntries.reduce((s, p) => s + Number(p.amount), 0)
+        : (dto.paidAmount ?? 0);
+      const payMethod = paymentEntries.length === 1
+        ? paymentEntries[0].method
+        : paymentEntries.length > 1 ? 'split' : (dto.paymentMethod ?? 'cash');
+      const due = Math.max(0, grandTotal - paid);
 
       const sale = tx.create(SaleEntity, {
-        businessId, customerId: dto.customerId, warehouseId: dto.warehouseId,
+        businessId, customerId: dto.customerId, warehouseId: dto.warehouseId ?? undefined,
         invoiceNo: dto.invoiceNo || this.generateInvoiceNo(),
         saleDate: new Date(dto.saleDate),
-        subtotal, discountAmount: discount, taxAmount: tax, grandTotal,
+        subtotal, discountAmount: discount, taxAmount: tax,
+        deliveryCharge: delivery, grandTotal,
         paidAmount: paid, dueAmount: due, totalProfit,
         status: SaleStatus.CONFIRMED,
         paymentStatus: this.computePaymentStatus(paid, grandTotal),
-        paymentMethod: dto.paymentMethod,
+        paymentMethod: payMethod,
+        payments: paymentEntries.length > 0 ? paymentEntries : undefined,
+        offerLabel: dto.offerLabel,
         note: dto.note, createdBy: userId,
       });
       const savedSale = await tx.save(SaleEntity, sale);
@@ -191,14 +265,14 @@ export class SalesService {
         await tx.save(SaleItemEntity, { ...item, saleId: savedSale.id });
 
         const stock = await tx.findOne(ProductStockEntity, {
-          where: { businessId, productId: item.productId, warehouseId: dto.warehouseId },
+          where: { businessId, productId: item.productId, locationId: location.id },
         });
         stock!.currentQty = Number(stock!.currentQty) - item.quantity;
         stock!.outQty = Number(stock!.outQty) + item.quantity;
         await tx.save(ProductStockEntity, stock!);
 
         await tx.save(StockLedgerEntity, {
-          businessId, productId: item.productId, warehouseId: dto.warehouseId,
+          businessId, productId: item.productId, locationId: location.id,
           transactionType: StockTransactionType.SALE, referenceType: 'sale',
           referenceId: savedSale.id, qtyIn: 0, qtyOut: item.quantity,
           balanceAfter: stock!.currentQty, unitCost: item.costPrice, createdBy: userId,
@@ -210,6 +284,19 @@ export class SalesService {
       }
 
       return tx.findOne(SaleEntity, { where: { id: savedSale.id }, relations: ['items', 'customer'] });
+    }).then((sale) => {
+      if (sale?.customer?.phone) {
+        this.smsService.sendTransactionalSms(businessId, TransactionalSmsEvent.SALE_CREATED, {
+          customerName: sale.customer.name,
+          customerPhone: sale.customer.phone,
+          invoiceNo: sale.invoiceNo,
+          totalAmount: Number(sale.grandTotal),
+          paidAmount: Number(sale.paidAmount),
+          dueAmount: Number(sale.dueAmount),
+          saleDate: new Date(sale.saleDate).toLocaleDateString('en-BD'),
+        }).catch(() => {});
+      }
+      return sale;
     });
   }
 
@@ -265,9 +352,11 @@ export class SalesService {
       if (!sale) throw new NotFoundException('Sale not found');
       if (sale.status === SaleStatus.CANCELLED) throw new BadRequestException('Sale is already cancelled');
 
+      const location = await this.locationService.resolve(businessId, sale.warehouseId, tx);
+
       for (const item of sale.items) {
         const stock = await tx.findOne(ProductStockEntity, {
-          where: { businessId, productId: item.productId, warehouseId: sale.warehouseId },
+          where: { businessId, productId: item.productId, locationId: location.id },
         });
         if (stock) {
           stock.currentQty = Number(stock.currentQty) + Number(item.quantity);
@@ -275,7 +364,7 @@ export class SalesService {
           await tx.save(ProductStockEntity, stock);
 
           await tx.save(StockLedgerEntity, {
-            businessId, productId: item.productId, warehouseId: sale.warehouseId,
+            businessId, productId: item.productId, locationId: location.id,
             transactionType: StockTransactionType.ADJUSTMENT_IN, referenceType: 'sale_cancel',
             referenceId: sale.id, qtyIn: Number(item.quantity), qtyOut: 0,
             balanceAfter: stock.currentQty, unitCost: Number(item.costPrice),
@@ -294,7 +383,7 @@ export class SalesService {
   }
 
   async collectPayment(businessId: string, saleId: string, dto: CollectPaymentDto) {
-    return this.dataSource.transaction(async (tx) => {
+    const result = await this.dataSource.transaction(async (tx) => {
       const sale = await tx.findOne(SaleEntity, { where: { id: saleId, businessId } });
       if (!sale) throw new NotFoundException('Sale not found');
       if (sale.paymentStatus === PaymentStatus.PAID) throw new BadRequestException('Sale is already fully paid');
@@ -311,8 +400,27 @@ export class SalesService {
         await tx.decrement(CustomerEntity, { id: sale.customerId, businessId }, 'currentBalance', amount);
       }
 
-      return sale;
+      return { sale, collectedAmount: amount };
     });
+
+    if (result.sale.customerId) {
+      const customer = await this.customerRepo.findOne({
+        where: { id: result.sale.customerId, businessId },
+        select: ['id', 'name', 'phone'],
+      });
+      if (customer?.phone) {
+        this.smsService.sendTransactionalSms(businessId, TransactionalSmsEvent.PAYMENT_RECEIVED, {
+          customerName: customer.name,
+          customerPhone: customer.phone,
+          invoiceNo: result.sale.invoiceNo,
+          paymentAmount: result.collectedAmount,
+          paidAmount: Number(result.sale.paidAmount),
+          dueAmount: Number(result.sale.dueAmount),
+        }).catch(() => {});
+      }
+    }
+
+    return result.sale;
   }
 
   async getDashboardStats(businessId: string) {
@@ -432,7 +540,24 @@ export class SalesService {
         unitPrice: Number(i.unitPrice), total: Number(i.quantity) * Number(i.unitPrice),
       })) as any,
     });
-    return this.returnRepo.save(ret);
+    const saved = await this.returnRepo.save(ret);
+
+    if (sale.customerId) {
+      const customer = await this.customerRepo.findOne({
+        where: { id: sale.customerId, businessId },
+        select: ['id', 'name', 'phone'],
+      });
+      if (customer?.phone) {
+        this.smsService.sendTransactionalSms(businessId, TransactionalSmsEvent.SALE_RETURN, {
+          customerName: customer.name,
+          customerPhone: customer.phone,
+          invoiceNo: sale.invoiceNo,
+          returnAmount: totalAmount,
+        }).catch(() => {});
+      }
+    }
+
+    return saved;
   }
 
   async findAllSaleReturns(businessId: string, query: GetSaleReturnsDto) {
@@ -456,10 +581,10 @@ export class SalesService {
       if (!ret) throw new NotFoundException('Return not found');
       if (ret.status !== ReturnStatus.PENDING) throw new BadRequestException('Only pending returns can be approved');
 
-      const warehouseId = ret.sale.warehouseId;
+      const location = await this.locationService.resolve(businessId, ret.sale.warehouseId, tx);
       for (const item of ret.items) {
         const stock = await tx.findOne(ProductStockEntity, {
-          where: { businessId, productId: item.productId, warehouseId },
+          where: { businessId, productId: item.productId, locationId: location.id },
         });
         if (stock) {
           stock.currentQty = Number(stock.currentQty) + Number(item.quantity);

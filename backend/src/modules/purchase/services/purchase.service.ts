@@ -11,10 +11,12 @@ import { PurchaseEntity, PurchaseItemEntity, PurchaseStatus, PaymentStatus } fro
 import { ProductStockEntity } from 'src/modules/inventory/product/entities/product-stock.entity';
 import { StockLedgerEntity, StockTransactionType } from 'src/modules/inventory/product/entities/stock-ledger.entity';
 import {
-  CreatePurchaseDto, CreateSupplierDto, GetPurchasesDto,
-  GetSuppliersDto, UpdateSupplierDto,
+  CreatePurchaseDto, CreateSupplierAdjustmentDto, CreateSupplierDto, GetPurchasesDto,
+  GetSuppliersDto, UpdateSupplierDto, PaySupplierDto,
 } from '../dto/purchase.dto';
+import { SupplierLedgerAdjustmentEntity, AdjustmentType } from '../entities/supplier-adjustment.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { StockLocationService } from 'src/modules/inventory/warehouse/services/stock-location.service';
 
 @Injectable()
 export class PurchaseService {
@@ -29,6 +31,9 @@ export class PurchaseService {
     private readonly stockRepo: Repository<ProductStockEntity>,
     @InjectRepository(StockLedgerEntity)
     private readonly ledgerRepo: Repository<StockLedgerEntity>,
+    @InjectRepository(SupplierLedgerAdjustmentEntity)
+    private readonly supplierAdjustmentRepo: Repository<SupplierLedgerAdjustmentEntity>,
+    private readonly locationService: StockLocationService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -99,10 +104,13 @@ export class PurchaseService {
       const paid = dto.paidAmount ?? 0;
       const due = grandTotal - paid;
 
+      // Resolve location for all stock operations in this purchase
+      const location = await this.locationService.resolve(businessId, dto.warehouseId, tx);
+
       const purchase = tx.create(PurchaseEntity, {
         businessId,
         supplierId: dto.supplierId,
-        warehouseId: dto.warehouseId,
+        warehouseId: dto.warehouseId ?? undefined,
         invoiceNo: dto.invoiceNo || this.generateInvoiceNo(),
         purchaseDate: new Date(dto.purchaseDate),
         subtotal,
@@ -131,16 +139,17 @@ export class PurchaseService {
           total: lineTotal,
         });
 
-        // Update or create stock
+        // Update or create stock using resolved location
         let stock = await tx.findOne(ProductStockEntity, {
-          where: { businessId, productId: item.productId, warehouseId: dto.warehouseId },
+          where: { businessId, productId: item.productId, locationId: location.id },
         });
         if (!stock) {
           stock = tx.create(ProductStockEntity, {
             businessId,
             productId: item.productId,
-            warehouseId: dto.warehouseId,
-            openingQty: 0, inQty: 0, outQty: 0, currentQty: 0, avgCost: item.unitCost,
+            locationId: location.id,
+            openingQty: 0, inQty: 0, outQty: 0, currentQty: 0, reservedQty: 0, avgCost: item.unitCost,
+            isActive: true,
           });
         }
 
@@ -159,7 +168,7 @@ export class PurchaseService {
         await tx.save(StockLedgerEntity, {
           businessId,
           productId: item.productId,
-          warehouseId: dto.warehouseId,
+          locationId: location.id,
           transactionType: StockTransactionType.PURCHASE,
           referenceType: 'purchase',
           referenceId: savedPurchase.id,
@@ -208,6 +217,187 @@ export class PurchaseService {
       relations: ['items', 'supplier'],
     });
     if (!p) throw new NotFoundException('Purchase not found');
+
+    if (p.items?.length) {
+      const productIds = p.items.map((i) => i.productId);
+      const products: { id: string; name: string }[] = await this.dataSource.query(
+        'SELECT id, name FROM products WHERE id = ANY($1::uuid[])',
+        [productIds],
+      );
+      const nameMap = new Map(products.map((pr) => [pr.id, pr.name]));
+      (p as any).items = p.items.map((item) => ({
+        ...item,
+        product: { name: nameMap.get(item.productId) ?? item.productId },
+      }));
+    }
+
     return p;
+  }
+
+  async getSupplierDuePurchases(businessId: string, supplierId: string) {
+    const supplier = await this.findSupplier(businessId, supplierId);
+    const purchases = await this.purchaseRepo.find({
+      where: { businessId, supplierId },
+      order: { purchaseDate: 'ASC', createdAt: 'ASC' },
+    });
+    const duePurchases = purchases.filter((p) => Number(p.dueAmount) > 0);
+    return { supplier, data: duePurchases };
+  }
+
+  async paySupplier(businessId: string, supplierId: string, dto: PaySupplierDto) {
+    return this.dataSource.transaction(async (tx) => {
+      const supplier = await tx.findOne(SupplierEntity, { where: { id: supplierId, businessId } });
+      if (!supplier) throw new NotFoundException('Supplier not found');
+
+      const currentBalance = Number(supplier.currentBalance);
+      if (dto.amount > currentBalance + 0.01) {
+        throw new BadRequestException(
+          `Payment ৳${dto.amount} exceeds supplier payable balance ৳${currentBalance.toFixed(2)}`,
+        );
+      }
+
+      if (dto.invoicePayments?.length) {
+        // ── Invoice-wise: pay specific purchases ──
+        for (const item of dto.invoicePayments) {
+          const purchase = await tx.findOne(PurchaseEntity, {
+            where: { id: item.purchaseId, businessId, supplierId },
+          });
+          if (!purchase) throw new NotFoundException(`Purchase ${item.purchaseId} not found`);
+
+          const payable = Math.min(Number(item.amount), Number(purchase.dueAmount));
+          purchase.paidAmount = Number(purchase.paidAmount) + payable;
+          purchase.dueAmount = Number(purchase.dueAmount) - payable;
+          purchase.paymentStatus =
+            purchase.dueAmount <= 0.009
+              ? PaymentStatus.PAID
+              : Number(purchase.paidAmount) > 0
+                ? PaymentStatus.PARTIAL
+                : PaymentStatus.UNPAID;
+          if (purchase.dueAmount < 0) purchase.dueAmount = 0;
+          await tx.save(PurchaseEntity, purchase);
+        }
+      } else {
+        // ── Bulk: auto-distribute oldest-first ──
+        const duePurchases = await this.purchaseRepo.find({
+          where: { businessId, supplierId },
+          order: { purchaseDate: 'ASC', createdAt: 'ASC' },
+        });
+        let remaining = Number(dto.amount);
+        for (const purchase of duePurchases) {
+          if (remaining <= 0) break;
+          const due = Number(purchase.dueAmount);
+          if (due <= 0) continue;
+          const payable = Math.min(remaining, due);
+          purchase.paidAmount = Number(purchase.paidAmount) + payable;
+          purchase.dueAmount = due - payable;
+          purchase.paymentStatus =
+            purchase.dueAmount <= 0.009
+              ? PaymentStatus.PAID
+              : PaymentStatus.PARTIAL;
+          if (purchase.dueAmount < 0) purchase.dueAmount = 0;
+          await tx.save(PurchaseEntity, purchase);
+          remaining -= payable;
+        }
+      }
+
+      // Reduce supplier payable balance
+      const newBalance = Math.max(0, currentBalance - Number(dto.amount));
+      await tx.update(SupplierEntity, { id: supplierId, businessId }, { currentBalance: newBalance });
+
+      return { message: 'Payment recorded successfully', paidAmount: dto.amount, remainingBalance: newBalance };
+    });
+  }
+
+  async createSupplierAdjustment(
+    businessId: string,
+    supplierId: string,
+    dto: CreateSupplierAdjustmentDto,
+    userId: string,
+  ) {
+    const supplier = await this.findSupplier(businessId, supplierId);
+    const adj = this.supplierAdjustmentRepo.create({
+      businessId,
+      supplierId,
+      date: new Date(dto.date),
+      type: dto.type as AdjustmentType,
+      amount: dto.amount,
+      note: dto.note,
+      createdBy: userId,
+    });
+    await this.supplierAdjustmentRepo.save(adj);
+
+    // Debit = we owe more; Credit = we owe less
+    const delta = dto.type === 'debit' ? Number(dto.amount) : -Number(dto.amount);
+    const newBalance = Math.max(0, Number(supplier.currentBalance) + delta);
+    await this.supplierRepo.update({ id: supplierId, businessId }, { currentBalance: newBalance });
+
+    return adj;
+  }
+
+  async getSupplierLedger(
+    businessId: string,
+    supplierId: string,
+    query: { page?: number; limit?: number },
+  ) {
+    const supplier = await this.findSupplier(businessId, supplierId);
+    const page = Number(query.page ?? 1);
+    const limit = Number(query.limit ?? 20);
+
+    const [purchases, adjustments] = await Promise.all([
+      this.purchaseRepo.find({
+        where: { businessId, supplierId },
+        order: { purchaseDate: 'ASC', createdAt: 'ASC' },
+      }),
+      this.supplierAdjustmentRepo.find({
+        where: { businessId, supplierId },
+        order: { date: 'ASC', createdAt: 'ASC' },
+      }),
+    ]);
+
+    // Merge into unified entries
+    const allEntries: any[] = [
+      ...purchases.map((p) => ({
+        id: p.id,
+        date: p.purchaseDate,
+        _sortKey: new Date(p.purchaseDate).getTime(),
+        _tieBreak: p.createdAt,
+        referenceId: p.invoiceNo,
+        transactionType: 'purchase',
+        debit: Number(p.grandTotal),
+        credit: Number(p.paidAmount),
+        note: p.note,
+      })),
+      ...adjustments.map((a) => ({
+        id: a.id,
+        date: a.date,
+        _sortKey: new Date(a.date).getTime(),
+        _tieBreak: a.createdAt,
+        referenceId: `ADJ-${a.id.slice(0, 8).toUpperCase()}`,
+        transactionType: 'adjustment',
+        debit: a.type === AdjustmentType.DEBIT ? Number(a.amount) : 0,
+        credit: a.type === AdjustmentType.CREDIT ? Number(a.amount) : 0,
+        note: a.note,
+      })),
+    ];
+
+    allEntries.sort((a, b) => a._sortKey - b._sortKey || (a._tieBreak > b._tieBreak ? 1 : -1));
+
+    // Compute running balance
+    let balance = Number(supplier.openingBalance);
+    for (const entry of allEntries) {
+      balance += entry.debit - entry.credit;
+      entry.balanceAfter = balance;
+    }
+
+    // Paginate (newest first)
+    allEntries.reverse();
+    const totalItems = allEntries.length;
+    const paginated = allEntries.slice((page - 1) * limit, page * limit);
+
+    return {
+      supplier,
+      data: paginated,
+      meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page },
+    };
   }
 }

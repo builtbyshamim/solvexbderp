@@ -1,10 +1,58 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString,
-  IsUUID, IsDateString, Min,
+  IsUUID, IsDateString, Min, IsHexColor,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AccountType } from '../entities/account.entity';
+import { AccountingCategoryType } from '../entities/accounting-category.entity';
+
+// ── Accounting Categories ─────────────────────────────────────────────────────
+
+export class CreateAccountingCategoryDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty({ enum: AccountingCategoryType })
+  @IsEnum(AccountingCategoryType)
+  type: AccountingCategoryType;
+
+  @ApiPropertyOptional({ description: 'Hex color e.g. #3b82f6' })
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+export class UpdateAccountingCategoryDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+export class GetAccountingCategoriesDto {
+  @ApiPropertyOptional({ enum: AccountingCategoryType })
+  @IsOptional()
+  @IsEnum(AccountingCategoryType)
+  type?: AccountingCategoryType;
+}
 
 export class CreateAccountDto {
   @ApiProperty()
@@ -206,6 +254,11 @@ export class GetTransactionsDto {
   @IsOptional()
   @IsString()
   transactionType?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  category?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

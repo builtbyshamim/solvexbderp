@@ -50,6 +50,65 @@ export const purchaseApi = baseApi.injectEndpoints({
         { type: tagTypes.stockLedger, id: "LIST" },
       ],
     }),
+
+    // Purchase Returns
+    getPurchaseReturns: build.query({
+      query: (params) => ({ url: `${PURCHASE_URL}/returns`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.purchaseReturn, id: "LIST" }],
+    }),
+    createPurchaseReturn: build.mutation({
+      query: (data) => ({ url: `${PURCHASE_URL}/returns`, method: "POST", data }),
+      invalidatesTags: [
+        { type: tagTypes.purchaseReturn, id: "LIST" },
+        { type: tagTypes.purchase, id: "LIST" },
+      ],
+    }),
+    approvePurchaseReturn: build.mutation({
+      query: (id: string) => ({ url: `${PURCHASE_URL}/returns/${id}/approve`, method: "PATCH" }),
+      invalidatesTags: [{ type: tagTypes.purchaseReturn, id: "LIST" }],
+    }),
+
+    // Supplier Payment
+    getSupplierDuePurchases: build.query({
+      query: (supplierId: string) => ({ url: `${SUPPLIER_URL}/${supplierId}/due-purchases`, method: 'GET' }),
+      providesTags: (result, error, id) => [{ type: tagTypes.supplier, id }, { type: tagTypes.purchase, id: 'DUE' }],
+    }),
+    paySupplier: build.mutation({
+      query: ({ supplierId, data }: { supplierId: string; data: any }) => ({
+        url: `${SUPPLIER_URL}/${supplierId}/pay`,
+        method: 'POST',
+        data,
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: tagTypes.supplier, id: arg.supplierId },
+        { type: tagTypes.supplier, id: 'LIST' },
+        { type: tagTypes.purchase, id: 'LIST' },
+        { type: tagTypes.purchase, id: 'DUE' },
+      ],
+    }),
+
+    // Supplier Ledger
+    getSupplierLedger: build.query({
+      query: ({ supplierId, ...params }: { supplierId: string; [k: string]: any }) => ({
+        url: `${SUPPLIER_URL}/${supplierId}/ledger`,
+        method: "GET",
+        params,
+      }),
+      providesTags: (result, error, arg) => [{ type: tagTypes.supplier, id: arg.supplierId }],
+    }),
+
+    // Supplier Ledger Adjustment
+    createSupplierAdjustment: build.mutation({
+      query: ({ supplierId, data }: { supplierId: string; data: any }) => ({
+        url: `${SUPPLIER_URL}/${supplierId}/adjust`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: tagTypes.supplier, id: arg.supplierId },
+        { type: tagTypes.supplier, id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -62,4 +121,11 @@ export const {
   useGetAllPurchasesQuery,
   useGetPurchaseQuery,
   useCreatePurchaseMutation,
+  useGetPurchaseReturnsQuery,
+  useCreatePurchaseReturnMutation,
+  useApprovePurchaseReturnMutation,
+  useGetSupplierDuePurchasesQuery,
+  usePaySupplierMutation,
+  useGetSupplierLedgerQuery,
+  useCreateSupplierAdjustmentMutation,
 } = purchaseApi;

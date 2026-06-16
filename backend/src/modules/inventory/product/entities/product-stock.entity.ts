@@ -1,10 +1,10 @@
 import { Entity, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { TenantBaseEntity } from 'src/common/entities/tenant-base.entity';
 import { ProductEntity } from './product.entity';
-import { WarehouseEntity } from '../../warehouse/entities/warehouse.entity';
 
 @Entity('product_stocks')
-@Index(['businessId', 'productId', 'warehouseId'], { unique: true })
+@Index(['businessId', 'locationId', 'productId'], { unique: true })
+@Index(['businessId', 'productId'])
 export class ProductStockEntity extends TenantBaseEntity {
   @Column({ name: 'product_id' })
   productId: string;
@@ -13,12 +13,13 @@ export class ProductStockEntity extends TenantBaseEntity {
   @JoinColumn({ name: 'product_id' })
   product: ProductEntity;
 
-  @Column({ name: 'warehouse_id' })
-  warehouseId: string;
-
-  @ManyToOne(() => WarehouseEntity, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'warehouse_id' })
-  warehouse: WarehouseEntity;
+  /**
+   * References stock_locations.id (not warehouse_id directly).
+   * null is not allowed — every stock row belongs to a location.
+   * Use the business-default location when no warehouse is specified.
+   */
+  @Column({ name: 'location_id' })
+  locationId: string;
 
   @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
   openingQty: number;
@@ -31,6 +32,9 @@ export class ProductStockEntity extends TenantBaseEntity {
 
   @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
   currentQty: number;
+
+  @Column({ type: 'decimal', precision: 15, scale: 4, default: 0 })
+  reservedQty: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
   avgCost: number;

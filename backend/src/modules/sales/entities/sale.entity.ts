@@ -33,8 +33,8 @@ export class SaleEntity {
   @JoinColumn({ name: 'customer_id' })
   customer?: CustomerEntity;
 
-  @Column({ name: 'warehouse_id' })
-  warehouseId: string;
+  @Column({ nullable: true, name: 'warehouse_id' })
+  warehouseId?: string;
 
   @Column()
   invoiceNo: string;
@@ -69,8 +69,17 @@ export class SaleEntity {
   @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.UNPAID })
   paymentStatus: PaymentStatus;
 
+  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  deliveryCharge: number;
+
   @Column({ nullable: true })
   paymentMethod?: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  payments?: { method: string; amount: number }[];
+
+  @Column({ nullable: true })
+  offerLabel?: string;
 
   @Column({ nullable: true })
   note?: string;

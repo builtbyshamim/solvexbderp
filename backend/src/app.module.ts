@@ -12,6 +12,8 @@ import jwtConfig from './config/jwt.config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { PermissionGuard } from './common/guards/permission.guard';
+import { SubscriptionGuard } from './common/guards/subscription.guard';
 import { UserModule } from './modules/users/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MailModule } from './modules/mail/mail.module';
@@ -31,6 +33,9 @@ import { AccountingModule } from './modules/accounting/accounting.module';
 import { HrmModule } from './modules/hrm/hrm.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { SmsMarketingModule } from './modules/sms-marketing/sms-marketing.module';
+import { AffiliateModule } from './modules/affiliate/affiliate.module';
+import { SuperAdminModule } from './modules/super-admin/super-admin.module';
+import { PackageModule } from './modules/packages/package.module';
 
 @Module({
   imports: [
@@ -93,6 +98,9 @@ import { SmsMarketingModule } from './modules/sms-marketing/sms-marketing.module
     HrmModule,
     ReportsModule,
     SmsMarketingModule,
+    AffiliateModule,
+    SuperAdminModule,
+    PackageModule,
   ],
   controllers: [AppController],
   providers: [
@@ -101,6 +109,12 @@ import { SmsMarketingModule } from './modules/sms-marketing/sms-marketing.module
 
     // ✅ Global Roles Guard
     { provide: APP_GUARD, useClass: RolesGuard },
+
+    // ✅ Global Permission Guard (fine-grained, checked after RolesGuard)
+    { provide: APP_GUARD, useClass: PermissionGuard },
+
+    // ✅ Subscription Guard — blocks all API calls for expired subscriptions
+    { provide: APP_GUARD, useClass: SubscriptionGuard },
   ],
 })
 export class AppModule {}

@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Download, Loader2, RefreshCw } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import { useGetCashFlowQuery } from './accountingApi';
+import { useLanguage } from '../../context/LanguageContext';
 
 const CashFlow = () => {
+  const { t } = useLanguage();
   const now = new Date();
   const [dateFrom, setDateFrom] = useState(
     new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0],
@@ -48,7 +50,7 @@ const CashFlow = () => {
           </div>
         ))}
         <div className="border-t border-[#DBDFE9] pt-2 flex justify-between font-bold">
-          <span>Net Cash Flow</span>
+          <span>{t('accounting.cashFlow.netCashFlow')}</span>
           <span className={total >= 0 ? 'text-green-600' : 'text-red-500'}>
             {total >= 0 ? '+' : ''}৳{Number(total).toLocaleString()}
           </span>
@@ -60,12 +62,12 @@ const CashFlow = () => {
   return (
     <div>
       <PageHeader
-        title="Cash Flow Statement"
-        subtitle="Track cash inflows and outflows"
+        title={t('accounting.cashFlow.title')}
+        subtitle={t('accounting.cashFlow.subtitle')}
         breadcrumbs={[
-          { label: 'Home', path: '/admin' },
-          { label: 'Accounting', path: '/admin/accounting/accounts' },
-          { label: 'Cash Flow' },
+          { label: t('common.home'), path: '/admin' },
+          { label: t('nav.accounting'), path: '/admin/accounting/accounts' },
+          { label: t('accounting.cashFlow.breadcrumb') },
         ]}
         actions={
           <div className="flex gap-2 flex-wrap">
@@ -88,7 +90,7 @@ const CashFlow = () => {
               <RefreshCw className="h-4 w-4" />
             </button>
             <button className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
-              <Download className="h-4 w-4" /> Export
+              <Download className="h-4 w-4" /> {t('common.export')}
             </button>
           </div>
         }
@@ -102,21 +104,21 @@ const CashFlow = () => {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div className="bg-gray-50 border border-[#DBDFE9] rounded-lg p-5">
-              <p className="text-xs text-gray-500">Opening Balance</p>
+              <p className="text-xs text-gray-500">{t('accounting.cashFlow.openingBalance')}</p>
               <p className="text-2xl font-bold text-[#26272F] mt-1">
                 ৳{Number(d.openingBalance).toLocaleString()}
               </p>
             </div>
             <div className={`border rounded-lg p-5 ${d.netCashFlow >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
               <p className={`text-xs ${d.netCashFlow >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                Net Change in Cash
+                {t('accounting.cashFlow.netChangeInCash')}
               </p>
               <p className={`text-2xl font-bold mt-1 ${d.netCashFlow >= 0 ? 'text-green-700' : 'text-red-600'}`}>
                 {d.netCashFlow >= 0 ? '+' : ''}৳{Number(d.netCashFlow).toLocaleString()}
               </p>
             </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
-              <p className="text-xs text-blue-600">Closing Balance</p>
+              <p className="text-xs text-blue-600">{t('accounting.cashFlow.closingBalance')}</p>
               <p className="text-2xl font-bold text-blue-700 mt-1">
                 ৳{Number(d.closingBalance).toLocaleString()}
               </p>
@@ -124,7 +126,7 @@ const CashFlow = () => {
           </div>
 
           <Section
-            title="Operating Activities"
+            title={t('accounting.cashFlow.operatingActivities')}
             items={d.operating}
             total={d.operatingTotal}
             colorClass="bg-blue-50 text-blue-700"

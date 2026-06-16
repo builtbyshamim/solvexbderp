@@ -29,9 +29,9 @@ function AdminRoleCheck({ children }: { children: React.ReactNode }) {
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const authToken = Cookies.get('access_token');
 
-  // if (!authToken) {
-  //   return <Navigate to="/login" replace />;
-  // }
+  if (!authToken) {
+    return <Navigate to="/login" replace />;
+  }
 
   return <AdminRoleCheck>{children}</AdminRoleCheck>;
 }

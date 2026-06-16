@@ -97,9 +97,10 @@ export class CreatePurchaseDto {
   @IsUUID()
   supplierId?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsUUID()
-  warehouseId: string;
+  warehouseId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -189,6 +190,69 @@ export class GetPurchasesDto {
   @IsNumber()
   @Min(1)
   limit?: number;
+}
+
+export class InvoicePaymentItemDto {
+  @ApiProperty()
+  @IsUUID()
+  purchaseId: string;
+
+  @ApiProperty()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  amount: number;
+}
+
+export class PaySupplierDto {
+  @ApiProperty({ description: 'Total payment amount' })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  amount: number;
+
+  @ApiPropertyOptional({ enum: ['cash', 'bank_transfer', 'bkash', 'nagad', 'rocket', 'card', 'other'] })
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  paymentDate?: string;
+
+  @ApiPropertyOptional({ type: [InvoicePaymentItemDto], description: 'Invoice-wise breakdown; omit for auto-distribute' })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => InvoicePaymentItemDto)
+  invoicePayments?: InvoicePaymentItemDto[];
+}
+
+export class CreateSupplierAdjustmentDto {
+  @ApiProperty({ description: 'Adjustment date (ISO date)' })
+  @IsDateString()
+  date: string;
+
+  @ApiProperty({ enum: ['debit', 'credit'], description: 'debit = we owe more, credit = we owe less' })
+  @IsEnum(['debit', 'credit'])
+  type: 'debit' | 'credit';
+
+  @ApiProperty()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  amount: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  note?: string;
 }
 
 export class GetSuppliersDto {

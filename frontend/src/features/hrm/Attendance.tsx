@@ -1,85 +1,209 @@
 import { useState } from 'react';
-import { Search, Download, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Download, Clock, CheckCircle, XCircle, Plus, Users } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
+import toast from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
+import { useGetAttendanceQuery, useCreateAttendanceMutation, useGetAllEmployeesQuery } from './hrmApi';
+import CommonPagination from '../../components/ui/paginations/CommonPagination';
 
-const attendanceData = [
-  { id: 1, employee: 'Ahmed Raza', code: 'EMP-001', date: '2025-05-26', check_in: '09:02', check_out: '18:05', hours: '9h 03m', status: 'present' },
-  { id: 2, employee: 'Nusrat Jahan', code: 'EMP-002', date: '2025-05-26', check_in: '09:15', check_out: '17:55', hours: '8h 40m', status: 'present' },
-  { id: 3, employee: 'Kamal Hossain', code: 'EMP-003', date: '2025-05-26', check_in: '10:30', check_out: '18:00', hours: '7h 30m', status: 'late' },
-  { id: 4, employee: 'Rina Akter', code: 'EMP-004', date: '2025-05-26', check_in: '—', check_out: '—', hours: '—', status: 'absent' },
-];
+const statusColors: Record<string, string> = {
+  present: 'bg-green-100 text-green-700',
+  late: 'bg-yellow-100 text-yellow-700',
+  absent: 'bg-red-100 text-red-500',
+  half_day: 'bg-blue-100 text-blue-700',
+  on_leave: 'bg-purple-100 text-purple-700',
+};
 
-const statusColors = { present: 'bg-green-100 text-green-700', late: 'bg-yellow-100 text-yellow-700', absent: 'bg-red-100 text-red-500', leave: 'bg-blue-100 text-blue-700' };
+const today = new Date().toISOString().split('T')[0];
 
 const Attendance = () => {
-  const [search, setSearch] = useState('');
-  const [date, setDate] = useState('2025-05-26');
-  const filtered = attendanceData.filter((a) => a.employee.toLowerCase().includes(search.toLowerCase()) || a.code.includes(search));
+  const { t } = useLanguage();
+  const [searchValue, setSearchValue] = useState({ page: 1, limit: 20 });
+  const [filters, setFilters] = useState({ date: today, status: '' });
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ employeeId: '', date: today, checkIn: '', checkOut: '', status: 'present', note: '' });
+
+  const { data, isFetching } = useGetAttendanceQuery({ ...searchValue, ...filters });
+  const { data: empData } = useGetAllEmployeesQuery({ limit: 500 });
+  const [createAttendance, { isLoading: isSaving }] = useCreateAttendanceMutation();
+
+  const records = data?.data || [];
+  const meta = data?.meta || { totalItems: 0, totalPages: 1 };
+  const employees = empData?.data || [];
+
+  const stats = {
+    present: records.filter((r: any) => r.status === 'present').length,
+    late: records.filter((r: any) => r.status === 'late').length,
+    absent: records.filter((r: any) => r.status === 'absent').length,
+    total: records.length,
+  };
+
+  const handleSave = async () => {
+    if (!form.employeeId || !form.date) { toast.error('Employee and date are required'); return; }
+    try {
+      await createAttendance(form).unwrap();
+      toast.success('Attendance recorded');
+      setShowModal(false);
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Failed to record attendance');
+    }
+  };
 
   return (
     <div>
       <PageHeader
         title="Attendance"
-        subtitle="Daily employee attendance records"
-        breadcrumbs={[{ label: 'Home', path: '/admin' }, { label: 'HRM', path: '/admin/hrm/employees' }, { label: 'Attendance' }]}
+        subtitle="Track daily employee attendance"
+        breadcrumbs={[
+          { label: t('common.home'), path: '/admin' },
+          { label: 'HRM', path: '/admin/hrm/employees' },
+          { label: 'Attendance' },
+        ]}
         actions={
-          <button className="flex items-center gap-2 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">
-            <Download className="h-4 w-4" /> Export
+          <button onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f]">
+            <Plus className="h-4 w-4" /> Record Attendance
           </button>
         }
       />
 
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Present', value: attendanceData.filter((a) => a.status === 'present').length, icon: <CheckCircle className="h-5 w-5" />, cls: 'text-green-700 bg-green-50 border-green-200' },
-          { label: 'Late', value: attendanceData.filter((a) => a.status === 'late').length, icon: <Clock className="h-5 w-5" />, cls: 'text-yellow-700 bg-yellow-50 border-yellow-200' },
-          { label: 'Absent', value: attendanceData.filter((a) => a.status === 'absent').length, icon: <XCircle className="h-5 w-5" />, cls: 'text-red-600 bg-red-50 border-red-200' },
-          { label: 'Total', value: attendanceData.length, icon: <Clock className="h-5 w-5" />, cls: 'text-blue-700 bg-blue-50 border-blue-200' },
+          { label: 'Total', value: stats.total, cls: 'text-[#26272F]', bg: 'bg-white border border-[#DBDFE9]', icon: <Users className="h-5 w-5 text-gray-400" /> },
+          { label: 'Present', value: stats.present, cls: 'text-green-700', bg: 'bg-green-50 border border-green-200', icon: <CheckCircle className="h-5 w-5 text-green-600" /> },
+          { label: 'Late', value: stats.late, cls: 'text-yellow-700', bg: 'bg-yellow-50 border border-yellow-200', icon: <Clock className="h-5 w-5 text-yellow-600" /> },
+          { label: 'Absent', value: stats.absent, cls: 'text-red-600', bg: 'bg-red-50 border border-red-200', icon: <XCircle className="h-5 w-5 text-red-500" /> },
         ].map((s) => (
-          <div key={s.label} className={`border rounded-lg p-4 flex items-center gap-3 ${s.cls}`}>
-            {s.icon}
-            <div><p className="text-xs font-medium opacity-70">{s.label}</p><p className="text-xl font-bold">{s.value}</p></div>
+          <div key={s.label} className={`${s.bg} rounded-lg p-4 flex items-center gap-3`}>
+            <div className="flex-shrink-0">{s.icon}</div>
+            <div>
+              <p className="text-xs text-gray-500">{s.label}</p>
+              <p className={`text-xl font-bold ${s.cls}`}>{s.value}</p>
+            </div>
           </div>
         ))}
       </div>
 
       <div className="bg-white border border-[#DBDFE9] rounded-lg shadow-sm">
         <div className="p-4 border-b border-[#DBDFE9] flex flex-col sm:flex-row gap-3">
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+          <input type="date" value={filters.date}
+            onChange={(e) => setFilters({ ...filters, date: e.target.value })}
             className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
-          <div className="relative flex-1 sm:max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input type="text" placeholder="Search employee..." value={search} onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-[#DBDFE9] rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
-          </div>
+          <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
+            <option value="">All Status</option>
+            <option value="present">Present</option>
+            <option value="late">Late</option>
+            <option value="absent">Absent</option>
+            <option value="half_day">Half Day</option>
+            <option value="on_leave">On Leave</option>
+          </select>
+          <span className="text-sm text-gray-500 self-center">{meta.totalItems} records</span>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {['Code', 'Employee', 'Date', 'Check In', 'Check Out', 'Hours', 'Status'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
+                {['Employee', 'Code', 'Date', 'Check In', 'Check Out', 'Hours', 'Status'].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-gray-500">{item.code}</td>
-                  <td className="px-4 py-3 font-medium text-[#26272F]">{item.employee}</td>
-                  <td className="px-4 py-3 text-gray-600">{item.date}</td>
-                  <td className="px-4 py-3 text-green-600 font-medium">{item.check_in}</td>
-                  <td className="px-4 py-3 text-red-500 font-medium">{item.check_out}</td>
-                  <td className="px-4 py-3 text-gray-600">{item.hours}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${statusColors[item.status as keyof typeof statusColors]}`}>{item.status}</span>
-                  </td>
-                </tr>
-              ))}
+              {isFetching ? (
+                <tr><td colSpan={7} className="px-4 py-10 text-center">
+                  <div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#ff6d29] border-t-transparent rounded-full animate-spin" /></div>
+                </td></tr>
+              ) : records.length === 0 ? (
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">No attendance records for this date</td></tr>
+              ) : records.map((rec: any) => {
+                const hours = rec.checkIn && rec.checkOut
+                  ? ((new Date(`1970-01-01T${rec.checkOut}`) - new Date(`1970-01-01T${rec.checkIn}`)) / 3600000).toFixed(1)
+                  : '—';
+                return (
+                  <tr key={rec.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-[#26272F]">{rec.employee?.name ?? rec.employeeId}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400 font-mono">{rec.employee?.employeeCode ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{new Date(rec.date).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-gray-600">{rec.checkIn || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{rec.checkOut || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{hours}h</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${statusColors[rec.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                        {rec.status?.replace('_', ' ')}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+
+        {meta.totalPages > 1 && (
+          <CommonPagination total={meta.totalItems} totalPage={meta.totalPages}
+            setSearchValue={setSearchValue} searchValue={searchValue}
+            limit={searchValue.limit} page={searchValue.page} />
+        )}
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-lg font-semibold text-[#26272F] mb-4">Record Attendance</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Employee <span className="text-red-500">*</span></label>
+                <select value={form.employeeId} onChange={(e) => setForm({ ...form, employeeId: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
+                  <option value="">Select employee...</option>
+                  {employees.map((e: any) => <option key={e.id} value={e.id}>{e.name} ({e.employeeCode})</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
+                    className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
+                    <option value="present">Present</option>
+                    <option value="late">Late</option>
+                    <option value="absent">Absent</option>
+                    <option value="half_day">Half Day</option>
+                    <option value="on_leave">On Leave</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Check In</label>
+                  <input type="time" value={form.checkIn} onChange={(e) => setForm({ ...form, checkIn: e.target.value })}
+                    className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Check Out</label>
+                  <input type="time" value={form.checkOut} onChange={(e) => setForm({ ...form, checkOut: e.target.value })}
+                    className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5 justify-end">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+              <button onClick={handleSave} disabled={isSaving}
+                className="px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] disabled:opacity-60 flex items-center gap-2">
+                {isSaving && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsArray, IsDateString, IsNotEmpty, IsNumber,
+  IsArray, IsDateString, IsEnum, IsNotEmpty, IsNumber,
   IsOptional, IsString, IsUUID, Min, ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -30,6 +30,11 @@ export class GetCustomersDto {
 
 // ─── Sale DTOs ─────────────────────────────────────────────────────────────────
 
+export class PaymentEntryDto {
+  @ApiProperty() @IsString() @IsNotEmpty() method: string;
+  @ApiProperty() @Type(() => Number) @IsNumber() @Min(0) amount: number;
+}
+
 export class SaleItemDto {
   @ApiProperty() @IsUUID() productId: string;
   @ApiProperty() @Type(() => Number) @IsNumber() @Min(0.0001) quantity: number;
@@ -39,7 +44,7 @@ export class SaleItemDto {
 
 export class CreateSaleDto {
   @ApiPropertyOptional() @IsOptional() @IsUUID() customerId?: string;
-  @ApiProperty() @IsUUID() warehouseId: string;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() warehouseId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() invoiceNo?: string;
   @ApiProperty() @IsDateString() saleDate: string;
   @ApiProperty({ type: [SaleItemDto] }) @IsArray() @ValidateNested({ each: true }) @Type(() => SaleItemDto) items: SaleItemDto[];
@@ -47,6 +52,9 @@ export class CreateSaleDto {
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) taxAmount?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) paidAmount?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() paymentMethod?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) deliveryCharge?: number;
+  @ApiPropertyOptional() @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => PaymentEntryDto) payments?: PaymentEntryDto[];
+  @ApiPropertyOptional() @IsOptional() @IsString() offerLabel?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
 }
 
@@ -65,6 +73,27 @@ export class CollectPaymentDto {
   @ApiProperty() @Type(() => Number) @IsNumber() @Min(0.01) amount: number;
   @ApiPropertyOptional() @IsOptional() @IsString() paymentMethod?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
+}
+
+export class CreateCustomerAdjustmentDto {
+  @ApiProperty({ description: 'Adjustment date (ISO date)' })
+  @IsDateString()
+  date: string;
+
+  @ApiProperty({ enum: ['debit', 'credit'], description: 'debit = they owe more, credit = they owe less' })
+  @IsEnum(['debit', 'credit'])
+  type: 'debit' | 'credit';
+
+  @ApiProperty()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  amount: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  note?: string;
 }
 
 // ─── Quotation DTOs ───────────────────────────────────────────────────────────

@@ -23,8 +23,28 @@ export const salesApi = baseApi.injectEndpoints({
       }),
       providesTags: (result, error, { customerId }) => [{ type: tagTypes.customer, id: customerId }],
     }),
+
+    createCustomerAdjustment: build.mutation({
+      query: ({ customerId, data }: { customerId: string; data: any }) => ({
+        url: `${CUSTOMER_URL}/${customerId}/adjust`,
+        method: "POST",
+        data,
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: tagTypes.customer, id: arg.customerId },
+        { type: tagTypes.customer, id: "LIST" },
+      ],
+    }),
     createCustomer: build.mutation({
       query: (data) => ({ url: CUSTOMER_URL, method: "POST", data }),
+      invalidatesTags: [{ type: tagTypes.customer, id: "LIST" }],
+    }),
+    importCustomers: build.mutation({
+      query: (formData: FormData) => ({
+        url: `${CUSTOMER_URL}/import`,
+        method: "POST",
+        data: formData,
+      }),
       invalidatesTags: [{ type: tagTypes.customer, id: "LIST" }],
     }),
     updateCustomer: build.mutation({
@@ -65,7 +85,25 @@ export const salesApi = baseApi.injectEndpoints({
       query: ({ id, data }: { id: string; data: any }) => ({
         url: `${SALE_URL}/${id}/collect-payment`, method: "POST", data,
       }),
-      invalidatesTags: [{ type: tagTypes.sale, id: "LIST" }, { type: tagTypes.customer, id: "LIST" }],
+      invalidatesTags: [
+        { type: tagTypes.sale, id: "LIST" },
+        { type: tagTypes.customer, id: "LIST" },
+        { type: tagTypes.collection, id: "LIST" },
+      ],
+    }),
+    collectBulkPayment: build.mutation({
+      query: ({ customerId, data }: { customerId: string; data: any }) => ({
+        url: `${CUSTOMER_URL}/${customerId}/collect`, method: "POST", data,
+      }),
+      invalidatesTags: [
+        { type: tagTypes.sale, id: "LIST" },
+        { type: tagTypes.customer, id: "LIST" },
+        { type: tagTypes.collection, id: "LIST" },
+      ],
+    }),
+    getCollectionReport: build.query({
+      query: (params) => ({ url: `${SALE_URL}/collections`, method: "GET", params }),
+      providesTags: [{ type: tagTypes.collection, id: "LIST" }],
     }),
     getSalesDashboardStats: build.query({
       query: () => ({ url: `${SALE_URL}/dashboard-stats`, method: "GET" }),
@@ -125,11 +163,14 @@ export const {
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
   useDeleteCustomerMutation,
+  useImportCustomersMutation,
   useGetAllSalesQuery,
   useGetSaleQuery,
   useCreateSaleMutation,
   useCancelSaleMutation,
   useCollectPaymentMutation,
+  useCollectBulkPaymentMutation,
+  useGetCollectionReportQuery,
   useGetSalesDashboardStatsQuery,
   useGetAllQuotationsQuery,
   useCreateQuotationMutation,
@@ -138,4 +179,5 @@ export const {
   useGetAllSaleReturnsQuery,
   useCreateSaleReturnMutation,
   useApproveReturnMutation,
+  useCreateCustomerAdjustmentMutation,
 } = salesApi;

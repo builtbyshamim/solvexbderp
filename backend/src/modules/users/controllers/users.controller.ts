@@ -6,10 +6,14 @@ import {
   Param,
   Delete,
   Patch,
-  Req,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { UsersService } from '../services/users.service';
 import { UserEntity } from '../entities/user.entity';
 import { RegisterUserDto } from '../dto/create-user.dto';
@@ -18,135 +22,135 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/shared/enums/user-role.enum';
 import { GetAllUsersDto } from '../dto/get-all-users.dto';
+import { UpdateRoleDto } from '../dto/update-role.dto';
+import { UpdatePermissionsDto } from '../dto/update-permissions.dto';
+import { InviteUserDto } from '../dto/invite-user.dto';
+
 export interface AuthRequest extends Request {
   user: {
     id: string;
     email: string;
     name: string;
-    role: string;
+    role: UserRole;
+    businessId: string | null;
+    customPermissions: string[];
   };
 }
 
 @ApiTags('Users')
+@ApiBearerAuth()
 @Controller({
   path: 'users',
   version: '1',
 })
 export class UsersController {
-  constructor(
-    private readonly usersService: UsersService
-  ) { }
-  // Create user
+  constructor(private readonly usersService: UsersService) {}
+
+  // ─── Public Registration ──────────────────────────────────────────────────
+
   @Post('register')
-  @ApiOperation({ summary: 'Create a new user' })
-  @ApiResponse({
-    status: 201,
-    description: 'User created successfully',
-    type: UserEntity,
-  })
   @PublicRoute()
+  @ApiOperation({ summary: 'Initiate registration (sends OTP)' })
+  @ApiResponse({ status: 201, type: UserEntity })
   create(@Body() registerUserDto: RegisterUserDto) {
     return this.usersService.initiateRegistration(registerUserDto);
   }
 
-
-
-
   @Post('verify-otp')
-  @ApiOperation({ summary: 'Verify OTP' })
-  @ApiResponse({
-    status: 200,
-    description: 'OTP verified successfully',
-    type: UserEntity,
-  })
   @PublicRoute()
+  @ApiOperation({ summary: 'Verify OTP and create account' })
   verifyOtp(@Body() otpDto: { email: string; otp: string }) {
     return this.usersService.verifyOtp(otpDto.email, otpDto.otp);
   }
 
+  // ─── Role & Permission Reference ─────────────────────────────────────────
 
+  @Get('permissions/roles')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @ApiOperation({ summary: 'Get default permissions for each role' })
+  getRolePermissions() {
+    return this.usersService.getRolePermissionsMap();
+  }
 
-  // // Get all users
-  // @Get()
-  // @ApiOperation({ summary: 'Get all users' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'List of users',
-  //   type: [UserEntity],
-  // })
-  // findAll() {
-  //   return this.usersService.findAll();
-  // }
+  // ─── User Listing ─────────────────────────────────────────────────────────
 
-  // // Get single user
-  // @Get(':id')
-  // @ApiOperation({ summary: 'Get user by ID' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'User found',
-  //   type: UserEntity,
-  // })
-  // findOne(@Param('id') id: string) {
-  //   return this.usersService.findOne(id);
-  // }
-
-  // // Update user
-  // @Patch(':id')
-  // @ApiOperation({ summary: 'Update user by ID' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'User updated successfully',
-  // })
-  // update(
-  //   @Param('id') id: string,
-  //   @Body() updateUserDto: Partial<RegisterUserDto>,
-  // ) {
-  //   return this.usersService.update(id, updateUserDto);
-  // }
-
-  // // Delete user (soft delete later)
-  // @Delete(':id')
-  // @ApiOperation({ summary: 'Delete user by ID' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'User deleted successfully',
-  // })
-  // remove(@Param('id') id: string) {
-  //   return this.usersService.remove(id);
-  // }
-
-  /**
- * GET /v1/users
- * Query params: page, limit, search, sortBy, sortOrder, role
- * Protected: ADMIN only
- */
   @Get()
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get all users (Admin only)' })
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @ApiOperation({ summary: 'Get all users (Admin/Manager only)' })
   @ApiResponse({ status: 200, description: 'Paginated list of users' })
   findAll(@Query() query: GetAllUsersDto) {
     return this.usersService.findAll(query);
   }
 
-  /**
-   * GET /users/profile
-   * Get logged-in user's profile (fetched fresh from DB)
-   */
+  // ─── Current User Profile ────────────────────────────────────────────────
+
   @Get('profile')
-  @Roles(UserRole.ADMIN, UserRole.USER, UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Get logged-in user profile' })
-  @ApiResponse({ status: 200, description: 'Return user profile' })
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.CASHIER, UserRole.EMPLOYEE)
+  @ApiOperation({ summary: 'Get logged-in user profile with permissions' })
   async getProfile(@CurrentUser() user: UserEntity) {
-    const fresh = await this.usersService.findById(user.id);
-    if (!fresh) return null;
-    return {
-      id: fresh.id,
-      email: fresh.email,
-      name: fresh.name,
-      mobile: fresh.mobile,
-      avatar: fresh.avatar,
-      role: fresh.role,
-      isVerified: fresh.isVerified,
-    };
+    return this.usersService.findOneWithPermissions(user.id);
+  }
+
+  // ─── Get Single User (must come after named routes like /profile, /permissions/roles) ──
+
+  @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @ApiOperation({ summary: 'Get user by ID with effective permissions' })
+  findOne(@Param('id') id: string) {
+    return this.usersService.findOneWithPermissions(id);
+  }
+
+  // ─── Invite / Create Staff User ───────────────────────────────────────────
+
+  @Post('invite')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Invite a new staff member to the business' })
+  inviteUser(
+    @Body() dto: InviteUserDto,
+    @CurrentUser() user: UserEntity & { businessId: string | null; role: UserRole },
+  ) {
+    return this.usersService.inviteUser(dto, {
+      id: user.id,
+      role: user.role,
+      businessId: (user as any).businessId ?? null,
+    });
+  }
+
+  // ─── Role Update ─────────────────────────────────────────────────────────
+
+  @Patch(':id/role')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Change a user\'s role' })
+  updateRole(
+    @Param('id') id: string,
+    @Body() dto: UpdateRoleDto,
+    @CurrentUser() user: UserEntity & { role: UserRole; businessId: string | null },
+  ) {
+    return this.usersService.updateRole(id, dto.role, {
+      id: user.id,
+      role: user.role,
+      businessId: (user as any).businessId ?? null,
+    });
+  }
+
+  // ─── Permission Update ────────────────────────────────────────────────────
+
+  @Patch(':id/permissions')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Set custom permission overrides for a user' })
+  updatePermissions(
+    @Param('id') id: string,
+    @Body() dto: UpdatePermissionsDto,
+  ) {
+    return this.usersService.updatePermissions(id, dto.permissions);
+  }
+
+  // ─── Delete ───────────────────────────────────────────────────────────────
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Remove a user (soft delete)' })
+  remove(@Param('id') id: string) {
+    return this.usersService.softDelete(id);
   }
 }
