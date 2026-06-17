@@ -42,11 +42,11 @@ const InvoicePOS = () => {
   const payments: any[] = sale.payments ?? [];
 
   const settings = (() => {
-    try { return JSON.parse(localStorage.getItem('bizcore_invoice_settings') || '{}'); } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem('solvexbd_invoice_settings') || '{}'); } catch { return {}; }
   })();
 
   const footerMsg = settings.invoiceFooter || 'Thank you for your purchase!';
-  const bizName = biz?.name ?? biz?.businessName ?? 'BizCore ERP';
+  const bizName = biz?.name ?? biz?.businessName ?? 'SolvexBD ERP';
   const bizPhone = biz?.phone ?? '';
   const bizAddress = biz?.address ?? '';
 

@@ -21,7 +21,7 @@ export const productApi = baseApi.injectEndpoints({
         url: `${COMMON_URL}/${id}`,
         method: "GET",
       }),
-      providesTags: (result, error, id) => [{ type: tagTypes.product, id }],
+      providesTags: (_result, _error, id) => [{ type: tagTypes.product, id }],
     }),
 
     // ✅ CREATE PRODUCT
@@ -41,7 +41,7 @@ export const productApi = baseApi.injectEndpoints({
         method: "PATCH",
         data: data,
       }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_result, _error, arg) => [
         { type: tagTypes.product, id: arg.id },
         { type: tagTypes.product, id: "LIST" },
       ],
@@ -53,7 +53,7 @@ export const productApi = baseApi.injectEndpoints({
         url: `${COMMON_URL}/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, id) => [
+      invalidatesTags: (_result, _error, id) => [
         { type: tagTypes.product, id },
         { type: tagTypes.product, id: "LIST" },
       ],
@@ -75,7 +75,7 @@ export const productApi = baseApi.injectEndpoints({
         method: "POST",
         data: formData,
       }),
-      invalidatesTags: (result, error, { productId }) => [
+      invalidatesTags: (_result, _error, { productId }) => [
         { type: tagTypes.productImage, id: productId },
       ],
     }),
@@ -86,7 +86,7 @@ export const productApi = baseApi.injectEndpoints({
         url: `/products/images/${imageId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, { productId }) => [
+      invalidatesTags: (_result, _error, { productId }) => [
         { type: tagTypes.productImage, id: productId },
       ],
     }),
@@ -97,7 +97,7 @@ export const productApi = baseApi.injectEndpoints({
         url: `/products/images/${imageId}/thumbnail/${productId}`,
         method: "PATCH",
       }),
-      invalidatesTags: (result, error, { productId }) => [
+      invalidatesTags: (_result, _error, { productId }) => [
         { type: tagTypes.productImage, id: productId },
       ],
     }),

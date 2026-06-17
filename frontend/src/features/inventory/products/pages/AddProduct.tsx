@@ -73,7 +73,23 @@ const AddProduct = () => {
     watch,
     formState: { errors, isSubmitting },
   } = useForm({
-    defaultValues: { isActive: true, productType: 'physical', barcode: '' },
+    defaultValues: {
+      name: '',
+      sku: '',
+      barcode: '',
+      description: '',
+      productType: 'physical',
+      categoryId: '',
+      brandId: '',
+      unitId: '',
+      warrantyId: '',
+      purchasePrice: '',
+      sellingPrice: '',
+      wholesalePrice: '',
+      openingStock: '',
+      alertQuantity: '',
+      isActive: true,
+    },
   });
 
   const barcodeValue = watch('barcode') as string;

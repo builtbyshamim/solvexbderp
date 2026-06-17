@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  Bell, Eye, RotateCcw, Save, ChevronDown, ChevronUp,
+  Eye, RotateCcw, Save, ChevronDown, ChevronUp,
   ShoppingCart, CreditCard, PackageX, Info, CheckCircle2,
 } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
@@ -187,7 +187,6 @@ const SmsNotifications = () => {
       <PageHeader
         title="SMS Notifications"
         subtitle="Auto-send SMS to customers on key events. Customize templates with dynamic variables."
-        icon={<Bell className="w-6 h-6" />}
       />
 
       {/* Info banner */}

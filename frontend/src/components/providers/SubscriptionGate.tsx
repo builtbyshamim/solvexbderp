@@ -43,9 +43,9 @@ function SubscriptionLockedPage({ status, daysLeft, expiresAt }: {
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-lg bg-[#ff6d29] flex items-center justify-center">
-            <span className="text-white font-black text-xs">B</span>
+            <span className="text-white font-black text-xs">SX</span>
           </div>
-          <span className="font-bold text-[#26272F] text-sm">BizCore ERP</span>
+          <span className="font-bold text-[#26272F] text-sm">SolvexBD ERP</span>
         </div>
         <div className="flex items-center gap-3">
           <Link
@@ -100,7 +100,7 @@ function SubscriptionLockedPage({ status, daysLeft, expiresAt }: {
                 ? 'Your account has been suspended by the administrator. Please contact support to resolve this.'
                 : isExpired
                 ? `Your subscription expired${expiresAt ? ` on ${new Date(expiresAt).toLocaleDateString()}` : ''}. Renew now to regain access to all features.`
-                : 'Your free trial has ended. Choose a plan below to continue using BizCore ERP.'}
+                : 'Your free trial has ended. Choose a plan below to continue using SolvexBD ERP.'}
             </p>
             {daysLeft !== null && daysLeft > 0 && isTrial && (
               <p className="text-xs text-blue-500 font-semibold mt-1.5">
@@ -177,7 +177,7 @@ function SubscriptionLockedPage({ status, daysLeft, expiresAt }: {
                     </ul>
 
                     <a
-                      href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Hi! I want to subscribe to BizCore ${plan.name} plan.`)}`}
+                      href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Hi! I want to subscribe to SolvexBD ${plan.name} plan.`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${
@@ -206,7 +206,7 @@ function SubscriptionLockedPage({ status, daysLeft, expiresAt }: {
             View All Plans <ArrowRight className="h-3.5 w-3.5" />
           </Link>
           <a
-            href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hi! I need help with my BizCore subscription.')}`}
+            href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hi! I need help with my SolvexBD subscription.')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] text-white text-sm font-semibold transition-colors"
@@ -229,7 +229,7 @@ interface SubscriptionGateProps {
 }
 
 export default function SubscriptionGate({ children }: SubscriptionGateProps) {
-  const { data: meData, isLoading } = useFetchMeQuery();
+  const { data: meData, isLoading } = useFetchMeQuery(undefined);
   const { pathname } = useLocation();
 
   const isSubscriptionPage = pathname === '/admin/settings/subscription';

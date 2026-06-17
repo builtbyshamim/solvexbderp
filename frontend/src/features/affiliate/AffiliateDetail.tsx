@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, DollarSign, TrendingUp } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { RefreshCw, DollarSign, TrendingUp } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import {
   useGetAffiliateByIdQuery,
@@ -29,7 +29,6 @@ const months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','
 
 export default function AffiliateDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { data: res, isLoading } = useGetAffiliateByIdQuery(id!);
   const affiliate = res?.data ?? res;
 

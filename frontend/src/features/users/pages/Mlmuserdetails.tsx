@@ -21,10 +21,7 @@ import {
   useGetBinaryStatsQuery,
   useCountBinaryLevelQuery,
   useGetMatrixTreeQuery,
-  useGetMatrixStatsQuery,
-  useGetDirectReferralsQuery,
   useGetReferralSummaryQuery,
-  useRegisterWithReferralMutation,
 } from '../mlmApi';
 
 // ─── RTK Query API Slice (Create this in your project) ──────────────────────

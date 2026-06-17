@@ -1,6 +1,4 @@
-import React from 'react';
-
-const SearchInput = ({placeholder="Search here..",onChange}) => {
+const SearchInput = ({ placeholder = "Search here..", onChange }: { placeholder?: string; onChange: (value: string) => void }) => {
     return (
         <>
             <div className={'relative'}>

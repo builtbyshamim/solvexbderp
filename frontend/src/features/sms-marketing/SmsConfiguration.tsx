@@ -92,7 +92,7 @@ const SmsConfiguration = () => {
   const handleTest = async () => {
     if (!testPhone.trim()) return toast.error('Enter a phone number for testing');
     try {
-      const res = await testSms({ phone: testPhone, message: 'Test SMS from BizCore ERP. Configuration is working correctly.' }).unwrap();
+      const res = await testSms({ phone: testPhone, message: 'Test SMS from SolvexBD ERP. Configuration is working correctly.' }).unwrap();
       setTestResult(res);
       if (res.success) toast.success('Test SMS sent!');
       else toast.error('Test failed — check your configuration');
@@ -211,7 +211,7 @@ const SmsConfiguration = () => {
                   {/* Sender ID */}
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">{t('sms.config.senderId')} <span className="text-red-500">*</span></label>
-                    <input type="text" placeholder="e.g. BizCore or 01700000000"
+                    <input type="text" placeholder="e.g. SolvexBD or 01700000000"
                       value={form.senderId}
                       onChange={(e) => setForm({ ...form, senderId: e.target.value })}
                       className="w-full px-3 py-2.5 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />

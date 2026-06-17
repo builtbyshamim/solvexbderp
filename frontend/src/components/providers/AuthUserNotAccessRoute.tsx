@@ -1,13 +1,11 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import Cookies from "js-cookie";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 interface Props {
   children: ReactNode;
 }
 
 export default function AuthUserNotAccessRoute({ children }: Props) {
-  const { pathname } = useLocation();
-
   const authToken = Cookies.get("access_token");
 
   // If user is already logged in, block access to auth pages (login/register)

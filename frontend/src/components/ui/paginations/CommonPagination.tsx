@@ -6,26 +6,25 @@ import {
 } from "react-icons/md";
 
 const CommonPagination = ({
-  total, 
-  totalPage, 
+  total,
+  totalPage,
   setSearchValue,
-  searchValue,
   limit,
   page,
 }: any) => {
   // Page change handle
-  const handlePageClick = ({ selected }) => {
-    setSearchValue((prev) => ({ ...prev, page: selected + 1 }));
+  const handlePageClick = ({ selected }: { selected: number }) => {
+    setSearchValue((prev: any) => ({ ...prev, page: selected + 1 }));
   };
 
   // Rows per page (Limit) change handle
-  const handleLimitChange = (e) => {
+  const handleLimitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLimit = parseInt(e.target.value, 10);
     if (newLimit >= 1) {
-      setSearchValue((prev) => ({
+      setSearchValue((prev: any) => ({
         ...prev,
         limit: newLimit,
-        page: 1, // Limit change korle page oboshoy 1-e nite hobe
+        page: 1,
       }));
     }
   };
@@ -63,12 +62,11 @@ const CommonPagination = ({
 
       {/* Right: Pagination Navigation */}
       <ReactPaginate
-        forcePage={page - 1} // Syncs external state with component
+        forcePage={page - 1}
         onPageChange={handlePageClick}
         pageCount={totalPage || 1}
         marginPagesDisplayed={1}
         pageRangeDisplayed={2}
-        // Styling Classes
         containerClassName="flex items-center gap-1 list-none"
         pageLinkClassName="w-7 h-7 flex items-center justify-center rounded-md border border-gray-200 text-sm font-medium hover:bg-primary-500 hover:text-white cursor-pointer  transition-colors"
         activeLinkClassName="bg-primary-500 text-white border-primary-500 shadow-sm"

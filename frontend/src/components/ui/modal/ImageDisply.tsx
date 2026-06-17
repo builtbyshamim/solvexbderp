@@ -11,6 +11,7 @@ export const ImageDisplay = ({
   alt: string;
   className?: string;
   fallbackSrc?: string;
+  handlePreview?: (src: string) => void;
 }) => {
   const [imgSrc, setImgSrc] = useState(src || fallbackSrc);
   const [loading, setLoading] = useState(true);

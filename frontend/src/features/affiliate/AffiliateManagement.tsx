@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Users, TrendingUp, DollarSign, Clock, CheckCircle, XCircle,
-  Search, ChevronRight, RefreshCw, AlertCircle,
+  Users, TrendingUp, DollarSign, Clock, CheckCircle,
+  Search, ChevronRight, RefreshCw,
 } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import {

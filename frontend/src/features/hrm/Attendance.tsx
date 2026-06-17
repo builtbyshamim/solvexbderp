@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Download, Clock, CheckCircle, XCircle, Plus, Users } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Plus, Users } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
@@ -120,7 +120,7 @@ const Attendance = () => {
                 <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">No attendance records for this date</td></tr>
               ) : records.map((rec: any) => {
                 const hours = rec.checkIn && rec.checkOut
-                  ? ((new Date(`1970-01-01T${rec.checkOut}`) - new Date(`1970-01-01T${rec.checkIn}`)) / 3600000).toFixed(1)
+                  ? ((new Date(`1970-01-01T${rec.checkOut}`).getTime() - new Date(`1970-01-01T${rec.checkIn}`).getTime()) / 3600000).toFixed(1)
                   : '—';
                 return (
                   <tr key={rec.id} className="hover:bg-gray-50 transition-colors">

@@ -6,7 +6,6 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
-  Star,
   Users,
   ShoppingBag,
   Warehouse,

@@ -21,7 +21,7 @@ export const categoryApi = baseApi.injectEndpoints({
         url: `${COMMON_URL}/${id}`,
         method: "GET",
       }),
-      providesTags: (result, error, id) => [{ type: tagTypes.category, id }],
+      providesTags: (_result, _error, id) => [{ type: tagTypes.category, id }],
     }),
 
     // ✅ CREATE
@@ -43,7 +43,7 @@ export const categoryApi = baseApi.injectEndpoints({
         data,
         contentType: "multipart/form-data",
       }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_result, _error, arg) => [
         { type: tagTypes.category, id: arg.id },
         { type: tagTypes.category, id: "LIST" },
       ],
@@ -55,7 +55,7 @@ export const categoryApi = baseApi.injectEndpoints({
         url: `${COMMON_URL}/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: (result, error, id) => [
+      invalidatesTags: (_result, _error, id) => [
         { type: tagTypes.category, id },
         { type: tagTypes.category, id: "LIST" },
       ],

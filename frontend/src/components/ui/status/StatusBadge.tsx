@@ -1,5 +1,4 @@
-import React from 'react';
- export const StatusBadge = ({ isActive }:any) => {
+export const StatusBadge = ({ isActive }:any) => {
   const statusConfig = isActive
     ? {
         label: 'Active',

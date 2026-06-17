@@ -13,7 +13,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
       <LanguageProvider>
           <ReduxProviders>
-              <PersistGate loading={null} persistor={persistor}>
+              <PersistGate loading={null} persistor={persistor!}>
                   <RouterProvider router={router}></RouterProvider>
                   <Toaster
                       position="top-center"

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Plus, CheckCircle2, RotateCcw } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';

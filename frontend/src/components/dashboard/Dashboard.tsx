@@ -24,8 +24,8 @@ const Dashboard = () => {
 
   const { data: salesData } = useGetSalesSummaryQuery({ dateFrom: today, dateTo: today });
   const { data: monthlyData } = useGetSalesByDateQuery({ dateFrom: firstOfMonth, dateTo: today });
-  const { data: receivablesData } = useGetReceivablesQuery();
-  const { data: payablesData } = useGetPayablesQuery();
+  const { data: receivablesData } = useGetReceivablesQuery(undefined);
+  const { data: payablesData } = useGetPayablesQuery(undefined);
   const { data: productsData } = useGetAllProductsQuery({ limit: 500 });
   const { data: empData } = useGetAllEmployeesQuery({ limit: 1, page: 1 });
 
@@ -192,7 +192,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-end gap-1.5 h-44">
-            {chartData.map((d, i) => (
+            {chartData.map((d: any, i: number) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-0.5 group">
                 <div className="relative w-full flex items-end justify-center h-36">
                   <div className="w-full bg-[#ff6d29] rounded-t transition-all duration-300 group-hover:bg-[#e65a1f]"

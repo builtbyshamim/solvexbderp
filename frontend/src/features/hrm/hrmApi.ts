@@ -12,7 +12,7 @@ export const hrmApi = baseApi.injectEndpoints({
     }),
     getEmployee: build.query({
       query: (id: string) => ({ url: `${HRM_URL}/employees/${id}`, method: "GET" }),
-      providesTags: (result, error, id) => [{ type: tagTypes.employee, id }],
+      providesTags: (_result, _error, id) => [{ type: tagTypes.employee, id }],
     }),
     createEmployee: build.mutation({
       query: (data) => ({ url: `${HRM_URL}/employees`, method: "POST", data }),
@@ -22,7 +22,7 @@ export const hrmApi = baseApi.injectEndpoints({
       query: ({ id, data }: { id: string; data: any }) => ({
         url: `${HRM_URL}/employees/${id}`, method: "PATCH", data,
       }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_result, _error, arg) => [
         { type: tagTypes.employee, id: arg.id },
         { type: tagTypes.employee, id: "LIST" },
       ],
@@ -47,7 +47,7 @@ export const hrmApi = baseApi.injectEndpoints({
         method: "GET",
         params: { month, year },
       }),
-      providesTags: (result, error, arg) => [{ type: tagTypes.attendance, id: arg.employeeId }],
+      providesTags: (_result, _error, arg) => [{ type: tagTypes.attendance, id: arg.employeeId }],
     }),
 
     // Leave

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Plus, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
@@ -121,7 +121,7 @@ const Leave = () => {
                 <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">No leave requests</td></tr>
               ) : leaves.map((item: any) => {
                 const days = item.startDate && item.endDate
-                  ? Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / 86400000) + 1
+                  ? Math.ceil((new Date(item.endDate).getTime() - new Date(item.startDate).getTime()) / 86400000) + 1
                   : item.days ?? '—';
                 return (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">

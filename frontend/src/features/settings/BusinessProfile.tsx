@@ -10,7 +10,7 @@ const inp = 'w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:o
 
 const BusinessProfile = () => {
   const { t } = useLanguage();
-  const { data, isLoading } = useGetBusinessProfileQuery();
+  const { data, isLoading } = useGetBusinessProfileQuery(undefined);
   const [updateProfile, { isLoading: isSaving }] = useUpdateBusinessProfileMutation();
   const { register, handleSubmit, reset } = useForm();
 
@@ -53,12 +53,12 @@ const BusinessProfile = () => {
   return (
     <div>
       <PageHeader
-        title={t('settings.businessProfile.title')}
-        subtitle={t('settings.businessProfile.subtitle')}
+        title={t('settings.business.title')}
+        subtitle={t('settings.business.subtitle')}
         breadcrumbs={[
           { label: t('common.home'), path: '/admin' },
           { label: t('nav.settings') },
-          { label: t('settings.businessProfile.title') },
+          { label: t('settings.business.title') },
         ]}
       />
 

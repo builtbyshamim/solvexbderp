@@ -16,7 +16,7 @@ const statusColors: Record<string, string> = {
 const now = new Date();
 const defaultPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-const FORM_DEFAULT = { employeeId: '', period: defaultPeriod, year: now.getFullYear(), rating: 3, comment: '' };
+const FORM_DEFAULT = { employeeId: '', period: defaultPeriod, year: now.getFullYear(), rating: 3, comment: '', salesTarget: '', salesActual: '', qualityRating: 3 };
 
 const KPI = () => {
   const { t } = useLanguage();

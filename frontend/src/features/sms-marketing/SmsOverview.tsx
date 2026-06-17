@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MessageSquare, Send, BarChart2, FileText, TrendingUp, CheckCircle,
-  XCircle, Clock, ChevronRight, Zap, Users, Plus
+  XCircle, ChevronRight, Zap, Users, Plus
 } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import { useGetSmsStatsQuery } from './smsMarketingApi';

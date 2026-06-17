@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 import { useForm } from 'react-hook-form';
 
-const STORAGE_KEY = 'bizcore_invoice_settings';
+const STORAGE_KEY = 'solvexbd_invoice_settings';
 
 const defaultValues = {
   invoicePrefix: 'INV-',
@@ -44,12 +44,12 @@ const InvoiceSettings = () => {
   return (
     <div>
       <PageHeader
-        title={t('settings.invoiceSettings.title')}
-        subtitle={t('settings.invoiceSettings.subtitle')}
+        title={t('settings.invoice.title')}
+        subtitle={t('settings.invoice.subtitle')}
         breadcrumbs={[
           { label: t('common.home'), path: '/admin' },
           { label: t('nav.settings') },
-          { label: t('settings.invoiceSettings.title') },
+          { label: t('settings.invoice.title') },
         ]}
       />
 

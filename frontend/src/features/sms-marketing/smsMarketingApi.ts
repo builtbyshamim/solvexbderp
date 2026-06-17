@@ -18,7 +18,7 @@ export const smsMarketingApi = baseApi.injectEndpoints({
     }),
     getSmsTemplate: build.query({
       query: (id: string) => ({ url: `${SMS}/templates/${id}`, method: "GET" }),
-      providesTags: (result, error, id) => [{ type: tagTypes.smsTemplate, id }],
+      providesTags: (_result, _error, id) => [{ type: tagTypes.smsTemplate, id }],
     }),
     createSmsTemplate: build.mutation({
       query: (data) => ({ url: `${SMS}/templates`, method: "POST", data }),
@@ -26,7 +26,7 @@ export const smsMarketingApi = baseApi.injectEndpoints({
     }),
     updateSmsTemplate: build.mutation({
       query: ({ id, ...data }: { id: string; [key: string]: any }) => ({ url: `${SMS}/templates/${id}`, method: "PATCH", data }),
-      invalidatesTags: (result, error, arg) => [{ type: tagTypes.smsTemplate, id: arg.id }, { type: tagTypes.smsTemplate, id: "LIST" }],
+      invalidatesTags: (_result, _error, arg) => [{ type: tagTypes.smsTemplate, id: arg.id }, { type: tagTypes.smsTemplate, id: "LIST" }],
     }),
     deleteSmsTemplate: build.mutation({
       query: (id: string) => ({ url: `${SMS}/templates/${id}`, method: "DELETE" }),
@@ -55,22 +55,22 @@ export const smsMarketingApi = baseApi.injectEndpoints({
     }),
     getGroupMembers: build.query({
       query: ({ groupId, ...params }: { groupId: string; [key: string]: any }) => ({ url: `${SMS}/groups/${groupId}/members`, method: "GET", params }),
-      providesTags: (result, error, arg) => [{ type: tagTypes.smsCampaign, id: `MEMBERS-${arg.groupId}` }],
+      providesTags: (_result, _error, arg) => [{ type: tagTypes.smsCampaign, id: `MEMBERS-${arg.groupId}` }],
     }),
     addGroupMembers: build.mutation({
       query: ({ groupId, members }: { groupId: string; members: any[] }) => ({ url: `${SMS}/groups/${groupId}/members`, method: "POST", data: { members } }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_result, _error, arg) => [
         { type: tagTypes.smsCampaign, id: `MEMBERS-${arg.groupId}` },
         { type: tagTypes.smsCampaign, id: "GROUPS" },
       ],
     }),
     removeGroupMember: build.mutation({
       query: ({ groupId, memberId }: { groupId: string; memberId: string }) => ({ url: `${SMS}/groups/${groupId}/members/${memberId}`, method: "DELETE" }),
-      invalidatesTags: (result, error, arg) => [{ type: tagTypes.smsCampaign, id: `MEMBERS-${arg.groupId}` }, { type: tagTypes.smsCampaign, id: "GROUPS" }],
+      invalidatesTags: (_result, _error, arg) => [{ type: tagTypes.smsCampaign, id: `MEMBERS-${arg.groupId}` }, { type: tagTypes.smsCampaign, id: "GROUPS" }],
     }),
     importCustomersToGroup: build.mutation({
       query: (groupId: string) => ({ url: `${SMS}/groups/${groupId}/import-customers`, method: "POST" }),
-      invalidatesTags: (result, error, groupId) => [{ type: tagTypes.smsCampaign, id: `MEMBERS-${groupId}` }, { type: tagTypes.smsCampaign, id: "GROUPS" }],
+      invalidatesTags: (_result, _error, groupId) => [{ type: tagTypes.smsCampaign, id: `MEMBERS-${groupId}` }, { type: tagTypes.smsCampaign, id: "GROUPS" }],
     }),
 
     // ── Campaigns ────────────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ export const smsMarketingApi = baseApi.injectEndpoints({
     }),
     getSmsCampaign: build.query({
       query: (id: string) => ({ url: `${SMS}/campaigns/${id}`, method: "GET" }),
-      providesTags: (result, error, id) => [{ type: tagTypes.smsCampaign, id }],
+      providesTags: (_result, _error, id) => [{ type: tagTypes.smsCampaign, id }],
     }),
     createSmsCampaign: build.mutation({
       query: (data) => ({ url: `${SMS}/campaigns`, method: "POST", data }),
@@ -88,7 +88,7 @@ export const smsMarketingApi = baseApi.injectEndpoints({
     }),
     updateSmsCampaign: build.mutation({
       query: ({ id, ...data }: { id: string; [key: string]: any }) => ({ url: `${SMS}/campaigns/${id}`, method: "PATCH", data }),
-      invalidatesTags: (result, error, arg) => [{ type: tagTypes.smsCampaign, id: arg.id }, { type: tagTypes.smsCampaign, id: "LIST" }],
+      invalidatesTags: (_result, _error, arg) => [{ type: tagTypes.smsCampaign, id: arg.id }, { type: tagTypes.smsCampaign, id: "LIST" }],
     }),
     sendSmsCampaign: build.mutation({
       query: (id: string) => ({ url: `${SMS}/campaigns/${id}/send`, method: "POST" }),

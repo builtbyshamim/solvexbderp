@@ -46,7 +46,7 @@ const SuperAdminLogin = () => {
             <Shield className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-white">Super Admin</h1>
-          <p className="text-slate-400 text-sm mt-1">BizCore Platform Control Panel</p>
+          <p className="text-slate-400 text-sm mt-1">SolvexBD Platform Control Panel</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
@@ -74,7 +74,7 @@ const SuperAdminLogin = () => {
                   value={form.email}
                   onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                   required
-                  placeholder="superadmin@bizcore.com"
+                  placeholder="superadmin@solvexbd.com"
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/30 focus:border-[#ff6d29] transition-colors"
                 />
               </div>
@@ -130,7 +130,7 @@ const SuperAdminLogin = () => {
         <div className="mt-4 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-xs text-slate-400 text-center">
           Default credentials after seeding:
           <br />
-          <span className="text-white font-mono">superadmin@bizcore.com</span>
+          <span className="text-white font-mono">superadmin@solvexbd.com</span>
           {' / '}
           <span className="text-white font-mono">SuperAdmin@123</span>
         </div>

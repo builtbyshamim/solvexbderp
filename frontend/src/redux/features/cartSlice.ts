@@ -1,6 +1,23 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const initialState = {
+interface CartProduct {
+    product_id: string;
+    assigned_variant_price_id?: string;
+    quantity: number;
+    sale_price: number;
+    without_discount_price: number;
+    [key: string]: any;
+}
+
+interface CartState {
+    products: CartProduct[];
+    selectedItems: number;
+    subTotal: number;
+    discount: number;
+    totalPrice: number;
+}
+
+const initialState: CartState = {
     products: [],
     selectedItems: 0,
     subTotal: 0,
@@ -19,27 +36,23 @@ const cartSlice = createSlice({
                 quantity = 1,
             } = action.payload;
 
-            let existingProduct;
+            let existingProduct: CartProduct | undefined;
 
             if (assigned_variant_price_id) {
-                // ✅ If variant exists, match both product_id and assigned_variant_price_id
                 existingProduct = state.products.find(
                     (product) =>
                         product.product_id === product_id &&
                         product.assigned_variant_price_id === assigned_variant_price_id
                 );
             } else {
-                // ✅ Non-variant or no assigned variant — only match product_id
                 existingProduct = state.products.find(
                     (product) => product.product_id === product_id
                 );
             }
 
             if (existingProduct) {
-                // ✅ Increase quantity if product exists
                 existingProduct.quantity += parseFloat(quantity) || 1;
             } else {
-                // ✅ Add new product entry
                 state.products.push({
                     ...action.payload,
                     quantity: parseFloat(quantity) || 1,
@@ -78,8 +91,7 @@ const cartSlice = createSlice({
     },
 });
 
-// 🔹 Calculate total considering sale price
-const calculateTotalPrice = (products) => {
+const calculateTotalPrice = (products: CartProduct[]): number => {
     let total = 0;
     products.forEach((product) => {
         total += product.sale_price * product.quantity;
@@ -87,8 +99,7 @@ const calculateTotalPrice = (products) => {
     return total;
 };
 
-// 🔹 Update all cart calculations
-const updateCartState = (state) => {
+const updateCartState = (state: CartState): void => {
     state.selectedItems = state.products.reduce(
         (total, product) => total + product.quantity,
         0

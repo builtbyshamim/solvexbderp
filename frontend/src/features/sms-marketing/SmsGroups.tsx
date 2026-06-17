@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
-  Plus, Search, Users, Trash2, Edit2, UserPlus, Download,
-  ChevronRight, Phone, X, Upload, RefreshCw
+  Plus, Search, Users, Trash2, Edit2, UserPlus,
+  ChevronRight, Phone, X, Upload
 } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import { smsMarketingApi } from './smsMarketingApi';

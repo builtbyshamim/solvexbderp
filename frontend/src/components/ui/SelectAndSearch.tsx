@@ -17,7 +17,7 @@ interface SelectAndSearchProps {
   trigger?: any;
   name: string;
   errors?: any;
-  onCreate?: string;
+  onCreate?: string | null;
   setActiveModal?: (active: boolean) => void;
   required?: boolean;
   clearErrors?: any;

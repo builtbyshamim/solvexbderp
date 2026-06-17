@@ -34,7 +34,7 @@ export const accountingApi = baseApi.injectEndpoints({
     }),
     getAccount: build.query({
       query: (id: string) => ({ url: `${ACCOUNT_URL}/${id}`, method: "GET" }),
-      providesTags: (result, error, id) => [{ type: tagTypes.account, id }],
+      providesTags: (_result, _error, id) => [{ type: tagTypes.account, id }],
     }),
     getAccountSummary: build.query({
       query: () => ({ url: `${ACCOUNT_URL}/summary`, method: "GET" }),
@@ -51,7 +51,7 @@ export const accountingApi = baseApi.injectEndpoints({
       query: ({ id, data }: { id: string; data: any }) => ({
         url: `${ACCOUNT_URL}/${id}`, method: "PATCH", data,
       }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_result, _error, arg) => [
         { type: tagTypes.account, id: arg.id },
         { type: tagTypes.account, id: "LIST" },
       ],

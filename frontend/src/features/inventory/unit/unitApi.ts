@@ -19,7 +19,7 @@ export const unitApi = baseApi.injectEndpoints({
         method: "PATCH",
         data,
       }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_result, _error, arg) => [
         { type: tagTypes.unit, id: arg.id },
         { type: tagTypes.unit, id: "LIST" },
       ],

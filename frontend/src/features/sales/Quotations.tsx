@@ -23,7 +23,7 @@ const statusColors: Record<string, string> = {
 
 // ── Product Search (inline) ───────────────────────────────────────────────────
 
-const ProductSearch = ({ value, warehouseId, onSelect }: {
+const ProductSearch = ({ value, warehouseId: _warehouseId, onSelect }: {
   value: string;
   warehouseId: string;
   onSelect: (p: { id: string; name: string; sellingPrice: number }) => void;
@@ -388,7 +388,7 @@ const Quotations = () => {
   const quotations: any[] = data?.data ?? [];
   const meta = data?.meta;
 
-  const handleStatusChange = async (id: string, status: string, ref: string) => {
+  const handleStatusChange = async (id: string, status: string, _ref: string) => {
     setUpdatingId(id);
     try {
       await updateStatus({ id, status }).unwrap();

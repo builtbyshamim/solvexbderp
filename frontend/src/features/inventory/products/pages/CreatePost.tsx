@@ -389,9 +389,10 @@ export default function CreatePost() {
             <div className="card-title">Post Content</div>
             <TipTapEditor
               placeholder="Start writing your post…"
-              minHeight={320}
-              maxWidth="100%"
-              onChange={setContent}
+              content={content}
+              setContent={setContent}
+              label=""
+              required={false}
             />
           </div>
         </div>

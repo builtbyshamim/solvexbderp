@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Eye, CheckCircle, DollarSign, Plus } from 'lucide-react';
+import { CheckCircle, DollarSign, Plus } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';

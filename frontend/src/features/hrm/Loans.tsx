@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, CreditCard } from 'lucide-react';
+import { Plus, CreditCard } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
@@ -148,7 +148,7 @@ const Loans = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                  <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
+                  <select value={form.loanType} onChange={(e) => setForm({ ...form, loanType: e.target.value })}
                     className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]">
                     <option value="loan">Loan</option>
                     <option value="advance">Advance</option>
@@ -163,13 +163,13 @@ const Loans = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Installment</label>
-                <input type="number" value={form.installment} onChange={(e) => setForm({ ...form, installment: e.target.value })}
+                <input type="number" value={form.monthlyInstallment} onChange={(e) => setForm({ ...form, monthlyInstallment: e.target.value })}
                   placeholder="0.00" min="0"
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-                <textarea value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                <textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })}
                   rows={2} placeholder="Reason for loan..."
                   className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] resize-none" />
               </div>

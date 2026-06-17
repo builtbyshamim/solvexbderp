@@ -25,9 +25,9 @@ interface RegisterForm {
 const BrandLogo = () => (
   <div className="flex items-center gap-3">
     <div className="w-10 h-10 rounded-xl bg-[#ff6d29] flex items-center justify-center">
-      <span className="text-white font-black text-sm">BC</span>
+      <span className="text-white font-black text-sm">SX</span>
     </div>
-    <span className="text-white text-xl font-bold">BizCore ERP</span>
+    <span className="text-white text-xl font-bold">SolvexBD ERP</span>
   </div>
 );
 
@@ -143,7 +143,7 @@ const LoginPage = () => {
           </div>
         </div>
         <p className="text-gray-600 text-xs">
-          &copy; {new Date().getFullYear()} BizCore ERP. All rights reserved.
+          &copy; {new Date().getFullYear()} SolvexBD ERP. All rights reserved.
         </p>
       </div>
 

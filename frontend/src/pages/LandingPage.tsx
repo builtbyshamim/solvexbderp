@@ -98,10 +98,10 @@ const ACTIVE_PLANS = MOCK_PACKAGES.filter((p) => p.isActive);
 const YEARLY_SAVE_PCT = representativeYearlyDiscount(ACTIVE_PLANS);
 
 const TESTIMONIALS = [
-  { name: 'Md. Karim Uddin',  role: 'Owner, Karim Electronics',  loc: 'Dhaka',     av: 'KU', c: 'bg-blue-500',   r: 5, text: 'BizCore transformed how I run my shop. The POS is incredibly fast and inventory alerts mean I never run out of hot products. My accountant loves the reports!' },
-  { name: 'Fatema Begum',     role: 'Director, Fatema Garments', loc: 'Chittagong', av: 'FB', c: 'bg-rose-500',   r: 5, text: 'আমার গার্মেন্টস ব্যবসার জন্য BizCore সেরা সফটওয়্যার। HR থেকে accounting পর্যন্ত সব কিছু এক জায়গায়। দাম অনেক সাশ্রয়ী।' },
+  { name: 'Md. Karim Uddin',  role: 'Owner, Karim Electronics',  loc: 'Dhaka',     av: 'KU', c: 'bg-blue-500',   r: 5, text: 'SolvexBD transformed how I run my shop. The POS is incredibly fast and inventory alerts mean I never run out of hot products. My accountant loves the reports!' },
+  { name: 'Fatema Begum',     role: 'Director, Fatema Garments', loc: 'Chittagong', av: 'FB', c: 'bg-rose-500',   r: 5, text: 'আমার গার্মেন্টস ব্যবসার জন্য SolvexBD সেরা সফটওয়্যার। HR থেকে accounting পর্যন্ত সব কিছু এক জায়গায়। দাম অনেক সাশ্রয়ী।' },
   { name: 'Rafiqul Islam',    role: 'CEO, Rafiq Wholesale',      loc: 'Sylhet',     av: 'RI', c: 'bg-green-600',  r: 5, text: 'Switched from a costly ERP that required IT staff. Setup took 30 minutes. The double-entry accounting is exactly what our auditor needed.' },
-  { name: 'Nasreen Akter',    role: 'Manager, City Pharmacy',    loc: 'Rajshahi',   av: 'NA', c: 'bg-violet-500', r: 5, text: 'Stock management for pharmacy was a nightmare before BizCore. Now I get alerts, the purchase-to-sale trail is perfect, and SMS reminders boost retention.' },
+  { name: 'Nasreen Akter',    role: 'Manager, City Pharmacy',    loc: 'Rajshahi',   av: 'NA', c: 'bg-violet-500', r: 5, text: 'Stock management for pharmacy was a nightmare before SolvexBD. Now I get alerts, the purchase-to-sale trail is perfect, and SMS reminders boost retention.' },
   { name: 'Tariqul Hasan',    role: 'Owner, Hassan Auto Parts',  loc: 'Cumilla',    av: 'TH', c: 'bg-orange-500', r: 5, text: 'Best investment I ever made. Supplier ledger and customer due tracking helped me collect ৳3 lakh in outstanding payments in just 2 months.' },
   { name: 'Sabina Yesmin',    role: 'CFO, TechTrade Ltd.',       loc: 'Dhaka',      av: 'SY', c: 'bg-teal-500',   r: 5, text: 'The P&L and Balance Sheet are audit-ready. We saved ৳40,000/month by replacing our legacy software. Access control is excellent.' },
 ];
@@ -184,9 +184,9 @@ export default function LandingPage() {
           {/* logo */}
           <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center shadow-md shadow-orange-500/30">
-              <span className="text-white font-black text-xs tracking-tight">BC</span>
+              <span className="text-white font-black text-xs tracking-tight">SX</span>
             </div>
-            <span className={`font-extrabold text-sm tracking-tight transition-colors ${top ? 'text-white' : 'text-zinc-900'}`}>BizCore ERP</span>
+            <span className={`font-extrabold text-sm tracking-tight transition-colors ${top ? 'text-white' : 'text-zinc-900'}`}>SolvexBD ERP</span>
           </Link>
 
           {/* desktop links */}
@@ -320,7 +320,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex-1 mx-4 bg-zinc-800 rounded-md px-3 py-1 flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-green-500/50" />
-                    <span className="text-zinc-500 text-[11px] font-mono">app.bizcore.app/admin</span>
+                    <span className="text-zinc-500 text-[11px] font-mono">app.solvexbd.com/admin</span>
                   </div>
                 </div>
 
@@ -457,13 +457,13 @@ export default function LandingPage() {
               <span className="text-orange-500">Every function.</span>
             </h2>
             <p className="text-zinc-500 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
-              Stop juggling 5 different tools. BizCore integrates Inventory, POS, Sales,
+              Stop juggling 5 different tools. SolvexBD integrates Inventory, POS, Sales,
               Purchase, Accounting, HRM, and Reports seamlessly.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {FEATURES.map((f, i) => (
+            {FEATURES.map((f) => (
               <div key={f.title}
                 className="group relative bg-white rounded-2xl p-6 border border-zinc-200 hover:border-orange-200 hover:shadow-xl hover:shadow-orange-500/5 hover:-translate-y-1 transition-all duration-300 overflow-hidden">
                 {/* gradient background on hover */}
@@ -545,7 +545,7 @@ export default function LandingPage() {
                       </div>
                       <div>
                         <p className="text-white text-sm font-bold">{m.title}</p>
-                        <p className="text-zinc-500 text-xs">BizCore ERP · Live</p>
+                        <p className="text-zinc-500 text-xs">SolvexBD ERP · Live</p>
                       </div>
                       <div className="ml-auto flex items-center gap-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
@@ -586,7 +586,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════ WHY BIZCORE ════════════ */}
+      {/* ════════════ WHY SOLVEXBD ════════════ */}
       <section className="py-16 sm:py-20 lg:py-32 bg-zinc-950 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl" />
@@ -596,7 +596,7 @@ export default function LandingPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10 sm:mb-16">
             <Pill className="bg-orange-500/10 text-orange-400 border border-orange-500/20 mb-4 sm:mb-5">
-              <Award className="w-3 h-3" /> Why BizCore
+              <Award className="w-3 h-3" /> Why SolvexBD
             </Pill>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-4 sm:mb-5 tracking-tight">
               Not just another ERP.
@@ -642,7 +642,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="p-5 sm:p-8 lg:p-12">
-                <p className="text-xs text-orange-400 uppercase tracking-widest font-semibold mb-3 sm:mb-4">The BizCore way</p>
+                <p className="text-xs text-orange-400 uppercase tracking-widest font-semibold mb-3 sm:mb-4">The SolvexBD way</p>
                 <h3 className="text-xl sm:text-2xl font-black text-white mb-3 sm:mb-4">Affordable. Fast. Bangladeshi.</h3>
                 <p className="text-zinc-400 text-sm leading-relaxed mb-5 sm:mb-6">
                   Start at just ৳500/month, live in 30 minutes, no IT needed, full
@@ -816,7 +816,7 @@ export default function LandingPage() {
                     {isEnterprise ? (
                       <div className="space-y-2.5">
                         <a
-                          href={`https://wa.me/8801XXXXXXXXX?text=${encodeURIComponent('Hi! I am interested in BizCore Enterprise plan.')}`}
+                          href={`https://wa.me/8801XXXXXXXXX?text=${encodeURIComponent('Hi! I am interested in SolvexBD Enterprise plan.')}`}
                           target="_blank" rel="noopener noreferrer"
                           className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-[#25D366] hover:bg-[#1ebe5d] text-white text-sm font-bold transition-all shadow-lg shadow-green-500/20"
                         >
@@ -896,8 +896,8 @@ export default function LandingPage() {
 
           <p className="text-center text-sm text-zinc-400 mt-10">
             All prices are exclusive of VAT ·{' '}
-            <a href="mailto:hello@bizcore.app" className="text-orange-500 font-semibold hover:underline">
-              hello@bizcore.app
+            <a href="mailto:hello@solvexbd.com" className="text-orange-500 font-semibold hover:underline">
+              hello@solvexbd.com
             </a>
           </p>
         </div>
@@ -966,7 +966,7 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-zinc-900 mb-4 tracking-tight">Common questions</h2>
             <p className="text-zinc-500">
               Can't find your answer?{' '}
-              <a href="mailto:hello@bizcore.app" className="text-orange-500 font-semibold hover:underline">Contact us →</a>
+              <a href="mailto:hello@solvexbd.com" className="text-orange-500 font-semibold hover:underline">Contact us →</a>
             </p>
           </div>
           <div className="space-y-3">
@@ -991,7 +991,7 @@ export default function LandingPage() {
             Ready to transform<br className="hidden sm:block" /> your business?
           </h2>
           <p className="text-zinc-400 text-lg mb-10 max-w-xl mx-auto leading-relaxed">
-            Join 5,000+ Bangladeshi businesses already on BizCore.
+            Join 5,000+ Bangladeshi businesses already on SolvexBD ERP.
             Start your 15-day free trial — no credit card, no commitment.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
@@ -1024,9 +1024,9 @@ export default function LandingPage() {
             <div className="col-span-2 sm:col-span-3 lg:col-span-2">
               <Link to="/" className="flex items-center gap-2.5 mb-5">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                  <span className="text-white font-black text-sm">BC</span>
+                  <span className="text-white font-black text-sm">SX</span>
                 </div>
-                <span className="text-white font-extrabold text-sm tracking-tight">BizCore ERP</span>
+                <span className="text-white font-extrabold text-sm tracking-tight">SolvexBD ERP</span>
               </Link>
               <p className="text-sm text-zinc-500 leading-relaxed max-w-xs mb-5">
                 Bangladesh's most trusted multi-tenant ERP for SMEs. Every paisa accounted for.
@@ -1073,7 +1073,7 @@ export default function LandingPage() {
                 {[
                   { Icon: MapPin, text: 'Dhaka, Bangladesh' },
                   { Icon: Phone,  text: '+880 1XXX-XXXXXX' },
-                  { Icon: Mail,   text: 'hello@bizcore.app' },
+                  { Icon: Mail,   text: 'hello@solvexbd.com' },
                 ].map(({ Icon, text }) => (
                   <li key={text} className="flex items-center gap-2.5 text-sm text-zinc-500">
                     <Icon className="w-4 h-4 text-orange-500/70 flex-shrink-0" />{text}
@@ -1084,7 +1084,7 @@ export default function LandingPage() {
           </div>
 
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-zinc-600">© 2025 BizCore ERP. All rights reserved.</p>
+            <p className="text-xs text-zinc-600">© 2025 SolvexBD ERP. All rights reserved.</p>
             <div className="flex items-center gap-6">
               {['Privacy','Terms','Security','Cookies'].map(l => (
                 <a key={l} href="#" className="text-xs text-zinc-600 hover:text-orange-400 transition-colors">{l}</a>

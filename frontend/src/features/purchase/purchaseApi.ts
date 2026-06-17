@@ -13,7 +13,7 @@ export const purchaseApi = baseApi.injectEndpoints({
     }),
     getSupplier: build.query({
       query: (id: string) => ({ url: `${SUPPLIER_URL}/${id}`, method: "GET" }),
-      providesTags: (result, error, id) => [{ type: tagTypes.supplier, id }],
+      providesTags: (_result, _error, id) => [{ type: tagTypes.supplier, id }],
     }),
     createSupplier: build.mutation({
       query: (data) => ({ url: SUPPLIER_URL, method: "POST", data }),
@@ -23,7 +23,7 @@ export const purchaseApi = baseApi.injectEndpoints({
       query: ({ id, data }: { id: string; data: any }) => ({
         url: `${SUPPLIER_URL}/${id}`, method: "PATCH", data,
       }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_result, _error, arg) => [
         { type: tagTypes.supplier, id: arg.id },
         { type: tagTypes.supplier, id: "LIST" },
       ],
@@ -40,7 +40,7 @@ export const purchaseApi = baseApi.injectEndpoints({
     }),
     getPurchase: build.query({
       query: (id: string) => ({ url: `${PURCHASE_URL}/${id}`, method: "GET" }),
-      providesTags: (result, error, id) => [{ type: tagTypes.purchase, id }],
+      providesTags: (_result, _error, id) => [{ type: tagTypes.purchase, id }],
     }),
     createPurchase: build.mutation({
       query: (data) => ({ url: PURCHASE_URL, method: "POST", data }),
@@ -71,7 +71,7 @@ export const purchaseApi = baseApi.injectEndpoints({
     // Supplier Payment
     getSupplierDuePurchases: build.query({
       query: (supplierId: string) => ({ url: `${SUPPLIER_URL}/${supplierId}/due-purchases`, method: 'GET' }),
-      providesTags: (result, error, id) => [{ type: tagTypes.supplier, id }, { type: tagTypes.purchase, id: 'DUE' }],
+      providesTags: (_result, _error, id) => [{ type: tagTypes.supplier, id }, { type: tagTypes.purchase, id: 'DUE' }],
     }),
     paySupplier: build.mutation({
       query: ({ supplierId, data }: { supplierId: string; data: any }) => ({
@@ -79,7 +79,7 @@ export const purchaseApi = baseApi.injectEndpoints({
         method: 'POST',
         data,
       }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_result, _error, arg) => [
         { type: tagTypes.supplier, id: arg.supplierId },
         { type: tagTypes.supplier, id: 'LIST' },
         { type: tagTypes.purchase, id: 'LIST' },
@@ -94,7 +94,7 @@ export const purchaseApi = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
-      providesTags: (result, error, arg) => [{ type: tagTypes.supplier, id: arg.supplierId }],
+      providesTags: (_result, _error, arg) => [{ type: tagTypes.supplier, id: arg.supplierId }],
     }),
 
     // Supplier Ledger Adjustment
@@ -104,7 +104,7 @@ export const purchaseApi = baseApi.injectEndpoints({
         method: "POST",
         data,
       }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_result, _error, arg) => [
         { type: tagTypes.supplier, id: arg.supplierId },
         { type: tagTypes.supplier, id: "LIST" },
       ],

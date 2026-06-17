@@ -321,10 +321,6 @@ function PermissionsModal({
   const resetToRoleDefaults = () => setSelected(new Set(roleDefaults));
 
   const handleSave = async () => {
-    // Only save permissions that differ from role defaults (custom overrides)
-    const custom = Array.from(selected).filter((p) => !roleDefaults.includes(p));
-    // Also include role default perms that were explicitly removed — stored as exclusion is complex,
-    // so we store the full effective list as custom permissions
     const fullList = Array.from(selected);
     try {
       await updatePermissions({ id: user.id, permissions: fullList }).unwrap();
@@ -494,12 +490,12 @@ const UsersRoles = () => {
   return (
     <div>
       <PageHeader
-        title={t('settings.usersRoles.title')}
-        subtitle={t('settings.usersRoles.subtitle')}
+        title={t('settings.users.title')}
+        subtitle={t('settings.users.subtitle')}
         breadcrumbs={[
           { label: t('common.home'), path: '/admin' },
           { label: t('nav.settings') },
-          { label: t('settings.usersRoles.title') },
+          { label: t('settings.users.title') },
         ]}
       />
 

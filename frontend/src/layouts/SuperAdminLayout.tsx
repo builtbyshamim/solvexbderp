@@ -69,7 +69,7 @@ const SuperAdminSidebar = ({
             <Shield className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-[14px] font-bold text-white leading-tight">BizCore</h1>
+            <h1 className="text-[14px] font-bold text-white leading-tight">SolvexBD</h1>
             <p className="text-[10px] text-slate-400 leading-tight">Super Admin Panel</p>
           </div>
         </Link>

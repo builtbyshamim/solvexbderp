@@ -81,12 +81,29 @@ const EditProduct = () => {
     watch,
     formState: { errors, isSubmitting },
   } = useForm({
-    defaultValues: { isActive: true, productType: 'physical', barcode: '' },
+    defaultValues: {
+      name: '',
+      sku: '',
+      barcode: '',
+      description: '',
+      productType: 'physical',
+      categoryId: '',
+      brandId: '',
+      unitId: '',
+      warrantyId: '',
+      warehouseId: '',
+      purchasePrice: '',
+      sellingPrice: '',
+      wholesalePrice: '',
+      openingStock: '',
+      alertQuantity: '',
+      isActive: true,
+    },
   });
 
   const barcodeValue = watch('barcode') as string;
   const nameValue = watch('name') as string;
-  const sellingPriceValue = watch('sellingPrice') as number;
+  const sellingPriceValue = Number(watch('sellingPrice'));
   const skuValue = watch('sku') as string;
 
   const { data: catData } = useGetAllCategoryQuery({ limit: 500 });
@@ -166,7 +183,7 @@ const EditProduct = () => {
     if (data.alertQuantity !== '') payload.alertQuantity = Number(data.alertQuantity);
 
     try {
-      await updateProduct({ id, data: payload }).unwrap();
+      await updateProduct({ id: id!, data: payload }).unwrap();
       toast.success('Product updated successfully');
       navigate('/admin/inventory/products');
     } catch (err: any) {

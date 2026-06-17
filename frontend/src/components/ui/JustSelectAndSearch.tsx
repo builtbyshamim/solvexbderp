@@ -1,4 +1,18 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
+
+interface Option {
+  label: string;
+  value: any;
+}
+
+interface JustSelectAndSearchProps {
+  placeholder?: string;
+  options?: Option[];
+  onChange?: (value: string) => void;
+  handleSelected?: (option: Option) => void;
+  onCreate?: string | null;
+  setActiveModal?: (active: boolean) => void;
+}
 
 function JustSelectAndSearch({
   placeholder,
@@ -7,16 +21,15 @@ function JustSelectAndSearch({
   handleSelected = () => {},
   onCreate = null,
   setActiveModal,
-}) {
+}: JustSelectAndSearchProps) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const dropdownRef = useRef();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
@@ -24,7 +37,7 @@ function JustSelectAndSearch({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSelect = (option) => {
+  const handleSelect = (option: Option) => {
     setSelected(option.label);
     handleSelected(option);
     setOpen(false);
@@ -91,7 +104,7 @@ function JustSelectAndSearch({
                 type="button"
                 className="w-full text-left px-3 py-2 mt-1 text-sm cursor-pointer border-t border-gray-200 hover:bg-gray-100 rounded text-[#00B45F]"
                 onClick={() => {
-                  setActiveModal(true);
+                  if (setActiveModal) setActiveModal(true);
                   setSearchTerm("");
                 }}
               >

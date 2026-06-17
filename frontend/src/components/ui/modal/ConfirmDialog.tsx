@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-let confirmResolve;
+
+let confirmResolve: ((result: boolean) => void) | null = null;
 
 export const confirmDialog = (message = "Are you sure?") => {
     const container = document.createElement("div");
     document.body.appendChild(container);
 
-    return new Promise((resolve) => {
+    return new Promise<boolean>((resolve) => {
         confirmResolve = resolve;
         const root = createRoot(container);
         root.render(<ConfirmDialog message={message} container={container} root={root} />);
@@ -17,20 +18,19 @@ const ConfirmDialog = ({ message, container, root }:any) => {
     const [open, setOpen] = useState(true);
     const [animate, setAnimate] = useState(false);
 
-    // trigger animation after mount
     useEffect(() => {
-        const timer = setTimeout(() => setAnimate(true), 10); // small delay to trigger transition
+        const timer = setTimeout(() => setAnimate(true), 10);
         return () => clearTimeout(timer);
     }, []);
 
-    const handleClose = (result) => {
-        setAnimate(false); // trigger fade-out
+    const handleClose = (result: boolean) => {
+        setAnimate(false);
         setTimeout(() => {
             setOpen(false);
-            confirmResolve(result);
+            if (confirmResolve) confirmResolve(result);
             root.unmount();
             document.body.removeChild(container);
-        }, 200); // match transition duration
+        }, 200);
     };
 
     if (!open) return null;

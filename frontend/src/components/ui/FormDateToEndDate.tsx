@@ -1,12 +1,28 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { AiOutlineCalendar } from "react-icons/ai";
 import {localToUTCDate} from "../../utils/localToUTCDate.js"; // Calendar Icon
 
 // Convert a Date object to start of the day
-export const getOnlyDate = (date) =>
+export const getOnlyDate = (date: Date) =>
     new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+interface SearchValue {
+    start_date?: string | Date;
+    end_date?: string | Date;
+    page?: number;
+    [key: string]: unknown;
+}
+
+interface FormDateToEndDateProps {
+    placeholderStart: string;
+    placeholderEnd: string;
+    refetch: () => void;
+    setSearchValue: (updater: (prev: SearchValue) => SearchValue) => void;
+    searchValue: SearchValue;
+    nextDate?: boolean;
+}
 
 const FormDateToEndDate = ({
                                placeholderStart,
@@ -15,13 +31,13 @@ const FormDateToEndDate = ({
                                setSearchValue,
                                searchValue,
                                nextDate = false,
-                           }) => {
-    const today = nextDate ? null : getOnlyDate(new Date());
+                           }: FormDateToEndDateProps) => {
+    const today: Date | undefined = nextDate ? undefined : getOnlyDate(new Date());
 
-    const [startDate, setStartDate] = useState(
+    const [startDate, setStartDate] = useState<Date | null>(
         searchValue?.start_date ? new Date(searchValue.start_date) : null
     );
-    const [endDate, setEndDate] = useState(
+    const [endDate, setEndDate] = useState<Date | null>(
         searchValue?.end_date ? new Date(searchValue.end_date) : null
     );
 
@@ -43,27 +59,31 @@ const FormDateToEndDate = ({
         }
     }, [searchValue]);
 
-    const formDateChange = (date) => {
+    const formDateChange = (date: Date | null) => {
         setStartDate(date);
-        setSearchValue((prev) => ({
+        setSearchValue((prev: SearchValue) => ({
             ...prev,
-            start_date:  localToUTCDate(date),
+            start_date: date ? localToUTCDate(date) : undefined,
             page: 1,
         }));
         refetch();
     };
 
-    const endDateChange = (date) => {
+    const endDateChange = (date: Date | null) => {
         setEndDate(date);
-        setSearchValue((prev) => ({
+        setSearchValue((prev: SearchValue) => ({
             ...prev,
-            end_date: localToUTCDate(date),
+            end_date: date ? localToUTCDate(date) : undefined,
             page: 1,
         }));
         refetch();
     };
 
-    const CustomHeader = ({ date, changeMonth, changeYear }) => {
+    const CustomHeader = ({ date, changeMonth, changeYear }: {
+        date: Date;
+        changeMonth: (month: number) => void;
+        changeYear: (year: number) => void;
+    }) => {
         const months = [
             "January",
             "February",
@@ -154,7 +174,7 @@ const FormDateToEndDate = ({
                             dateFormat="dd-MM-yyyy"
                             className="input-style h-[38px]"
                             placeholderText={placeholderEnd}
-                            minDate={startDate}
+                            minDate={startDate ?? undefined}
                             maxDate={today}
                             renderCustomHeader={(props) => <CustomHeader {...props} />}
                         />

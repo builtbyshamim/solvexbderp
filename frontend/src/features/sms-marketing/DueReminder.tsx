@@ -423,7 +423,7 @@ const DueReminder = () => {
                     .replace('{name}', 'Ahmed Raza')
                     .replace('{amount}', '৳5,000')
                     .replace('{date}', new Date().toLocaleDateString())
-                    .replace('{shop_name}', 'BizCore Store')}
+                    .replace('{shop_name}', 'SolvexBD Store')}
                 </p>
               </div>
             </div>

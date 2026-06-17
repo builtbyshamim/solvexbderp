@@ -108,7 +108,7 @@ function PlanCard({
         </ul>
 
         <a
-          href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Hi! I'm interested in BizCore Enterprise plan.`)}`}
+          href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Hi! I'm interested in SolvexBD Enterprise plan.`)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] text-white text-sm font-semibold transition-colors"
@@ -238,9 +238,9 @@ export default function SelectPlan() {
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#ff6d29] flex items-center justify-center">
-              <span className="text-white font-black text-sm">BC</span>
+              <span className="text-white font-black text-sm">SX</span>
             </div>
-            <span className="text-white font-bold text-lg">BizCore ERP</span>
+            <span className="text-white font-bold text-lg">SolvexBD ERP</span>
           </div>
           <span className="text-gray-500 text-sm hidden sm:block">
             Step 2 of 2 — Choose your plan
@@ -299,7 +299,7 @@ export default function SelectPlan() {
           <div className="text-center py-20">
             <p className="text-gray-400 text-sm mb-4">No plans available at the moment.</p>
             <a
-              href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hi! I just registered on BizCore ERP and need to choose a plan.')}`}
+              href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hi! I just registered on SolvexBD ERP and need to choose a plan.')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#25D366] hover:bg-[#1ebe5d] text-white text-sm font-semibold rounded-xl transition-colors"

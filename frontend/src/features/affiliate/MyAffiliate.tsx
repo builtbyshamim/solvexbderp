@@ -9,12 +9,6 @@ import {
 } from './affiliateApi';
 import toast from 'react-hot-toast';
 
-const STATUS_BADGE: Record<string, string> = {
-  pending:  'bg-yellow-100 text-yellow-700',
-  active:   'bg-green-100 text-green-700',
-  inactive: 'bg-gray-100 text-gray-500',
-  rejected: 'bg-red-100 text-red-500',
-};
 const COMM_BADGE: Record<string, string> = {
   pending:   'bg-yellow-100 text-yellow-700',
   approved:  'bg-blue-100 text-blue-700',
@@ -80,7 +74,7 @@ export default function MyAffiliate() {
           </div>
           <h3 className="text-lg font-semibold text-[#26272F] mb-2">Join the Affiliate Program</h3>
           <p className="text-sm text-gray-500 mb-6">
-            Earn <span className="font-semibold text-[#ff6d29]">10% commission per month</span> for every business you refer to BizCore ERP.
+            Earn <span className="font-semibold text-[#ff6d29]">10% commission per month</span> for every business you refer to SolvexBD ERP.
             Share your unique referral link and get paid monthly.
           </p>
           {!showApplyForm ? (

@@ -15,13 +15,13 @@ export const salesApi = baseApi.injectEndpoints({
     }),
     getCustomer: build.query({
       query: (id: string) => ({ url: `${CUSTOMER_URL}/${id}`, method: "GET" }),
-      providesTags: (result, error, id) => [{ type: tagTypes.customer, id }],
+      providesTags: (_result, _error, id) => [{ type: tagTypes.customer, id }],
     }),
     getCustomerStatement: build.query({
       query: ({ customerId, ...params }: { customerId: string; dateFrom?: string; dateTo?: string }) => ({
         url: `${CUSTOMER_URL}/${customerId}/statement`, method: "GET", params,
       }),
-      providesTags: (result, error, { customerId }) => [{ type: tagTypes.customer, id: customerId }],
+      providesTags: (_result, _error, { customerId }) => [{ type: tagTypes.customer, id: customerId }],
     }),
 
     createCustomerAdjustment: build.mutation({
@@ -30,7 +30,7 @@ export const salesApi = baseApi.injectEndpoints({
         method: "POST",
         data,
       }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_result, _error, arg) => [
         { type: tagTypes.customer, id: arg.customerId },
         { type: tagTypes.customer, id: "LIST" },
       ],
@@ -49,7 +49,7 @@ export const salesApi = baseApi.injectEndpoints({
     }),
     updateCustomer: build.mutation({
       query: ({ id, data }: { id: string; data: any }) => ({ url: `${CUSTOMER_URL}/${id}`, method: "PATCH", data }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_result, _error, arg) => [
         { type: tagTypes.customer, id: arg.id },
         { type: tagTypes.customer, id: "LIST" },
       ],
@@ -66,7 +66,7 @@ export const salesApi = baseApi.injectEndpoints({
     }),
     getSale: build.query({
       query: (id: string) => ({ url: `${SALE_URL}/${id}`, method: "GET" }),
-      providesTags: (result, error, id) => [{ type: tagTypes.sale, id }],
+      providesTags: (_result, _error, id) => [{ type: tagTypes.sale, id }],
     }),
     createSale: build.mutation({
       query: (data) => ({ url: SALE_URL, method: "POST", data }),

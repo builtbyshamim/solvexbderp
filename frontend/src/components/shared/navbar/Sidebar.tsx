@@ -9,10 +9,10 @@ import { useLanguage } from '../../../context/LanguageContext';
 const Brand = ({ tagline }: { tagline: string }) => (
   <div className="flex items-center gap-3">
     <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#ff6d29] to-[#ff8d57] flex items-center justify-center shadow-sm flex-shrink-0">
-      <span className="text-white font-black text-sm tracking-tight">BC</span>
+      <span className="text-white font-black text-sm tracking-tight">SX</span>
     </div>
     <div>
-      <h1 className="text-[15px] font-bold text-[#26272F] leading-tight">BizCore ERP</h1>
+      <h1 className="text-[15px] font-bold text-[#26272F] leading-tight">SolvexBD ERP</h1>
       <p className="text-[10px] text-gray-400 leading-tight">{tagline}</p>
     </div>
   </div>

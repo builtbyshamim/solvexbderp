@@ -149,7 +149,7 @@ const Header = () => {
               <div className="absolute right-0 top-12 w-52 bg-white border border-[#DBDFE9] rounded-xl shadow-lg z-50 overflow-hidden py-1">
                 <div className="px-4 py-3 border-b border-gray-50">
                   <p className="text-sm font-semibold text-[#26272F]">{userInfo?.name || 'Admin User'}</p>
-                  <p className="text-xs text-gray-400 mt-0.5 truncate">{userInfo?.email || 'admin@bizcore.com'}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">{userInfo?.email || 'admin@solvexbd.com'}</p>
                 </div>
                 <Link
                   to="/admin/settings/business"

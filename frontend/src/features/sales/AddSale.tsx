@@ -359,7 +359,7 @@ const AddSale = () => {
       return;
     }
     // Stock checks (frontend guard — backend enforces too)
-    const outOfStock = items.find((i) => i.productId && i.maxStock === 0 && i.maxStock !== 9999);
+    const outOfStock = items.find((i) => i.productId && i.maxStock === 0);
     if (outOfStock) {
       toast.error(`"${outOfStock.productName}" is out of stock`);
       return;

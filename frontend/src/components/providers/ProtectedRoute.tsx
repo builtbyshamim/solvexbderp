@@ -1,10 +1,9 @@
 import { Navigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { useFetchMeQuery } from '../../redux/api/authApi';
-import { tokenHelper } from '../../helpers/axiosInstance';
 
 function AdminRoleCheck({ children }: { children: React.ReactNode }) {
-  const { data, isLoading, isError } = useFetchMeQuery(undefined);
+  const { isLoading } = useFetchMeQuery(undefined);
 
   if (isLoading) {
     return (
@@ -16,12 +15,6 @@ function AdminRoleCheck({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-
-  const user = data?.data;
-  // if (isError || !user || user.role !== 'admin') {
-  //   tokenHelper.clearTokens();
-  //   return <Navigate to="/login" replace />;
-  // }
 
   return <>{children}</>;
 }

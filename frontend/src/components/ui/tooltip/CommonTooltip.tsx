@@ -1,14 +1,14 @@
 "use client";
-import React, { useState } from "react";
+import { useState } from "react";
 
-const CommonTooltip = ({ text, maxLength = 20 }) => {
+const CommonTooltip = ({ text, maxLength = 20 }: { text?: string; maxLength?: number }) => {
     const [visible, setVisible] = useState(false);
     const [pos, setPos] = useState({ x: 0, y: 0 });
 
-    const displayText = text?.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+    const displayText = text && text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
 
-    const handleMouseEnter = (e) => {
-        const rect = e.target.getBoundingClientRect();
+    const handleMouseEnter = (e: React.MouseEvent<HTMLSpanElement>) => {
+        const rect = (e.target as HTMLElement).getBoundingClientRect();
         setPos({
             x: rect.left + rect.width / 2,
             y: rect.top - 10,
@@ -22,7 +22,6 @@ const CommonTooltip = ({ text, maxLength = 20 }) => {
 
     return (
         <>
-            {/* Text */}
             <span
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
@@ -31,7 +30,6 @@ const CommonTooltip = ({ text, maxLength = 20 }) => {
                 {displayText || "N/A"}
             </span>
 
-            {/* Tooltip (Always on top using fixed + huge z-index) */}
             {visible && text && (
                 <div
                     className="

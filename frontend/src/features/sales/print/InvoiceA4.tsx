@@ -39,7 +39,7 @@ const InvoiceA4 = () => {
   const items: any[] = sale.items ?? sale.saleItems ?? [];
   const payments: any[] = sale.payments ?? [];
   const settings = (() => {
-    try { return JSON.parse(localStorage.getItem('bizcore_invoice_settings') || '{}'); } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem('solvexbd_invoice_settings') || '{}'); } catch { return {}; }
   })();
 
   const invoiceFooter = settings.invoiceFooter || 'Thank you for your business!';
@@ -283,7 +283,7 @@ const InvoiceA4 = () => {
       <div className="footer">
         <div className="footer-msg">{invoiceFooter}</div>
         <div className="footer-terms">
-          Generated on {new Date().toLocaleString('en-BD')} · {biz?.name ?? 'BizCore ERP'}
+          Generated on {new Date().toLocaleString('en-BD')} · {biz?.name ?? 'SolvexBD ERP'}
         </div>
       </div>
     </div>

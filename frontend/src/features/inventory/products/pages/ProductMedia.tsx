@@ -337,7 +337,7 @@ const ProductMediaManager = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {images.map((image, index) => (
+            {images.map((image: any, index: number) => (
               <div
                 key={image.id}
                 draggable

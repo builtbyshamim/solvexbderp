@@ -1,5 +1,3 @@
-import React from 'react';
-
 function EmptyBox() {
     return ( <tr>
             <td colSpan={50}>

@@ -13,7 +13,7 @@ const SupplierReport = () => {
   const [dateFrom, setDateFrom] = useState(firstOfMonth);
   const [dateTo, setDateTo] = useState(today);
 
-  const { data: payablesData, isFetching: loadingPayables } = useGetPayablesQuery();
+  const { data: payablesData, isFetching: loadingPayables } = useGetPayablesQuery(undefined);
   const { data: topData, isFetching: loadingTop } = useGetTopSuppliersQuery({ dateFrom, dateTo, limit: 50 });
 
   const payables: any[] = Array.isArray(payablesData) ? payablesData : [];

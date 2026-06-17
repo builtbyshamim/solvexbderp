@@ -70,7 +70,7 @@ const EnterpriseContact = () => {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', mobile: '', businessName: '', message: '' });
 
-  const wa = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi! I am interested in BizCore Enterprise plan.')}`;
+  const wa = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hi! I am interested in SolvexBD Enterprise plan.')}`;
 
   if (submitted) {
     return (
@@ -135,7 +135,7 @@ const EnterpriseContact = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 const Subscription = () => {
   const { t } = useLanguage();
-  const { data: meData, refetch: refetchMe } = useFetchMeQuery();
+  const { data: meData, refetch: refetchMe } = useFetchMeQuery(undefined);
   const subscription = meData?.subscription;
   const currentPlanId = subscription?.packageId ?? null;
 

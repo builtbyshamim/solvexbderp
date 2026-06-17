@@ -5,11 +5,10 @@ import { useGetStockValuationQuery } from './reportsApi';
 
 const StockReportPage = () => {
   const { t } = useLanguage();
-  const { data, isFetching } = useGetStockValuationQuery();
+  const { data, isFetching } = useGetStockValuationQuery(undefined);
   const items = data ?? [];
 
   const totalValue = items.reduce((s: number, i: any) => s + Number(i.totalValue ?? i.value ?? 0), 0);
-  const totalQty = items.reduce((s: number, i: any) => s + Number(i.currentQty ?? i.quantity ?? 0), 0);
   const lowStockCount = items.filter((i: any) => Number(i.currentQty ?? 0) <= Number(i.alertQuantity ?? 0) && i.alertQuantity).length;
 
   return (

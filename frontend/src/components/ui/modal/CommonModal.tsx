@@ -1,5 +1,5 @@
 // components/Modal.jsx
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { IoIosClose } from "react-icons/io";
 
 const CommonModal = ({
@@ -11,7 +11,7 @@ const CommonModal = ({
 }:any) => {
   // Close modal on Esc key
   useEffect(() => {
-    const handleEsc = (e) => {
+    const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleEsc);

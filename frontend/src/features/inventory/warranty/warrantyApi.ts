@@ -19,7 +19,7 @@ export const warrantyApi = baseApi.injectEndpoints({
         method: "PATCH",
         data,
       }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_result, _error, arg) => [
         { type: tagTypes.warranty, id: arg.id },
         { type: tagTypes.warranty, id: "LIST" },
       ],
