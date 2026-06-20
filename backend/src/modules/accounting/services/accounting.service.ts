@@ -7,13 +7,27 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, ILike, In, Repository } from 'typeorm';
 import { AccountEntity, AccountType } from '../entities/account.entity';
-import { AccountLedgerEntity, LedgerTransactionType } from '../entities/account-ledger.entity';
-import { AccountingCategoryEntity, AccountingCategoryType } from '../entities/accounting-category.entity';
 import {
-  AccountTransferDto, CreateAccountDto, CreateExpenseDto,
-  CreateIncomeDto, GetAccountsDto, GetLedgerDto, GetReportDto,
-  GetTransactionsDto, UpdateAccountDto,
-  CreateAccountingCategoryDto, UpdateAccountingCategoryDto, GetAccountingCategoriesDto,
+  AccountLedgerEntity,
+  LedgerTransactionType,
+} from '../entities/account-ledger.entity';
+import {
+  AccountingCategoryEntity,
+  AccountingCategoryType,
+} from '../entities/accounting-category.entity';
+import {
+  AccountTransferDto,
+  CreateAccountDto,
+  CreateExpenseDto,
+  CreateIncomeDto,
+  GetAccountsDto,
+  GetLedgerDto,
+  GetReportDto,
+  GetTransactionsDto,
+  UpdateAccountDto,
+  CreateAccountingCategoryDto,
+  UpdateAccountingCategoryDto,
+  GetAccountingCategoriesDto,
 } from '../dto/accounting.dto';
 
 @Injectable()
@@ -35,7 +49,9 @@ export class AccountingService {
       where: { businessId, name: ILike(dto.name), type: dto.type },
     });
     if (exists) throw new ConflictException('Category already exists');
-    return this.categoryRepo.save(this.categoryRepo.create({ ...dto, businessId }));
+    return this.categoryRepo.save(
+      this.categoryRepo.create({ ...dto, businessId }),
+    );
   }
 
   async getCategories(businessId: string, dto: GetAccountingCategoriesDto) {
@@ -46,7 +62,11 @@ export class AccountingService {
     return this.categoryRepo.find({ where, order: { name: 'ASC' } });
   }
 
-  async updateCategory(businessId: string, id: string, dto: UpdateAccountingCategoryDto) {
+  async updateCategory(
+    businessId: string,
+    id: string,
+    dto: UpdateAccountingCategoryDto,
+  ) {
     const cat = await this.categoryRepo.findOne({ where: { id, businessId } });
     if (!cat) throw new NotFoundException('Category not found');
     Object.assign(cat, dto);
@@ -63,7 +83,9 @@ export class AccountingService {
   // ─── Accounts ────────────────────────────────────────────────────────────
 
   async createAccount(businessId: string, dto: CreateAccountDto) {
-    const exists = await this.accountRepo.findOne({ where: { businessId, name: ILike(dto.name) } });
+    const exists = await this.accountRepo.findOne({
+      where: { businessId, name: ILike(dto.name) },
+    });
     if (exists) throw new ConflictException('Account name already exists');
 
     const opening = dto.openingBalance ?? 0;
@@ -112,8 +134,13 @@ export class AccountingService {
 
   async deleteAccount(businessId: string, id: string) {
     const a = await this.findAccount(businessId, id);
-    const hasLedger = await this.ledgerRepo.findOne({ where: { accountId: id } });
-    if (hasLedger) throw new BadRequestException('Cannot delete account with ledger entries');
+    const hasLedger = await this.ledgerRepo.findOne({
+      where: { accountId: id },
+    });
+    if (hasLedger)
+      throw new BadRequestException(
+        'Cannot delete account with ledger entries',
+      );
     await this.accountRepo.remove(a);
     return { message: 'Account deleted' };
   }
@@ -122,11 +149,18 @@ export class AccountingService {
 
   async recordIncome(businessId: string, userId: string, dto: CreateIncomeDto) {
     return this.dataSource.transaction(async (tx) => {
-      const account = await tx.findOne(AccountEntity, { where: { id: dto.accountId, businessId } });
+      const account = await tx.findOne(AccountEntity, {
+        where: { id: dto.accountId, businessId },
+      });
       if (!account) throw new NotFoundException('Account not found');
 
       const newBalance = Number(account.currentBalance) + Number(dto.amount);
-      await tx.increment(AccountEntity, { id: account.id }, 'currentBalance', Number(dto.amount));
+      await tx.increment(
+        AccountEntity,
+        { id: account.id },
+        'currentBalance',
+        Number(dto.amount),
+      );
 
       return tx.save(AccountLedgerEntity, {
         businessId,
@@ -146,21 +180,35 @@ export class AccountingService {
   }
 
   async getIncomes(businessId: string, dto: GetTransactionsDto) {
-    return this.getTransactions(businessId, { ...dto, transactionType: LedgerTransactionType.INCOME });
+    return this.getTransactions(businessId, {
+      ...dto,
+      transactionType: LedgerTransactionType.INCOME,
+    });
   }
 
   // ─── Expense ─────────────────────────────────────────────────────────────
 
-  async recordExpense(businessId: string, userId: string, dto: CreateExpenseDto) {
+  async recordExpense(
+    businessId: string,
+    userId: string,
+    dto: CreateExpenseDto,
+  ) {
     return this.dataSource.transaction(async (tx) => {
-      const account = await tx.findOne(AccountEntity, { where: { id: dto.accountId, businessId } });
+      const account = await tx.findOne(AccountEntity, {
+        where: { id: dto.accountId, businessId },
+      });
       if (!account) throw new NotFoundException('Account not found');
       if (Number(account.currentBalance) < Number(dto.amount)) {
         throw new BadRequestException('Insufficient account balance');
       }
 
       const newBalance = Number(account.currentBalance) - Number(dto.amount);
-      await tx.decrement(AccountEntity, { id: account.id }, 'currentBalance', Number(dto.amount));
+      await tx.decrement(
+        AccountEntity,
+        { id: account.id },
+        'currentBalance',
+        Number(dto.amount),
+      );
 
       return tx.save(AccountLedgerEntity, {
         businessId,
@@ -180,18 +228,29 @@ export class AccountingService {
   }
 
   async getExpenses(businessId: string, dto: GetTransactionsDto) {
-    return this.getTransactions(businessId, { ...dto, transactionType: LedgerTransactionType.EXPENSE });
+    return this.getTransactions(businessId, {
+      ...dto,
+      transactionType: LedgerTransactionType.EXPENSE,
+    });
   }
 
   // ─── Transfer ─────────────────────────────────────────────────────────────
 
-  async transferFunds(businessId: string, userId: string, dto: AccountTransferDto) {
+  async transferFunds(
+    businessId: string,
+    userId: string,
+    dto: AccountTransferDto,
+  ) {
     if (dto.fromAccountId === dto.toAccountId) {
       throw new BadRequestException('Cannot transfer to the same account');
     }
     return this.dataSource.transaction(async (tx) => {
-      const from = await tx.findOne(AccountEntity, { where: { id: dto.fromAccountId, businessId } });
-      const to = await tx.findOne(AccountEntity, { where: { id: dto.toAccountId, businessId } });
+      const from = await tx.findOne(AccountEntity, {
+        where: { id: dto.fromAccountId, businessId },
+      });
+      const to = await tx.findOne(AccountEntity, {
+        where: { id: dto.toAccountId, businessId },
+      });
       if (!from || !to) throw new NotFoundException('Account not found');
       if (Number(from.currentBalance) < Number(dto.amount)) {
         throw new BadRequestException('Insufficient balance in source account');
@@ -200,25 +259,45 @@ export class AccountingService {
       const fromNew = Number(from.currentBalance) - Number(dto.amount);
       const toNew = Number(to.currentBalance) + Number(dto.amount);
 
-      await tx.decrement(AccountEntity, { id: from.id }, 'currentBalance', Number(dto.amount));
-      await tx.increment(AccountEntity, { id: to.id }, 'currentBalance', Number(dto.amount));
+      await tx.decrement(
+        AccountEntity,
+        { id: from.id },
+        'currentBalance',
+        Number(dto.amount),
+      );
+      await tx.increment(
+        AccountEntity,
+        { id: to.id },
+        'currentBalance',
+        Number(dto.amount),
+      );
 
       const date = new Date(dto.transactionDate);
       await tx.save(AccountLedgerEntity, {
-        businessId, accountId: from.id,
+        businessId,
+        accountId: from.id,
         transactionDate: date,
         transactionType: LedgerTransactionType.TRANSFER_OUT,
-        referenceType: 'transfer', referenceId: to.id,
-        debit: 0, credit: dto.amount, balanceAfter: fromNew,
-        note: dto.note, createdBy: userId,
+        referenceType: 'transfer',
+        referenceId: to.id,
+        debit: 0,
+        credit: dto.amount,
+        balanceAfter: fromNew,
+        note: dto.note,
+        createdBy: userId,
       });
       return tx.save(AccountLedgerEntity, {
-        businessId, accountId: to.id,
+        businessId,
+        accountId: to.id,
         transactionDate: date,
         transactionType: LedgerTransactionType.TRANSFER_IN,
-        referenceType: 'transfer', referenceId: from.id,
-        debit: dto.amount, credit: 0, balanceAfter: toNew,
-        note: dto.note, createdBy: userId,
+        referenceType: 'transfer',
+        referenceId: from.id,
+        debit: dto.amount,
+        credit: 0,
+        balanceAfter: toNew,
+        note: dto.note,
+        createdBy: userId,
       });
     });
   }
@@ -226,7 +305,15 @@ export class AccountingService {
   // ─── Transactions (unified list + delete) ────────────────────────────────
 
   async getTransactions(businessId: string, dto: GetTransactionsDto) {
-    const { transactionType, category, dateFrom, dateTo, search, page = 1, limit = 20 } = dto;
+    const {
+      transactionType,
+      category,
+      dateFrom,
+      dateTo,
+      search,
+      page = 1,
+      limit = 20,
+    } = dto;
     const qb = this.ledgerRepo
       .createQueryBuilder('l')
       .leftJoinAndSelect('l.account', 'account')
@@ -239,28 +326,48 @@ export class AccountingService {
     if (dateFrom) qb.andWhere('l.transactionDate >= :dateFrom', { dateFrom });
     if (dateTo) qb.andWhere('l.transactionDate <= :dateTo', { dateTo });
     if (search) {
-      qb.andWhere('(l.note ILIKE :search OR l.category ILIKE :search)', { search: `%${search}%` });
+      qb.andWhere('(l.note ILIKE :search OR l.category ILIKE :search)', {
+        search: `%${search}%`,
+      });
     }
 
-    qb.orderBy('l.createdAt', 'DESC').skip((page - 1) * limit).take(limit);
+    qb.orderBy('l.transactionDate', 'ASC').addOrderBy('l.createdAt', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit);
     const [data, totalItems] = await qb.getManyAndCount();
 
     return {
       data,
-      meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: Number(page) },
+      meta: {
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+        currentPage: Number(page),
+      },
     };
   }
 
   async deleteTransaction(businessId: string, id: string) {
     return this.dataSource.transaction(async (tx) => {
-      const entry = await tx.findOne(AccountLedgerEntity, { where: { id, businessId } });
+      const entry = await tx.findOne(AccountLedgerEntity, {
+        where: { id, businessId },
+      });
       if (!entry) throw new NotFoundException('Transaction not found');
 
       if (Number(entry.debit) > 0) {
-        await tx.decrement(AccountEntity, { id: entry.accountId }, 'currentBalance', Number(entry.debit));
+        await tx.decrement(
+          AccountEntity,
+          { id: entry.accountId },
+          'currentBalance',
+          Number(entry.debit),
+        );
       }
       if (Number(entry.credit) > 0) {
-        await tx.increment(AccountEntity, { id: entry.accountId }, 'currentBalance', Number(entry.credit));
+        await tx.increment(
+          AccountEntity,
+          { id: entry.accountId },
+          'currentBalance',
+          Number(entry.credit),
+        );
       }
 
       await tx.remove(AccountLedgerEntity, entry);
@@ -281,13 +388,20 @@ export class AccountingService {
     if (dateFrom) qb.andWhere('l.transactionDate >= :dateFrom', { dateFrom });
     if (dateTo) qb.andWhere('l.transactionDate <= :dateTo', { dateTo });
 
-    qb.orderBy('l.transactionDate', 'DESC')
-      .addOrderBy('l.createdAt', 'DESC')
+    qb.orderBy('l.transactionDate', 'ASC')
+      .addOrderBy('l.createdAt', 'ASC')
       .skip((page - 1) * limit)
       .take(limit);
 
     const [data, totalItems] = await qb.getManyAndCount();
-    return { data, meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: Number(page) } };
+    return {
+      data,
+      meta: {
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+        currentPage: Number(page),
+      },
+    };
   }
 
   // ─── Summary ──────────────────────────────────────────────────────────────
@@ -306,9 +420,11 @@ export class AccountingService {
       const bal = Number(acc.currentBalance);
       if (acc.accountType === AccountType.CASH) summary.totalCash += bal;
       else if (acc.accountType === AccountType.BANK) summary.totalBank += bal;
-      else if (acc.accountType === AccountType.MOBILE_BANKING) summary.totalMobileBanking += bal;
+      else if (acc.accountType === AccountType.MOBILE_BANKING)
+        summary.totalMobileBanking += bal;
     }
-    summary.totalAssets = summary.totalCash + summary.totalBank + summary.totalMobileBanking;
+    summary.totalAssets =
+      summary.totalCash + summary.totalBank + summary.totalMobileBanking;
 
     const [incRow] = await this.ledgerRepo.query(
       `SELECT COALESCE(SUM(debit), 0) as total FROM account_ledgers WHERE business_id = $1 AND transaction_type = $2`,
@@ -333,8 +449,14 @@ export class AccountingService {
       const conds: string[] = [];
       const params: any[] = [];
       let i = startIdx;
-      if (dateFrom) { conds.push(`${col} >= $${i++}`); params.push(dateFrom); }
-      if (dateTo) { conds.push(`${col} <= $${i++}`); params.push(dateTo); }
+      if (dateFrom) {
+        conds.push(`${col} >= $${i++}`);
+        params.push(dateFrom);
+      }
+      if (dateTo) {
+        conds.push(`${col} <= $${i++}`);
+        params.push(dateTo);
+      }
       return [conds.length ? ' AND ' + conds.join(' AND ') : '', params];
     };
 
@@ -370,7 +492,10 @@ export class AccountingService {
     const cogs = Number(cogsRow?.cogs ?? 0);
     const grossProfit = revenue - cogs;
     const otherIncome = Number(incRow?.total ?? 0);
-    const expenses = expensesByCategory.map((e) => ({ category: e.category, amount: Number(e.total) }));
+    const expenses = expensesByCategory.map((e) => ({
+      category: e.category,
+      amount: Number(e.total),
+    }));
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
     const netProfit = grossProfit + otherIncome - totalExpenses;
 
@@ -382,8 +507,12 @@ export class AccountingService {
       expenses,
       totalExpenses,
       netProfit,
-      grossMargin: revenue > 0 ? ((grossProfit / revenue) * 100).toFixed(1) : '0',
-      netMargin: (revenue + otherIncome) > 0 ? ((netProfit / (revenue + otherIncome)) * 100).toFixed(1) : '0',
+      grossMargin:
+        revenue > 0 ? ((grossProfit / revenue) * 100).toFixed(1) : '0',
+      netMargin:
+        revenue + otherIncome > 0
+          ? ((netProfit / (revenue + otherIncome)) * 100).toFixed(1)
+          : '0',
     };
   }
 
@@ -476,8 +605,14 @@ export class AccountingService {
       const conds: string[] = [];
       const params: any[] = [];
       let i = startIdx;
-      if (dateFrom) { conds.push(`transaction_date >= $${i++}`); params.push(dateFrom); }
-      if (dateTo) { conds.push(`transaction_date <= $${i++}`); params.push(dateTo); }
+      if (dateFrom) {
+        conds.push(`transaction_date >= $${i++}`);
+        params.push(dateFrom);
+      }
+      if (dateTo) {
+        conds.push(`transaction_date <= $${i++}`);
+        params.push(dateTo);
+      }
       return [conds.length ? ' AND ' + conds.join(' AND ') : '', params];
     };
 
@@ -504,7 +639,8 @@ export class AccountingService {
     const cashFromIncome = Number(incIn?.total ?? 0);
     const cashPaidSuppliers = Number(purOut?.total ?? 0);
     const cashPaidExpenses = Number(expOut?.total ?? 0);
-    const operatingTotal = cashFromSales + cashFromIncome - cashPaidSuppliers - cashPaidExpenses;
+    const operatingTotal =
+      cashFromSales + cashFromIncome - cashPaidSuppliers - cashPaidExpenses;
 
     const [openRow] = await this.dataSource.query(
       `SELECT COALESCE(SUM(debit), 0) as total FROM account_ledgers WHERE business_id = $1 AND transaction_type = 'opening'`,

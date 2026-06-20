@@ -15,7 +15,8 @@ import {
   GetSuppliersDto, UpdateSupplierDto, PaySupplierDto,
 } from '../dto/purchase.dto';
 import { SupplierLedgerAdjustmentEntity, AdjustmentType } from '../entities/supplier-adjustment.entity';
-import { v4 as uuidv4 } from 'uuid';
+import { AccountEntity } from 'src/modules/accounting/entities/account.entity';
+import { AccountLedgerEntity, LedgerTransactionType } from 'src/modules/accounting/entities/account-ledger.entity';
 import { StockLocationService } from 'src/modules/inventory/warehouse/services/stock-location.service';
 
 @Injectable()
@@ -33,6 +34,10 @@ export class PurchaseService {
     private readonly ledgerRepo: Repository<StockLedgerEntity>,
     @InjectRepository(SupplierLedgerAdjustmentEntity)
     private readonly supplierAdjustmentRepo: Repository<SupplierLedgerAdjustmentEntity>,
+    @InjectRepository(AccountEntity)
+    private readonly accountRepo: Repository<AccountEntity>,
+    @InjectRepository(AccountLedgerEntity)
+    private readonly accountLedgerRepo: Repository<AccountLedgerEntity>,
     private readonly locationService: StockLocationService,
     private readonly dataSource: DataSource,
   ) {}
@@ -101,7 +106,10 @@ export class PurchaseService {
       const tax = dto.taxAmount ?? 0;
       const shipping = dto.shippingCost ?? 0;
       const grandTotal = subtotal - discount + tax + shipping;
-      const paid = dto.paidAmount ?? 0;
+
+      // Paid = sum of all payment splits
+      const payments = dto.payments ?? [];
+      const paid = payments.reduce((s, p) => s + Number(p.amount), 0);
       const due = grandTotal - paid;
 
       // Resolve location for all stock operations in this purchase
@@ -180,15 +188,94 @@ export class PurchaseService {
         });
       }
 
-      // Update supplier balance (payable increases)
+      // Update supplier balance (payable increases by due amount)
       if (dto.supplierId && due > 0) {
         await tx.increment(SupplierEntity, { id: dto.supplierId, businessId }, 'currentBalance', due);
+      }
+
+      // Account ledger: one entry per payment split
+      for (const split of payments) {
+        const account = await tx.findOne(AccountEntity, { where: { id: split.accountId, businessId } });
+        if (!account) throw new NotFoundException(`Payment account ${split.accountId} not found`);
+        if (Number(account.currentBalance) < Number(split.amount)) {
+          throw new BadRequestException(
+            `Insufficient balance in "${account.name}". Available: ৳${Number(account.currentBalance).toFixed(2)}, required: ৳${Number(split.amount).toFixed(2)}`,
+          );
+        }
+        const newAccountBalance = Number(account.currentBalance) - Number(split.amount);
+        await tx.decrement(AccountEntity, { id: account.id }, 'currentBalance', Number(split.amount));
+        await tx.save(AccountLedgerEntity, {
+          businessId,
+          accountId: account.id,
+          transactionDate: new Date(dto.purchaseDate),
+          transactionType: LedgerTransactionType.PURCHASE_PAYMENT,
+          referenceType: 'purchase',
+          referenceId: savedPurchase.id,
+          debit: 0,
+          credit: Number(split.amount),
+          balanceAfter: newAccountBalance,
+          note: `Purchase payment — Invoice ${savedPurchase.invoiceNo}`,
+          createdBy: userId,
+        });
       }
 
       return tx.findOne(PurchaseEntity, {
         where: { id: savedPurchase.id },
         relations: ['items', 'supplier'],
       });
+    });
+  }
+
+  async deletePurchase(businessId: string, id: string) {
+    return this.dataSource.transaction(async (tx) => {
+      const purchase = await tx.findOne(PurchaseEntity, {
+        where: { id, businessId },
+        relations: ['items'],
+      });
+      if (!purchase) throw new NotFoundException('Purchase not found');
+
+      // 1. Reverse stock for each item
+      for (const item of purchase.items ?? []) {
+        const stock = await tx.findOne(ProductStockEntity, {
+          where: { businessId, productId: item.productId },
+        });
+        if (stock) {
+          const revertQty = Number(item.quantity);
+          stock.inQty = Math.max(0, Number(stock.inQty) - revertQty);
+          stock.currentQty = Math.max(0, Number(stock.currentQty) - revertQty);
+          await tx.save(ProductStockEntity, stock);
+        }
+        // Delete stock ledger entries for this purchase
+        await tx.delete(StockLedgerEntity, { referenceType: 'purchase', referenceId: id, productId: item.productId });
+      }
+
+      // 2. Restore account balances — find all ledger entries for this purchase
+      const accountEntries = await tx.find(AccountLedgerEntity, {
+        where: { businessId, referenceType: 'purchase', referenceId: id },
+      });
+      // Group by accountId, sum credits
+      const creditByAccount = new Map<string, number>();
+      for (const entry of accountEntries) {
+        const prev = creditByAccount.get(entry.accountId) ?? 0;
+        creditByAccount.set(entry.accountId, prev + Number(entry.credit));
+      }
+      for (const [accountId, totalCredit] of creditByAccount) {
+        if (totalCredit > 0) {
+          await tx.increment(AccountEntity, { id: accountId, businessId }, 'currentBalance', totalCredit);
+        }
+      }
+      await tx.delete(AccountLedgerEntity, { businessId, referenceType: 'purchase', referenceId: id });
+
+      // 3. Reverse supplier payable (only remaining due portion was added to supplier balance)
+      const dueAmount = Number(purchase.dueAmount);
+      if (purchase.supplierId && dueAmount > 0) {
+        await tx.decrement(SupplierEntity, { id: purchase.supplierId, businessId }, 'currentBalance', dueAmount);
+      }
+
+      // 4. Delete purchase (items cascade via onDelete: CASCADE on FK)
+      await tx.delete(PurchaseEntity, { id, businessId });
+
+      return { message: 'Purchase deleted successfully', id };
     });
   }
 
@@ -249,13 +336,31 @@ export class PurchaseService {
       const supplier = await tx.findOne(SupplierEntity, { where: { id: supplierId, businessId } });
       if (!supplier) throw new NotFoundException('Supplier not found');
 
+      if (!dto.payments?.length) {
+        throw new BadRequestException('At least one payment split is required');
+      }
+
+      const totalPaid = dto.payments.reduce((s, p) => s + Number(p.amount), 0);
       const currentBalance = Number(supplier.currentBalance);
-      if (dto.amount > currentBalance + 0.01) {
+
+      if (totalPaid > currentBalance + 0.01) {
         throw new BadRequestException(
-          `Payment ৳${dto.amount} exceeds supplier payable balance ৳${currentBalance.toFixed(2)}`,
+          `Payment ৳${totalPaid.toFixed(2)} exceeds supplier payable balance ৳${currentBalance.toFixed(2)}`,
         );
       }
 
+      // Validate all account balances up front before any mutations
+      for (const split of dto.payments) {
+        const account = await tx.findOne(AccountEntity, { where: { id: split.accountId, businessId } });
+        if (!account) throw new NotFoundException(`Account ${split.accountId} not found`);
+        if (Number(account.currentBalance) < Number(split.amount)) {
+          throw new BadRequestException(
+            `Insufficient balance in "${account.name}". Available: ৳${Number(account.currentBalance).toFixed(2)}, required: ৳${Number(split.amount).toFixed(2)}`,
+          );
+        }
+      }
+
+      // Distribute payment across invoices
       if (dto.invoicePayments?.length) {
         // ── Invoice-wise: pay specific purchases ──
         for (const item of dto.invoicePayments) {
@@ -282,7 +387,7 @@ export class PurchaseService {
           where: { businessId, supplierId },
           order: { purchaseDate: 'ASC', createdAt: 'ASC' },
         });
-        let remaining = Number(dto.amount);
+        let remaining = totalPaid;
         for (const purchase of duePurchases) {
           if (remaining <= 0) break;
           const due = Number(purchase.dueAmount);
@@ -301,10 +406,34 @@ export class PurchaseService {
       }
 
       // Reduce supplier payable balance
-      const newBalance = Math.max(0, currentBalance - Number(dto.amount));
-      await tx.update(SupplierEntity, { id: supplierId, businessId }, { currentBalance: newBalance });
+      const newSupplierBalance = Math.max(0, currentBalance - totalPaid);
+      await tx.update(SupplierEntity, { id: supplierId, businessId }, { currentBalance: newSupplierBalance });
 
-      return { message: 'Payment recorded successfully', paidAmount: dto.amount, remainingBalance: newBalance };
+      // Account ledger: one entry per payment split
+      const paymentDate = dto.paymentDate ? new Date(dto.paymentDate) : new Date();
+      for (const split of dto.payments) {
+        const account = await tx.findOne(AccountEntity, { where: { id: split.accountId, businessId } });
+        const newAccountBalance = Number(account!.currentBalance) - Number(split.amount);
+        await tx.decrement(AccountEntity, { id: split.accountId }, 'currentBalance', Number(split.amount));
+        await tx.save(AccountLedgerEntity, {
+          businessId,
+          accountId: split.accountId,
+          transactionDate: paymentDate,
+          transactionType: LedgerTransactionType.PURCHASE_PAYMENT,
+          referenceType: 'supplier',
+          referenceId: supplierId,
+          debit: 0,
+          credit: Number(split.amount),
+          balanceAfter: newAccountBalance,
+          note: dto.note ?? `Supplier payment — ${supplier.name}`,
+        });
+      }
+
+      return {
+        message: 'Payment recorded successfully',
+        totalPaid,
+        remainingBalance: newSupplierBalance,
+      };
     });
   }
 
@@ -389,8 +518,7 @@ export class PurchaseService {
       entry.balanceAfter = balance;
     }
 
-    // Paginate (newest first)
-    allEntries.reverse();
+    // Paginate (oldest first — ASC)
     const totalItems = allEntries.length;
     const paginated = allEntries.slice((page - 1) * limit, page * limit);
 

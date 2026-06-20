@@ -66,6 +66,18 @@ export class UpdateSupplierDto {
   company?: string;
 }
 
+export class PaymentSplitDto {
+  @ApiProperty({ description: 'Account UUID to debit payment from' })
+  @IsUUID()
+  accountId: string;
+
+  @ApiProperty({ description: 'Amount to pay from this account' })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  amount: number;
+}
+
 export class PurchaseItemDto {
   @ApiProperty()
   @IsUUID()
@@ -92,10 +104,9 @@ export class PurchaseItemDto {
 }
 
 export class CreatePurchaseDto {
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty({ description: 'Supplier is required for every purchase' })
   @IsUUID()
-  supplierId?: string;
+  supplierId: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -138,12 +149,15 @@ export class CreatePurchaseDto {
   @Min(0)
   shippingCost?: number;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    type: [PaymentSplitDto],
+    description: 'Payment splits across multiple accounts. Sum = paid amount.',
+  })
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
-  paidAmount?: number;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PaymentSplitDto)
+  payments?: PaymentSplitDto[];
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -205,16 +219,14 @@ export class InvoicePaymentItemDto {
 }
 
 export class PaySupplierDto {
-  @ApiProperty({ description: 'Total payment amount' })
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0.01)
-  amount: number;
-
-  @ApiPropertyOptional({ enum: ['cash', 'bank_transfer', 'bkash', 'nagad', 'rocket', 'card', 'other'] })
-  @IsOptional()
-  @IsString()
-  paymentMethod?: string;
+  @ApiProperty({
+    type: [PaymentSplitDto],
+    description: 'Payment splits across one or more accounts. Total = sum of all amounts.',
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PaymentSplitDto)
+  payments: PaymentSplitDto[];
 
   @ApiPropertyOptional()
   @IsOptional()

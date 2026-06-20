@@ -147,16 +147,40 @@ export class ProductImportExportService {
         }
 
         if (row.categoryName) {
-          const id = catMap.get(String(row.categoryName).trim().toLowerCase());
-          if (id) dto.categoryId = id;
+          const key = String(row.categoryName).trim().toLowerCase();
+          let id = catMap.get(key);
+          if (!id) {
+            const created = await this.categoryRepo.save(
+              this.categoryRepo.create({ name: String(row.categoryName).trim(), businessId }),
+            );
+            id = created.id;
+            catMap.set(key, id);
+          }
+          dto.categoryId = id;
         }
         if (row.unitName) {
-          const id = unitMap.get(String(row.unitName).trim().toLowerCase());
-          if (id) dto.unitId = id;
+          const key = String(row.unitName).trim().toLowerCase();
+          let id = unitMap.get(key);
+          if (!id) {
+            const created = await this.unitRepo.save(
+              this.unitRepo.create({ name: String(row.unitName).trim(), businessId }),
+            );
+            id = created.id;
+            unitMap.set(key, id);
+          }
+          dto.unitId = id;
         }
         if (row.brandName) {
-          const id = brandMap.get(String(row.brandName).trim().toLowerCase());
-          if (id) dto.brandId = id;
+          const key = String(row.brandName).trim().toLowerCase();
+          let id = brandMap.get(key);
+          if (!id) {
+            const created = await this.brandRepo.save(
+              this.brandRepo.create({ name: String(row.brandName).trim(), businessId }),
+            );
+            id = created.id;
+            brandMap.set(key, id);
+          }
+          dto.brandId = id;
         }
 
         await this.productService.create(businessId, userId, dto);

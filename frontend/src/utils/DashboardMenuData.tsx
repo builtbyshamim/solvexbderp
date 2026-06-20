@@ -68,8 +68,9 @@ export const useDashboardMenuData = () => {
       path: '/admin/sales',
       icon: <MdOutlineShoppingCart size={18} />,
       subMenu: [
-        { id: 1, name: t('nav.sales.customers'),      path: '/admin/sales/customers' },
-        { id: 2, name: t('nav.sales.saleList'),       path: '/admin/sales/list' },
+        { id: 1, name: t('nav.sales.customers'),        path: '/admin/sales/customers' },
+        { id: 9, name: 'Customer Types',               path: '/admin/sales/customer-types' },
+        { id: 2, name: t('nav.sales.saleList'),        path: '/admin/sales/list' },
         { id: 3, name: t('nav.sales.addSale'),        path: '/admin/sales/add' },
         { id: 4, name: t('nav.sales.saleReturns'),    path: '/admin/sales/returns' },
         { id: 5, name: t('nav.sales.quotations'),        path: '/admin/sales/quotations' },

@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Search, Eye, Plus, Download } from 'lucide-react';
+import { Search, Eye, Plus, Download, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
-import { useGetAllPurchasesQuery } from './purchaseApi';
+import { useGetAllPurchasesQuery, useDeletePurchaseMutation } from './purchaseApi';
 import CommonPagination from '../../components/ui/paginations/CommonPagination';
 import { useDebounce } from '../../hooks/useDebounce';
+import toast from 'react-hot-toast';
 
 const statusColors: Record<string, string> = {
   confirmed: 'bg-green-100 text-green-700',
@@ -19,7 +20,9 @@ const PurchaseList = () => {
   const { t } = useLanguage();
   const [searchValue, setSearchValue] = useState({ search: '', limit: 10, page: 1 });
   const [statusFilter, setStatusFilter] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const debouncedSearch = useDebounce(searchValue.search, 500);
+  const [deletePurchase, { isLoading: isDeleting }] = useDeletePurchaseMutation();
 
   const { data, isFetching } = useGetAllPurchasesQuery({
     ...searchValue,
@@ -33,6 +36,17 @@ const PurchaseList = () => {
   const totalPurchase = purchases.reduce((s: number, p: any) => s + Number(p.grandTotal ?? 0), 0);
   const totalPaid = purchases.reduce((s: number, p: any) => s + Number(p.paidAmount ?? 0), 0);
   const totalDue = purchases.reduce((s: number, p: any) => s + Number(p.dueAmount ?? 0), 0);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await deletePurchase(deleteId).unwrap();
+      toast.success('Purchase deleted');
+      setDeleteId(null);
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Failed to delete purchase');
+    }
+  };
 
   return (
     <div>
@@ -122,7 +136,20 @@ const PurchaseList = () => {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <button className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg" title="View"><Eye className="h-4 w-4" /></button>
+                    <div className="flex items-center gap-1">
+                      <Link to={`/admin/purchase/${item.id}`}
+                        className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg inline-flex items-center" title="View">
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setDeleteId(item.id); }}
+                        className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 rounded-lg"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -135,7 +162,7 @@ const PurchaseList = () => {
           {isFetching ? (
             <div className="py-10 flex justify-center"><div className="w-6 h-6 border-2 border-[#ff6d29] border-t-transparent rounded-full animate-spin" /></div>
           ) : purchases.map((item: any) => (
-            <div key={item.id} className="p-4">
+            <Link key={item.id} to={`/admin/purchase/${item.id}`} className="block p-4 hover:bg-gray-50 active:bg-gray-100">
               <div className="flex items-start justify-between mb-1">
                 <span className="font-mono text-xs text-[#ff6d29] font-medium">{item.invoiceNo}</span>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[item.status] ?? 'bg-gray-100 text-gray-500'}`}>{item.paymentStatus}</span>
@@ -147,7 +174,7 @@ const PurchaseList = () => {
                 <span className="text-green-600">Paid: ৳{Number(item.paidAmount).toLocaleString()}</span>
                 {Number(item.dueAmount) > 0 && <span className="text-red-500">Due: ৳{Number(item.dueAmount).toLocaleString()}</span>}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
@@ -157,6 +184,37 @@ const PurchaseList = () => {
             limit={searchValue.limit} page={searchValue.page} />
         )}
       </div>
+
+      {/* Delete Confirm Modal */}
+      {deleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-[#26272F]">Delete Purchase</h3>
+                <p className="text-xs text-gray-400">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-5">
+              Stock, account balances, and supplier payable will all be reversed.
+            </p>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setDeleteId(null)} disabled={isDeleting}
+                className="flex-1 px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50">
+                Cancel
+              </button>
+              <button type="button" onClick={handleDelete} disabled={isDeleting}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors">
+                {isDeleting ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {isDeleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

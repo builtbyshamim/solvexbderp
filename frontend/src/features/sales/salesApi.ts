@@ -2,12 +2,31 @@ import { baseApi } from "../../redux/api/baseApi";
 import { tagTypes } from "../../redux/tag-types";
 
 const CUSTOMER_URL = "/sales/customers";
+const CUSTOMER_TYPE_URL = "/sales/customer-types";
 const SALE_URL = "/sales";
 const QUOTATION_URL = "/sales/quotations";
 const RETURN_URL = "/sales/returns";
 
 export const salesApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
+    // ── Customer Types ────────────────────────────────────────────────────
+    getAllCustomerTypes: build.query({
+      query: () => ({ url: CUSTOMER_TYPE_URL, method: 'GET' }),
+      providesTags: [{ type: tagTypes.customer, id: 'TYPES' }],
+    }),
+    createCustomerType: build.mutation({
+      query: (data) => ({ url: CUSTOMER_TYPE_URL, method: 'POST', data }),
+      invalidatesTags: [{ type: tagTypes.customer, id: 'TYPES' }],
+    }),
+    updateCustomerType: build.mutation({
+      query: ({ id, data }: { id: string; data: any }) => ({ url: `${CUSTOMER_TYPE_URL}/${id}`, method: 'PATCH', data }),
+      invalidatesTags: [{ type: tagTypes.customer, id: 'TYPES' }],
+    }),
+    deleteCustomerType: build.mutation({
+      query: (id: string) => ({ url: `${CUSTOMER_TYPE_URL}/${id}`, method: 'DELETE' }),
+      invalidatesTags: [{ type: tagTypes.customer, id: 'TYPES' }],
+    }),
+
     // ── Customers ──────────────────────────────────────────────────────────
     getAllCustomers: build.query({
       query: (params) => ({ url: CUSTOMER_URL, method: "GET", params }),
@@ -157,9 +176,14 @@ export const salesApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetAllCustomerTypesQuery,
+  useCreateCustomerTypeMutation,
+  useUpdateCustomerTypeMutation,
+  useDeleteCustomerTypeMutation,
   useGetAllCustomersQuery,
   useGetCustomerQuery,
   useGetCustomerStatementQuery,
+  useCreateCustomerAdjustmentMutation,
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
   useDeleteCustomerMutation,
@@ -179,5 +203,4 @@ export const {
   useGetAllSaleReturnsQuery,
   useCreateSaleReturnMutation,
   useApproveReturnMutation,
-  useCreateCustomerAdjustmentMutation,
 } = salesApi;

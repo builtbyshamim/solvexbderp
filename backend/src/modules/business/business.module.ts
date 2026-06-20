@@ -6,10 +6,11 @@ import { BusinessController } from './controllers/business.controller';
 import { UserEntity } from 'src/modules/users/entities/user.entity';
 import { AuthModule } from '../auth/auth.module';
 import { PackageEntity } from '../packages/entities/package.entity';
+import { AccountEntity } from '../accounting/entities/account.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([BusinessEntity, UserEntity, PackageEntity]),
+    TypeOrmModule.forFeature([BusinessEntity, UserEntity, PackageEntity, AccountEntity]),
     AuthModule,
   ],
   controllers: [BusinessController],

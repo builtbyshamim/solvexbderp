@@ -12,6 +12,7 @@ import { UserEntity } from 'src/modules/users/entities/user.entity';
 import { UserRole } from 'src/common/shared/enums/user-role.enum';
 import { AuthService } from 'src/modules/auth/services/auth.service';
 import { PackageEntity } from 'src/modules/packages/entities/package.entity';
+import { AccountEntity, AccountType } from 'src/modules/accounting/entities/account.entity';
 
 @Injectable()
 export class BusinessService {
@@ -22,6 +23,8 @@ export class BusinessService {
     private readonly userRepo: Repository<UserEntity>,
     @InjectRepository(PackageEntity)
     private readonly packageRepo: Repository<PackageEntity>,
+    @InjectRepository(AccountEntity)
+    private readonly accountRepo: Repository<AccountEntity>,
     private readonly authService: AuthService,
   ) {}
 
@@ -40,6 +43,19 @@ export class BusinessService {
     });
 
     const saved = await this.businessRepo.save(business);
+
+    // Auto-create the single Petty Cash account for this business
+    await this.accountRepo.save(
+      this.accountRepo.create({
+        businessId: saved.id,
+        name: 'Petty Cash',
+        accountType: AccountType.CASH,
+        openingBalance: 0,
+        currentBalance: 0,
+        isDefault: true,
+        description: 'Default petty cash account',
+      }),
+    );
 
     // Promote user to admin role
     await this.userRepo.update(user.id, { role: UserRole.ADMIN });

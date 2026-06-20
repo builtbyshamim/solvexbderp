@@ -68,6 +68,12 @@ export class PurchaseController {
     return this.purchaseService.findPurchase(biz, id);
   }
 
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete purchase and reverse all stock, supplier, and account effects' })
+  deletePurchase(@BusinessId() biz: string, @Param('id') id: string) {
+    return this.purchaseService.deletePurchase(biz, id);
+  }
+
   @Get('suppliers/:id/due-purchases')
   @ApiOperation({ summary: 'Get unpaid/partial purchases for a supplier' })
   getSupplierDuePurchases(@BusinessId() biz: string, @Param('id') id: string) {

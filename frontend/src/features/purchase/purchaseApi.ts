@@ -48,6 +48,39 @@ export const purchaseApi = baseApi.injectEndpoints({
         { type: tagTypes.purchase, id: "LIST" },
         { type: tagTypes.product, id: "LIST" },
         { type: tagTypes.stockLedger, id: "LIST" },
+        { type: tagTypes.account, id: "LIST" },
+        { type: tagTypes.account, id: "SUMMARY" },
+      ],
+    }),
+
+    // Delete purchase
+    deletePurchase: build.mutation({
+      query: (id: string) => ({ url: `${PURCHASE_URL}/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: tagTypes.purchase, id },
+        { type: tagTypes.purchase, id: 'LIST' },
+        { type: tagTypes.product, id: 'LIST' },
+        { type: tagTypes.stockLedger, id: 'LIST' },
+        { type: tagTypes.supplier, id: 'LIST' },
+        { type: tagTypes.account, id: 'LIST' },
+        { type: tagTypes.account, id: 'SUMMARY' },
+      ],
+    }),
+
+    // Pay single purchase due (from detail page)
+    payPurchaseDue: build.mutation({
+      query: ({ supplierId, purchaseId, data }: { supplierId: string; purchaseId: string; data: any }) => ({
+        url: `${SUPPLIER_URL}/${supplierId}/pay`,
+        method: 'POST',
+        data: { ...data, invoicePayments: [{ purchaseId, amount: data.totalPaid }] },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: tagTypes.purchase, id: arg.purchaseId },
+        { type: tagTypes.purchase, id: 'LIST' },
+        { type: tagTypes.supplier, id: arg.supplierId },
+        { type: tagTypes.supplier, id: 'LIST' },
+        { type: tagTypes.account, id: 'LIST' },
+        { type: tagTypes.account, id: 'SUMMARY' },
       ],
     }),
 
@@ -84,6 +117,8 @@ export const purchaseApi = baseApi.injectEndpoints({
         { type: tagTypes.supplier, id: 'LIST' },
         { type: tagTypes.purchase, id: 'LIST' },
         { type: tagTypes.purchase, id: 'DUE' },
+        { type: tagTypes.account, id: 'LIST' },
+        { type: tagTypes.account, id: 'SUMMARY' },
       ],
     }),
 
@@ -121,6 +156,8 @@ export const {
   useGetAllPurchasesQuery,
   useGetPurchaseQuery,
   useCreatePurchaseMutation,
+  useDeletePurchaseMutation,
+  usePayPurchaseDueMutation,
   useGetPurchaseReturnsQuery,
   useCreatePurchaseReturnMutation,
   useApprovePurchaseReturnMutation,

@@ -7,6 +7,7 @@ import {
   CreateCustomerDto, CreateCustomerAdjustmentDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
   CollectPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
   ConvertQuotationDto, CreateSaleReturnDto, GetSaleReturnsDto, GetCustomerStatementDto,
+  CreateCustomerTypeDto, UpdateCustomerTypeDto,
 } from '../dto/sales.dto';
 import { BusinessId } from 'src/common/decorators/business-id.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -19,6 +20,32 @@ export class SalesController {
     private readonly salesService: SalesService,
     private readonly customerImportExportService: CustomerImportExportService,
   ) {}
+
+  // ── Customer Types ────────────────────────────────────────────────────────
+
+  @Post('customer-types')
+  @ApiOperation({ summary: 'Create customer type' })
+  createCustomerType(@BusinessId() biz: string, @Body() dto: CreateCustomerTypeDto) {
+    return this.salesService.createCustomerType(biz, dto);
+  }
+
+  @Get('customer-types')
+  @ApiOperation({ summary: 'Get all customer types for this business' })
+  getCustomerTypes(@BusinessId() biz: string) {
+    return this.salesService.findAllCustomerTypes(biz);
+  }
+
+  @Patch('customer-types/:id')
+  @ApiOperation({ summary: 'Update customer type' })
+  updateCustomerType(@BusinessId() biz: string, @Param('id') id: string, @Body() dto: UpdateCustomerTypeDto) {
+    return this.salesService.updateCustomerType(biz, id, dto);
+  }
+
+  @Delete('customer-types/:id')
+  @ApiOperation({ summary: 'Delete customer type (only if not in use)' })
+  deleteCustomerType(@BusinessId() biz: string, @Param('id') id: string) {
+    return this.salesService.deleteCustomerType(biz, id);
+  }
 
   // ── Customers ──────────────────────────────────────────────────────────────
 

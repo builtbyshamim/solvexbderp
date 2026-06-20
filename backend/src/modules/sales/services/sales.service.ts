@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, ILike, Repository } from 'typeorm';
 import { StockLocationService } from 'src/modules/inventory/warehouse/services/stock-location.service';
 import { CustomerEntity } from '../entities/customer.entity';
+import { CustomerTypeEntity } from '../entities/customer-type.entity';
 import { SaleEntity, SaleItemEntity, SaleStatus, PaymentStatus } from '../entities/sale.entity';
 import { QuotationEntity, QuotationItemEntity, QuotationStatus } from '../entities/quotation.entity';
 import { SaleReturnEntity, SaleReturnItemEntity, ReturnStatus } from '../entities/sale-return.entity';
@@ -17,6 +18,7 @@ import {
   CreateCustomerDto, CreateCustomerAdjustmentDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
   CollectPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
   ConvertQuotationDto, CreateSaleReturnDto, GetSaleReturnsDto, GetCustomerStatementDto,
+  CreateCustomerTypeDto, UpdateCustomerTypeDto,
 } from '../dto/sales.dto';
 import { CustomerLedgerAdjustmentEntity, AdjustmentType } from '../entities/customer-adjustment.entity';
 import { SmsMarketingService } from 'src/modules/sms-marketing/services/sms-marketing.service';
@@ -25,6 +27,7 @@ import { TransactionalSmsEvent } from 'src/modules/sms-marketing/entities/transa
 @Injectable()
 export class SalesService {
   constructor(
+    @InjectRepository(CustomerTypeEntity) private readonly customerTypeRepo: Repository<CustomerTypeEntity>,
     @InjectRepository(CustomerEntity) private readonly customerRepo: Repository<CustomerEntity>,
     @InjectRepository(SaleEntity) private readonly saleRepo: Repository<SaleEntity>,
     @InjectRepository(SaleItemEntity) private readonly saleItemRepo: Repository<SaleItemEntity>,
@@ -39,11 +42,64 @@ export class SalesService {
     private readonly smsService: SmsMarketingService,
   ) {}
 
+  // ─── Customer Type CRUD ───────────────────────────────────────────────────
+
+  async createCustomerType(businessId: string, dto: CreateCustomerTypeDto) {
+    const exists = await this.customerTypeRepo.findOne({ where: { businessId, name: ILike(dto.name) } });
+    if (exists) throw new ConflictException('Customer type name already exists');
+
+    if (dto.isDefault) {
+      await this.customerTypeRepo.update({ businessId }, { isDefault: false });
+    }
+
+    const ct = this.customerTypeRepo.create({ ...dto, businessId });
+    return this.customerTypeRepo.save(ct);
+  }
+
+  async findAllCustomerTypes(businessId: string) {
+    return this.customerTypeRepo.find({
+      where: { businessId },
+      order: { sortOrder: 'ASC', createdAt: 'ASC' },
+    });
+  }
+
+  async updateCustomerType(businessId: string, id: string, dto: UpdateCustomerTypeDto) {
+    const ct = await this.customerTypeRepo.findOne({ where: { id, businessId } });
+    if (!ct) throw new NotFoundException('Customer type not found');
+
+    if (dto.name && dto.name !== ct.name) {
+      const nameExists = await this.customerTypeRepo.findOne({ where: { businessId, name: ILike(dto.name) } });
+      if (nameExists) throw new ConflictException('Customer type name already exists');
+    }
+
+    if (dto.isDefault) {
+      await this.customerTypeRepo.update({ businessId }, { isDefault: false });
+    }
+
+    Object.assign(ct, dto);
+    return this.customerTypeRepo.save(ct);
+  }
+
+  async deleteCustomerType(businessId: string, id: string) {
+    const ct = await this.customerTypeRepo.findOne({ where: { id, businessId } });
+    if (!ct) throw new NotFoundException('Customer type not found');
+    const inUse = await this.customerRepo.count({ where: { businessId, customerTypeId: id } });
+    if (inUse > 0) throw new BadRequestException(`Cannot delete — ${inUse} customer(s) use this type`);
+    await this.customerTypeRepo.remove(ct);
+    return { message: 'Customer type deleted' };
+  }
+
   // ─── Customer CRUD ────────────────────────────────────────────────────────
 
   async createCustomer(businessId: string, dto: CreateCustomerDto) {
     const exists = await this.customerRepo.findOne({ where: { businessId, name: ILike(dto.name) } });
     if (exists) throw new ConflictException('Customer name already exists');
+
+    if (dto.phone) {
+      const phoneExists = await this.customerRepo.findOne({ where: { businessId, phone: dto.phone } });
+      if (phoneExists) throw new ConflictException(`Mobile number ${dto.phone} is already registered for another customer`);
+    }
+
     const c = this.customerRepo.create({
       ...dto, businessId,
       openingBalance: dto.openingBalance ?? 0,
@@ -53,24 +109,34 @@ export class SalesService {
   }
 
   async findAllCustomers(businessId: string, query: GetCustomersDto) {
-    const { search = '', page = 1, limit = 10 } = query;
+    const { search = '', page = 1, limit = 10, customerTypeId } = query;
     const where: any = { businessId };
     if (search) where.name = ILike(`%${search}%`);
+    if (customerTypeId) where.customerTypeId = customerTypeId;
     const [data, totalItems] = await this.customerRepo.findAndCount({
       where, order: { name: 'ASC' },
+      relations: ['customerType'],
       skip: (page - 1) * limit, take: limit,
     });
     return { data, meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: Number(page) } };
   }
 
   async findCustomer(businessId: string, id: string) {
-    const c = await this.customerRepo.findOne({ where: { id, businessId } });
+    const c = await this.customerRepo.findOne({ where: { id, businessId }, relations: ['customerType'] });
     if (!c) throw new NotFoundException('Customer not found');
     return c;
   }
 
   async updateCustomer(businessId: string, id: string, dto: UpdateCustomerDto) {
     const c = await this.findCustomer(businessId, id);
+
+    if (dto.phone && dto.phone !== c.phone) {
+      const phoneExists = await this.customerRepo.findOne({ where: { businessId, phone: dto.phone } });
+      if (phoneExists && phoneExists.id !== id) {
+        throw new ConflictException(`Mobile number ${dto.phone} is already registered for another customer`);
+      }
+    }
+
     Object.assign(c, dto);
     return this.customerRepo.save(c);
   }
@@ -181,6 +247,7 @@ export class SalesService {
         id: customer.id,
         name: customer.name,
         phone: customer.phone,
+        customerType: customer.customerType,
         currentBalance: Number(customer.currentBalance),
       },
       entries,

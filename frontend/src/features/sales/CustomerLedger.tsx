@@ -17,6 +17,9 @@ const typeColors: Record<string, string> = {
   adjustment: 'bg-purple-100 text-purple-700',
 };
 
+const fmt = (v: any) =>
+  Number(v).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 const EMPTY_ADJ = () => ({
   date: new Date().toISOString().split('T')[0],
   type: 'debit' as 'debit' | 'credit',
@@ -31,7 +34,6 @@ const CustomerLedger = () => {
   const [dateTo, setDateTo] = useState('');
   const [search, setSearch] = useState('');
 
-  // Adjustment modal state
   const [adjOpen, setAdjOpen] = useState(false);
   const [adjForm, setAdjForm] = useState(EMPTY_ADJ());
 
@@ -55,16 +57,6 @@ const CustomerLedger = () => {
       (e.reference ?? '').toLowerCase().includes(search.toLowerCase()) ||
       (e.note ?? '').toLowerCase().includes(search.toLowerCase()),
   );
-
-  const tableHeaders = [
-    t('common.date'),
-    t('common.reference'),
-    t('common.type'),
-    t('sales.customerLedger.debitReceivable'),
-    t('sales.customerLedger.creditReceived'),
-    t('common.balance'),
-    t('common.note'),
-  ];
 
   const openAdj = () => { setAdjForm(EMPTY_ADJ()); setAdjOpen(true); };
   const closeAdj = () => setAdjOpen(false);
@@ -102,8 +94,9 @@ const CustomerLedger = () => {
         }
       />
 
-      <div className="bg-white border border-[#DBDFE9] rounded-lg p-5 mb-5">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Filters */}
+      <div className="bg-white border border-[#DBDFE9] rounded-lg p-4 mb-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('sales.customerLedger.selectCustomer')}</label>
             <select value={customerId} onChange={(e) => setCustomerId(e.target.value)}
@@ -125,21 +118,22 @@ const CustomerLedger = () => {
               className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
           </div>
         </div>
+
         {customerId && selectedCustomer && (
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-3">
             <span className="text-sm font-semibold text-[#26272F]">{selectedCustomer.name}</span>
             {selectedCustomer.mobile && <span className="text-xs text-gray-400">{selectedCustomer.mobile}</span>}
-            <span className="text-xs text-gray-500">{t('sales.customerLedger.currentBalance')}</span>
-            <span className={`text-sm font-bold ${Number(currentBalance) > 0 ? 'text-orange-500' : 'text-green-600'}`}>
-              ৳{Number(currentBalance).toLocaleString()}
-              <span className="ml-1 font-normal text-xs">
-                ({Number(currentBalance) > 0 ? t('sales.customerLedger.due') : t('sales.customerLedger.clear')})
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-500">{t('sales.customerLedger.currentBalance')}</span>
+              <span className={`text-sm font-bold ${Number(currentBalance) > 0 ? 'text-orange-500' : 'text-green-600'}`}>
+                ৳{fmt(currentBalance)}
+                <span className="ml-1 font-normal text-xs">
+                  ({Number(currentBalance) > 0 ? t('sales.customerLedger.due') : t('sales.customerLedger.clear')})
+                </span>
               </span>
-            </span>
-            <button
-              onClick={openAdj}
-              className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors"
-            >
+            </div>
+            <button onClick={openAdj}
+              className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors">
               <SlidersHorizontal className="h-3.5 w-3.5" /> Adjust
             </button>
           </div>
@@ -147,6 +141,7 @@ const CustomerLedger = () => {
       </div>
 
       <div className="bg-white border border-[#DBDFE9] rounded-lg shadow-sm">
+        {/* Search */}
         <div className="p-4 border-b border-[#DBDFE9]">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -156,12 +151,15 @@ const CustomerLedger = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* ── Desktop table ── */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-[#DBDFE9]">
-                {tableHeaders.map((h) => (
-                  <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide">{h}</th>
+                {[t('common.date'), t('common.reference'), t('common.type'),
+                  t('sales.customerLedger.debitReceivable'), t('sales.customerLedger.creditReceived'),
+                  t('common.balance'), t('common.note')].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600 text-xs uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -177,25 +175,64 @@ const CustomerLedger = () => {
                 <tr><td colSpan={7} className="px-4 py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-[#ff6d29]" /></td></tr>
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">{t('sales.customerLedger.noTransactions')}</td></tr>
-              ) : (
-                filtered.map((entry: any, idx: number) => (
-                  <tr key={entry.id ?? idx} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{new Date(entry.date).toLocaleDateString()}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-[#ff6d29]">{entry.reference}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${typeColors[entry.type] ?? 'bg-gray-100 text-gray-600'}`}>
-                        {entry.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-orange-500">{Number(entry.debit) > 0 ? `৳${Number(entry.debit).toLocaleString()}` : '—'}</td>
-                    <td className="px-4 py-3 font-medium text-green-600">{Number(entry.credit) > 0 ? `৳${Number(entry.credit).toLocaleString()}` : '—'}</td>
-                    <td className="px-4 py-3 font-bold text-[#26272F]">৳{Number(entry.balance).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-gray-500">{entry.note ?? '—'}</td>
-                  </tr>
-                ))
-              )}
+              ) : filtered.map((entry: any, idx: number) => (
+                <tr key={entry.id ?? idx} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">{new Date(entry.date).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-[#ff6d29]">{entry.reference}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${typeColors[entry.type] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {entry.type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-medium text-orange-500 text-xs">{Number(entry.debit) > 0 ? `৳${fmt(entry.debit)}` : '—'}</td>
+                  <td className="px-4 py-3 font-medium text-green-600 text-xs">{Number(entry.credit) > 0 ? `৳${fmt(entry.credit)}` : '—'}</td>
+                  <td className="px-4 py-3 font-bold text-[#26272F] text-xs">৳{fmt(entry.balance)}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{entry.note ?? '—'}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
+        </div>
+
+        {/* ── Mobile cards ── */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {!customerId ? (
+            <div className="py-16 text-center text-gray-400">
+              <Search className="h-8 w-8 mx-auto mb-2 text-gray-200" />
+              <p className="text-sm">{t('sales.customerLedger.selectPrompt')}</p>
+            </div>
+          ) : isLoading || isFetching ? (
+            <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#ff6d29]" /></div>
+          ) : filtered.length === 0 ? (
+            <div className="py-12 text-center text-gray-400 text-sm">{t('sales.customerLedger.noTransactions')}</div>
+          ) : filtered.map((entry: any, idx: number) => (
+            <div key={entry.id ?? idx} className="p-4 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-gray-500 whitespace-nowrap">{new Date(entry.date).toLocaleDateString()}</span>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize shrink-0 ${typeColors[entry.type] ?? 'bg-gray-100 text-gray-600'}`}>
+                  {entry.type}
+                </span>
+              </div>
+              {entry.reference && (
+                <p className="text-xs font-mono text-[#ff6d29]">{entry.reference}</p>
+              )}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-orange-50 rounded-lg p-2 text-center">
+                  <p className="text-[10px] text-gray-400 mb-0.5">Debit</p>
+                  <p className="text-xs font-semibold text-orange-500">{Number(entry.debit) > 0 ? `৳${fmt(entry.debit)}` : '—'}</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-2 text-center">
+                  <p className="text-[10px] text-gray-400 mb-0.5">Credit</p>
+                  <p className="text-xs font-semibold text-green-600">{Number(entry.credit) > 0 ? `৳${fmt(entry.credit)}` : '—'}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-2 text-center">
+                  <p className="text-[10px] text-gray-400 mb-0.5">Balance</p>
+                  <p className="text-xs font-bold text-[#26272F]">৳{fmt(entry.balance)}</p>
+                </div>
+              </div>
+              {entry.note && <p className="text-xs text-gray-400 truncate">{entry.note}</p>}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -205,83 +242,49 @@ const CustomerLedger = () => {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#DBDFE9]">
               <h3 className="text-base font-semibold text-[#26272F]">Ledger Adjustment — {selectedCustomer?.name}</h3>
-              <button onClick={closeAdj} className="text-gray-400 hover:text-gray-600">
-                <X className="h-5 w-5" />
-              </button>
+              <button onClick={closeAdj} className="text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button>
             </div>
             <div className="px-5 py-4 space-y-4">
-              {/* Type */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Adjustment Type</label>
                 <div className="grid grid-cols-2 gap-3">
                   {(['debit', 'credit'] as const).map((tp) => (
-                    <button
-                      key={tp}
-                      type="button"
-                      onClick={() => setAdjForm((f) => ({ ...f, type: tp }))}
+                    <button key={tp} type="button" onClick={() => setAdjForm((f) => ({ ...f, type: tp }))}
                       className={`py-2.5 rounded-lg border text-sm font-medium transition-colors ${
                         adjForm.type === tp
-                          ? tp === 'debit'
-                            ? 'border-orange-500 bg-orange-50 text-orange-600'
-                            : 'border-green-500 bg-green-50 text-green-600'
+                          ? tp === 'debit' ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-green-500 bg-green-50 text-green-600'
                           : 'border-[#DBDFE9] text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
+                      }`}>
                       {tp === 'debit' ? '▲ Debit (owes more)' : '▼ Credit (owes less)'}
                     </button>
                   ))}
                 </div>
               </div>
-
-              {/* Date */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Date</label>
-                <input
-                  type="date"
-                  value={adjForm.date}
+                <input type="date" value={adjForm.date}
                   onChange={(e) => setAdjForm((f) => ({ ...f, date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
-                />
+                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
-
-              {/* Amount */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Amount (৳)</label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={adjForm.amount}
+                <input type="number" min="0.01" step="0.01" value={adjForm.amount}
                   onChange={(e) => setAdjForm((f) => ({ ...f, amount: e.target.value }))}
                   placeholder="0.00"
-                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
-                />
+                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]" />
               </div>
-
-              {/* Note */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Note (optional)</label>
-                <textarea
-                  rows={2}
-                  value={adjForm.note}
+                <textarea rows={2} value={adjForm.note}
                   onChange={(e) => setAdjForm((f) => ({ ...f, note: e.target.value }))}
                   placeholder="Reason for adjustment..."
-                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] resize-none"
-                />
+                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29] resize-none" />
               </div>
             </div>
             <div className="px-5 py-4 border-t border-[#DBDFE9] flex justify-end gap-3">
-              <button
-                onClick={closeAdj}
-                className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAdjSubmit}
-                disabled={adjSaving}
-                className="px-5 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:opacity-60 transition-colors"
-              >
+              <button onClick={closeAdj} className="px-4 py-2 border border-[#DBDFE9] text-gray-600 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+              <button onClick={handleAdjSubmit} disabled={adjSaving}
+                className="px-5 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:opacity-60 transition-colors">
                 {adjSaving ? 'Saving…' : 'Save Adjustment'}
               </button>
             </div>

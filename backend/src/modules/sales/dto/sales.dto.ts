@@ -1,15 +1,40 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsArray, IsDateString, IsEnum, IsNotEmpty, IsNumber,
-  IsOptional, IsString, IsUUID, Min, ValidateNested,
+  IsArray, IsBoolean, IsDateString, IsEnum, IsHexColor, IsInt,
+  IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min, ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+
+// ─── Customer Type DTOs ───────────────────────────────────────────────────────
+
+export class CreateCustomerTypeDto {
+  @ApiProperty() @IsString() @IsNotEmpty() name: string;
+  @ApiPropertyOptional({ description: 'Hex color e.g. #3B82F6' })
+  @IsOptional() @IsString() colorCode?: string;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() isDefault?: boolean;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(0) sortOrder?: number;
+}
+
+export class UpdateCustomerTypeDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() name?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() colorCode?: string;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() isDefault?: boolean;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(0) sortOrder?: number;
+}
 
 // ─── Customer DTOs ────────────────────────────────────────────────────────────
 
 export class CreateCustomerDto {
   @ApiProperty() @IsString() @IsNotEmpty() name: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() phone?: string;
+
+  @ApiProperty({ description: 'Mobile number — required and unique per business' })
+  @IsString() @IsNotEmpty()
+  phone: string;
+
+  @ApiPropertyOptional({ description: 'Customer type ID (UUID from customer_types table)' })
+  @IsOptional() @IsUUID()
+  customerTypeId?: string;
+
   @ApiPropertyOptional() @IsOptional() @IsString() email?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() address?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) openingBalance?: number;
@@ -17,13 +42,23 @@ export class CreateCustomerDto {
 
 export class UpdateCustomerDto {
   @ApiPropertyOptional() @IsOptional() @IsString() name?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() phone?: string;
+
+  @ApiPropertyOptional({ description: 'Mobile number — unique per business' })
+  @IsOptional() @IsString() @IsNotEmpty()
+  phone?: string;
+
+  @ApiPropertyOptional({ description: 'Customer type ID' })
+  @IsOptional() @IsUUID()
+  customerTypeId?: string;
+
   @ApiPropertyOptional() @IsOptional() @IsString() email?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() address?: string;
 }
 
 export class GetCustomersDto {
   @ApiPropertyOptional() @IsOptional() @IsString() search?: string;
+  @ApiPropertyOptional({ description: 'Filter by customer type ID' })
+  @IsOptional() @IsUUID() customerTypeId?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(1) page?: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(1) limit?: number;
 }

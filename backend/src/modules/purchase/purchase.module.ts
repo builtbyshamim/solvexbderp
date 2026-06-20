@@ -6,10 +6,15 @@ import { SupplierLedgerAdjustmentEntity } from './entities/supplier-adjustment.e
 import { PurchaseService } from './services/purchase.service';
 import { PurchaseController } from './controllers/purchase.controller';
 import { ProductModule } from '../inventory/product/product.module';
+import { AccountEntity } from '../accounting/entities/account.entity';
+import { AccountLedgerEntity } from '../accounting/entities/account-ledger.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([SupplierEntity, PurchaseEntity, PurchaseItemEntity, SupplierLedgerAdjustmentEntity]),
+    TypeOrmModule.forFeature([
+      SupplierEntity, PurchaseEntity, PurchaseItemEntity,
+      SupplierLedgerAdjustmentEntity, AccountEntity, AccountLedgerEntity,
+    ]),
     ProductModule,
   ],
   controllers: [PurchaseController],

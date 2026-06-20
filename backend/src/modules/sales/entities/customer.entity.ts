@@ -1,8 +1,10 @@
-import { Entity, Column, Index } from 'typeorm';
+import { Entity, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
 import { TenantBaseEntity } from 'src/common/entities/tenant-base.entity';
+import { CustomerTypeEntity } from './customer-type.entity';
 
 @Entity('customers')
 @Index(['businessId', 'name'])
+@Index(['businessId', 'phone'], { unique: true, where: '"phone" IS NOT NULL' })
 export class CustomerEntity extends TenantBaseEntity {
   @Column()
   name: string;
@@ -15,6 +17,13 @@ export class CustomerEntity extends TenantBaseEntity {
 
   @Column({ nullable: true })
   address?: string;
+
+  @Column({ nullable: true, name: 'customer_type_id' })
+  customerTypeId?: string;
+
+  @ManyToOne(() => CustomerTypeEntity, { nullable: true, onDelete: 'SET NULL', eager: false })
+  @JoinColumn({ name: 'customer_type_id' })
+  customerType?: CustomerTypeEntity;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
   openingBalance: number;

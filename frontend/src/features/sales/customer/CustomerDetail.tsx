@@ -312,7 +312,22 @@ const CustomerDetail = () => {
           <div className="w-14 h-14 rounded-full bg-[#ff6d29]/10 flex items-center justify-center mb-4">
             <span className="text-xl font-bold text-[#ff6d29]">{customer.name.charAt(0).toUpperCase()}</span>
           </div>
-          <p className="text-lg font-bold text-[#26272F]">{customer.name}</p>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-lg font-bold text-[#26272F]">{customer.name}</p>
+            {customer.customerType && (
+              <span
+                style={customer.customerType.colorCode
+                  ? { backgroundColor: customer.customerType.colorCode + '22', color: customer.customerType.colorCode, borderColor: customer.customerType.colorCode + '44' }
+                  : {}}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border bg-gray-100 text-gray-600 border-gray-200"
+              >
+                {customer.customerType.colorCode && (
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: customer.customerType.colorCode }} />
+                )}
+                {customer.customerType.name ?? customer.customerType}
+              </span>
+            )}
+          </div>
           <div className="mt-3 space-y-2">
             {customer.phone && (
               <div className="flex items-center gap-2 text-gray-600 text-sm">

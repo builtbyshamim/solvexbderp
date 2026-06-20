@@ -38,6 +38,7 @@ import AllSupplier from '../features/purchase/supplier/AllSupplier';
 import SupplierDetail from '../features/purchase/supplier/SupplierDetail';
 import PurchaseList from '../features/purchase/PurchaseList';
 import AddPurchase from '../features/purchase/AddPurchase';
+import PurchaseDetail from '../features/purchase/PurchaseDetail';
 import PurchaseReturns from '../features/purchase/PurchaseReturns';
 import SupplierLedger from '../features/purchase/SupplierLedger';
 import SupplierPayment from '../features/purchase/SupplierPayment';
@@ -45,6 +46,7 @@ import SupplierPayment from '../features/purchase/SupplierPayment';
 // Sales
 import AllCustomer from '../features/sales/customer/AllCustomer';
 import CustomerDetail from '../features/sales/customer/CustomerDetail';
+import CustomerTypeSettings from '../features/sales/customer/CustomerTypeSettings';
 import SaleList from '../features/sales/SaleList';
 import AddSale from '../features/sales/AddSale';
 import SaleDetail from '../features/sales/SaleDetail';
@@ -216,6 +218,7 @@ const router = createBrowserRouter([
       { path: 'purchase/suppliers/:id', element: <SupplierDetail /> },
       { path: 'purchase/list', element: <PurchaseList /> },
       { path: 'purchase/add', element: <AddPurchase /> },
+      { path: 'purchase/:id', element: <PurchaseDetail /> },
       { path: 'purchase/returns', element: <PurchaseReturns /> },
       { path: 'purchase/supplier-ledger', element: <SupplierLedger /> },
       { path: 'purchase/supplier-payment', element: <SupplierPayment /> },
@@ -223,6 +226,7 @@ const router = createBrowserRouter([
       // Sales
       { path: 'sales/customers', element: <AllCustomer /> },
       { path: 'sales/customers/:id', element: <CustomerDetail /> },
+      { path: 'sales/customer-types', element: <CustomerTypeSettings /> },
       { path: 'sales/list', element: <SaleList /> },
       { path: 'sales/add', element: <AddSale /> },
       { path: 'sales/returns', element: <SaleReturns /> },

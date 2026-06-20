@@ -1,10 +1,10 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import * as XLSX from 'xlsx';
 import { CustomerEntity } from '../entities/customer.entity';
 
-const EXPORT_COLUMNS = ['name', 'phone', 'email', 'address', 'openingBalance', 'closingBalance'];
+const EXPORT_COLUMNS = ['name', 'phone', 'email', 'address', 'customerType', 'openingBalance', 'closingBalance'];
 const IMPORT_COLUMNS = ['name', 'phone', 'email', 'address', 'openingBalance'];
 
 @Injectable()
@@ -33,6 +33,7 @@ export class CustomerImportExportService {
   async exportCustomers(businessId: string): Promise<Buffer> {
     const customers = await this.customerRepo.find({
       where: { businessId },
+      relations: ['customerType'],
       order: { name: 'ASC' },
     });
 
@@ -41,6 +42,7 @@ export class CustomerImportExportService {
       phone: c.phone ?? '',
       email: c.email ?? '',
       address: c.address ?? '',
+      customerType: (c as any).customerType?.name ?? '',
       openingBalance: Number(c.openingBalance),
       closingBalance: Number(c.currentBalance),
     }));
@@ -73,20 +75,24 @@ export class CustomerImportExportService {
         const name = String(row.name ?? '').trim();
         if (!name) throw new Error('Customer name is required');
 
+        const phone = row.phone !== '' ? String(row.phone).trim() : undefined;
+        if (!phone) throw new Error('Mobile number is required');
+
         const openingBalance = row.openingBalance !== '' ? Number(row.openingBalance) : 0;
         if (isNaN(openingBalance) || openingBalance < 0) {
           throw new Error('openingBalance must be a valid non-negative number');
         }
 
-        const exists = await this.customerRepo.findOne({
-          where: { businessId, name: ILike(name) },
-        });
-        if (exists) throw new ConflictException(`Customer "${name}" already exists`);
+        const nameExists = await this.customerRepo.findOne({ where: { businessId, name: ILike(name) } });
+        if (nameExists) throw new Error(`Customer "${name}" already exists`);
+
+        const phoneExists = await this.customerRepo.findOne({ where: { businessId, phone } });
+        if (phoneExists) throw new Error(`Mobile number ${phone} is already registered`);
 
         const customer = this.customerRepo.create({
           businessId,
           name,
-          phone: row.phone !== '' ? String(row.phone).trim() : undefined,
+          phone,
           email: row.email !== '' ? String(row.email).trim() : undefined,
           address: row.address !== '' ? String(row.address).trim() : undefined,
           openingBalance,
