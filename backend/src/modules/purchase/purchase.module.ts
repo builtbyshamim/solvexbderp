@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SupplierEntity } from './entities/supplier.entity';
 import { PurchaseEntity, PurchaseItemEntity } from './entities/purchase.entity';
 import { SupplierLedgerAdjustmentEntity } from './entities/supplier-adjustment.entity';
+import { PurchaseReturnEntity, PurchaseReturnItemEntity } from './entities/purchase-return.entity';
 import { PurchaseService } from './services/purchase.service';
 import { PurchaseController } from './controllers/purchase.controller';
 import { ProductModule } from '../inventory/product/product.module';
@@ -14,6 +15,7 @@ import { AccountLedgerEntity } from '../accounting/entities/account-ledger.entit
     TypeOrmModule.forFeature([
       SupplierEntity, PurchaseEntity, PurchaseItemEntity,
       SupplierLedgerAdjustmentEntity, AccountEntity, AccountLedgerEntity,
+      PurchaseReturnEntity, PurchaseReturnItemEntity,
     ]),
     ProductModule,
   ],

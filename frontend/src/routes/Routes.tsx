@@ -51,6 +51,7 @@ import CustomerDetail from '../features/sales/customer/CustomerDetail';
 import CustomerTypeSettings from '../features/sales/customer/CustomerTypeSettings';
 import SaleList from '../features/sales/SaleList';
 import AddSale from '../features/sales/AddSale';
+import EditSale from '../features/sales/EditSale';
 import SaleDetail from '../features/sales/SaleDetail';
 import SaleReturns from '../features/sales/SaleReturns';
 import Quotations from '../features/sales/Quotations';
@@ -233,6 +234,7 @@ const router = createBrowserRouter([
       { path: 'sales/customer-types', element: <CustomerTypeSettings /> },
       { path: 'sales/list', element: <SaleList /> },
       { path: 'sales/add', element: <AddSale /> },
+      { path: 'sales/:id/edit', element: <EditSale /> },
       { path: 'sales/returns', element: <SaleReturns /> },
       { path: 'sales/quotations', element: <Quotations /> },
       { path: 'sales/customer-ledger', element: <CustomerLedger /> },

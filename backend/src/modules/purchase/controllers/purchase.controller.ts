@@ -4,6 +4,7 @@ import { PurchaseService } from '../services/purchase.service';
 import {
   CreatePurchaseDto, CreateSupplierAdjustmentDto, CreateSupplierDto, GetPurchasesDto,
   GetSuppliersDto, UpdateSupplierDto, PaySupplierDto,
+  CreatePurchaseReturnDto, GetPurchaseReturnsDto,
 } from '../dto/purchase.dto';
 import { BusinessId } from 'src/common/decorators/business-id.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -110,5 +111,28 @@ export class PurchaseController {
     @Body() dto: CreateSupplierAdjustmentDto,
   ) {
     return this.purchaseService.createSupplierAdjustment(biz, id, dto, user.id);
+  }
+
+  // ── Purchase Returns ──
+  @Get('returns')
+  @ApiOperation({ summary: 'Get all purchase returns' })
+  getPurchaseReturns(@BusinessId() biz: string, @Query() q: GetPurchaseReturnsDto) {
+    return this.purchaseService.findAllPurchaseReturns(biz, q);
+  }
+
+  @Post('returns')
+  @ApiOperation({ summary: 'Create a purchase return (invoice-wise)' })
+  createPurchaseReturn(
+    @BusinessId() biz: string,
+    @CurrentUser() user: UserEntity,
+    @Body() dto: CreatePurchaseReturnDto,
+  ) {
+    return this.purchaseService.createPurchaseReturn(biz, dto, user.id);
+  }
+
+  @Patch('returns/:id/approve')
+  @ApiOperation({ summary: 'Approve purchase return — reverses stock and supplier balance' })
+  approvePurchaseReturn(@BusinessId() biz: string, @Param('id') id: string) {
+    return this.purchaseService.approvePurchaseReturn(biz, id);
   }
 }

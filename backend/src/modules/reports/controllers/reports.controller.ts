@@ -77,6 +77,16 @@ export class ReportsController {
     return this.reportsService.getStockValuation(biz);
   }
 
+  @Get('stock-position')
+  @ApiOperation({ summary: 'Stock position per product broken down by location/warehouse' })
+  stockPosition(
+    @BusinessId() biz: string,
+    @Query('search') search?: string,
+    @Query('categoryId') categoryId?: string,
+  ) {
+    return this.reportsService.getStockPositionReport(biz, search, categoryId);
+  }
+
   @Get('profit-loss')
   @ApiOperation({ summary: 'P&L statement for a date range' })
   profitLoss(

@@ -310,4 +310,118 @@ export class ReportsService {
       currentBalance: Number(s.currentBalance),
     }));
   }
+
+  async getStockPositionReport(businessId: string, search?: string, categoryId?: string) {
+    let whereProduct = `p.business_id = $1 AND p.is_active = true`;
+    const params: any[] = [businessId];
+
+    if (search) {
+      params.push(`%${search}%`);
+      whereProduct += ` AND (p.name ILIKE $${params.length} OR p.sku ILIKE $${params.length})`;
+    }
+    if (categoryId) {
+      params.push(categoryId);
+      whereProduct += ` AND p.category_id = $${params.length}`;
+    }
+
+    const rows = await this.stockRepo.query(
+      `SELECT
+         p.id              AS product_id,
+         p.name            AS product_name,
+         p.sku,
+         p.purchase_price,
+         p.selling_price,
+         p.alert_quantity,
+         c.name            AS category_name,
+         u.name            AS unit_name,
+         ps.location_id,
+         COALESCE(ps.current_qty, 0) AS current_qty,
+         COALESCE(ps.avg_cost, 0)    AS avg_cost,
+         sl.name           AS location_name,
+         sl.is_default,
+         sl.warehouse_id,
+         w.name            AS warehouse_name
+       FROM products p
+       LEFT JOIN categories c       ON c.id = p.category_id
+       LEFT JOIN units u             ON u.id = p.unit_id
+       LEFT JOIN product_stocks ps   ON ps.product_id = p.id AND ps.business_id = $1
+       LEFT JOIN stock_locations sl  ON sl.id = ps.location_id
+       LEFT JOIN warehouses w        ON w.id = sl.warehouse_id
+       WHERE ${whereProduct}
+       ORDER BY p.name ASC`,
+      params,
+    );
+
+    // Collect unique locations
+    const locationMap = new Map<string, { id: string; name: string; isDefault: boolean; warehouseId: string | null; warehouseName: string | null }>();
+    for (const r of rows) {
+      if (r.location_id && !locationMap.has(r.location_id)) {
+        locationMap.set(r.location_id, {
+          id: r.location_id,
+          name: r.location_name ?? (r.is_default ? 'Business Default' : r.warehouse_name ?? r.location_id),
+          isDefault: r.is_default === true || r.is_default === 't',
+          warehouseId: r.warehouse_id ?? null,
+          warehouseName: r.warehouse_name ?? null,
+        });
+      }
+    }
+    const locations = Array.from(locationMap.values()).sort((a, b) => (a.isDefault ? -1 : b.isDefault ? 1 : 0));
+
+    // Group rows by product
+    const productMap = new Map<string, any>();
+    for (const r of rows) {
+      if (!productMap.has(r.product_id)) {
+        productMap.set(r.product_id, {
+          id: r.product_id,
+          name: r.product_name,
+          sku: r.sku,
+          categoryName: r.category_name ?? '—',
+          unitName: r.unit_name ?? '—',
+          purchasePrice: Number(r.purchase_price ?? 0),
+          sellingPrice: Number(r.selling_price ?? 0),
+          alertQuantity: r.alert_quantity != null ? Number(r.alert_quantity) : null,
+          stocks: {} as Record<string, { qty: number; avgCost: number }>,
+        });
+      }
+      if (r.location_id) {
+        const prod = productMap.get(r.product_id);
+        prod.stocks[r.location_id] = {
+          qty: Number(r.current_qty),
+          avgCost: Number(r.avg_cost),
+        };
+      }
+    }
+
+    const products = Array.from(productMap.values()).map((p) => {
+      let totalQty = 0;
+      let totalValue = 0;
+      for (const loc of locations) {
+        const s = p.stocks[loc.id];
+        if (s) {
+          totalQty += s.qty;
+          totalValue += s.qty * s.avgCost;
+        }
+      }
+      return { ...p, totalQty, totalValue: Number(totalValue.toFixed(2)) };
+    });
+
+    const totalQty = products.reduce((s, p) => s + p.totalQty, 0);
+    const totalValue = products.reduce((s, p) => s + p.totalValue, 0);
+    const lowStockCount = products.filter(
+      (p) => p.alertQuantity != null && p.totalQty > 0 && p.totalQty <= p.alertQuantity,
+    ).length;
+    const outOfStockCount = products.filter((p) => p.totalQty <= 0).length;
+
+    return {
+      locations,
+      products,
+      summary: {
+        totalProducts: products.length,
+        totalQty: Number(totalQty.toFixed(4)),
+        totalValue: Number(totalValue.toFixed(2)),
+        lowStockCount,
+        outOfStockCount,
+      },
+    };
+  }
 }

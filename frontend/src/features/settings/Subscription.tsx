@@ -311,7 +311,7 @@ const Subscription = () => {
           <div className="flex-1">
             <p className="font-semibold text-amber-800">Payment Under Review</p>
             <p className="text-amber-700 mt-0.5">
-              Your {pendingRequest.paymentMethod.toUpperCase()} payment (TxnID:{' '}
+              Your {(pendingRequest.paymentMethod ?? '').toUpperCase() || 'Payment'} (TxnID:{' '}
               <span className="font-mono font-medium">{pendingRequest.transactionId}</span>) is
               being verified. Subscription will activate once confirmed.
             </p>

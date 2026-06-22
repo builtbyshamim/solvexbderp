@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Printer, Receipt, Loader2, CreditCard, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Printer, Receipt, Loader2, CreditCard, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import toast from 'react-hot-toast';
 import { useGetSaleQuery, useCollectPaymentMutation } from './salesApi';
@@ -91,6 +91,14 @@ const SaleDetail = () => {
         ]}
         actions={
           <div className="flex flex-wrap gap-2">
+            {sale.status !== 'cancelled' && (
+              <Link
+                to={`/admin/sales/${id}/edit`}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                <Pencil className="h-4 w-4" /> Edit Invoice
+              </Link>
+            )}
             <button
               onClick={() => openPrintWindow('a4')}
               className="flex items-center gap-2 px-4 py-2 bg-[#ff6d29] text-white rounded-lg text-sm font-medium hover:bg-[#e65a1f] transition-colors"

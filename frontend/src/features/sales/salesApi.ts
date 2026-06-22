@@ -98,6 +98,19 @@ export const salesApi = baseApi.injectEndpoints({
         { type: tagTypes.stockLedger, id: "LIST" },
       ],
     }),
+    updateSale: build.mutation({
+      query: ({ id, data }: { id: string; data: any }) => ({
+        url: `${SALE_URL}/${id}`, method: "PATCH", data,
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: tagTypes.sale, id: arg.id },
+        { type: tagTypes.sale, id: "LIST" },
+        { type: tagTypes.customer, id: "LIST" },
+        { type: tagTypes.product, id: "LIST" },
+        { type: tagTypes.stockLedger, id: "LIST" },
+        { type: tagTypes.account, id: "LIST" },
+      ],
+    }),
     cancelSale: build.mutation({
       query: (id: string) => ({ url: `${SALE_URL}/${id}/cancel`, method: "PATCH" }),
       invalidatesTags: [{ type: tagTypes.sale, id: "LIST" }, { type: tagTypes.product, id: "LIST" }],
@@ -214,6 +227,7 @@ export const {
   useGetAllSalesQuery,
   useGetSaleQuery,
   useCreateSaleMutation,
+  useUpdateSaleMutation,
   useCancelSaleMutation,
   useCollectPaymentMutation,
   useCollectBulkPaymentMutation,

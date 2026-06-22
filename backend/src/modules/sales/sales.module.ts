@@ -12,6 +12,8 @@ import { CustomerImportExportService } from './services/customer-import-export.s
 import { SalesController } from './controllers/sales.controller';
 import { ProductModule } from '../inventory/product/product.module';
 import { SmsMarketingModule } from '../sms-marketing/sms-marketing.module';
+import { AccountEntity } from '../accounting/entities/account.entity';
+import { AccountLedgerEntity } from '../accounting/entities/account-ledger.entity';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { SmsMarketingModule } from '../sms-marketing/sms-marketing.module';
       SaleReturnEntity, SaleReturnItemEntity,
       CustomerLedgerAdjustmentEntity,
       CouponEntity,
+      AccountEntity,
+      AccountLedgerEntity,
     ]),
     ProductModule,
     SmsMarketingModule,

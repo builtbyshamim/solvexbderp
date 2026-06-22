@@ -246,6 +246,32 @@ export class PaySupplierDto {
   invoicePayments?: InvoicePaymentItemDto[];
 }
 
+export class ReturnItemDto {
+  @ApiProperty() @IsUUID() productId: string;
+  @ApiProperty() @Type(() => Number) @IsNumber() @Min(0.0001) quantity: number;
+  @ApiProperty() @Type(() => Number) @IsNumber() @Min(0) unitCost: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() productName?: string;
+}
+
+export class CreatePurchaseReturnDto {
+  @ApiProperty() @IsUUID() purchaseId: string;
+  @ApiPropertyOptional() @IsOptional() @IsDateString() returnDate?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() reason?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
+
+  @ApiProperty({ type: [ReturnItemDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ReturnItemDto)
+  items: ReturnItemDto[];
+}
+
+export class GetPurchaseReturnsDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() search?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(1) page?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(1) limit?: number;
+}
+
 export class CreateSupplierAdjustmentDto {
   @ApiProperty({ description: 'Adjustment date (ISO date)' })
   @IsDateString()

@@ -30,7 +30,9 @@ const ProductSearch = ({ value, warehouseId: _warehouseId, onSelect }: {
 }) => {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { data } = useGetAllProductsQuery({ search: query, limit: 10 }, { skip: query.length < 1 });
   const products: any[] = data?.data ?? [];
@@ -44,16 +46,31 @@ const ProductSearch = ({ value, warehouseId: _warehouseId, onSelect }: {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const handleOpen = () => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropdownHeight = 176;
+      if (spaceBelow < dropdownHeight) {
+        setDropdownStyle({ position: 'fixed', top: rect.top - dropdownHeight - 4, left: rect.left, width: 256, zIndex: 9999 });
+      } else {
+        setDropdownStyle({ position: 'fixed', top: rect.bottom + 4, left: rect.left, width: 256, zIndex: 9999 });
+      }
+    }
+    setOpen(true);
+  };
+
   return (
     <div className="relative" ref={ref}>
       <input
+        ref={inputRef}
         type="text" value={query} placeholder="Search product..."
-        onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
+        onChange={(e) => { setQuery(e.target.value); handleOpen(); }}
+        onFocus={handleOpen}
         className="w-full px-2 py-1.5 border border-[#DBDFE9] rounded text-sm focus:outline-none focus:border-[#ff6d29] min-w-[160px]"
       />
       {open && products.length > 0 && (
-        <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-[#DBDFE9] rounded-lg shadow-lg w-64 max-h-44 overflow-y-auto">
+        <div style={dropdownStyle} className="bg-white border border-[#DBDFE9] rounded-lg shadow-lg max-h-44 overflow-y-auto">
           {products.map((p: any) => (
             <button
               key={p.id}
@@ -194,7 +211,7 @@ const NewQuotationModal = ({ onClose }: { onClose: () => void }) => {
                 <Plus className="h-3.5 w-3.5" /> {t('sales.quotations.addRow')}
               </button>
             </div>
-            <div className="border border-[#DBDFE9] rounded-lg overflow-hidden">
+            <div className="border border-[#DBDFE9] rounded-lg overflow-visible">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-[#DBDFE9]">

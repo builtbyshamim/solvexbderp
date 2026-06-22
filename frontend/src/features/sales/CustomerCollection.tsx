@@ -8,16 +8,7 @@ import {
   useCollectPaymentMutation,
   useCollectBulkPaymentMutation,
 } from './salesApi';
-
-const PAYMENT_METHODS = [
-  { value: 'cash', label: 'Cash' },
-  { value: 'card', label: 'Card' },
-  { value: 'bkash', label: 'bKash' },
-  { value: 'nagad', label: 'Nagad' },
-  { value: 'rocket', label: 'Rocket' },
-  { value: 'bank_transfer', label: 'Bank Transfer' },
-  { value: 'other', label: 'Other' },
-];
+import { useGetAllAccountsQuery } from '../accounting/accountingApi';
 
 const fmtN = (n: number | string) =>
   Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -41,7 +32,7 @@ const today = new Date().toISOString().split('T')[0];
 const CustomerCollection = () => {
   const [customerId, setCustomerId] = useState('');
   const [mode, setMode] = useState<CollectionMode>('invoice');
-  const [method, setMethod] = useState('cash');
+  const [accountId, setAccountId] = useState('');
   const [collectionDate, setCollectionDate] = useState(today);
   const [note, setNote] = useState('');
   const [bulkAmount, setBulkAmount] = useState('');
@@ -54,12 +45,15 @@ const CustomerCollection = () => {
   const [qCustomerId, setQCustomerId] = useState('');
   const [qAmount, setQAmount] = useState('');
   const [qRebate, setQRebate] = useState('');
-  const [qMethod, setQMethod] = useState('cash');
+  const [qAccountId, setQAccountId] = useState('');
   const [qNote, setQNote] = useState('');
   const [qSubmitting, setQSubmitting] = useState(false);
 
   const { data: customersData } = useGetAllCustomersQuery({ limit: 500 });
   const customers: any[] = customersData?.data ?? [];
+
+  const { data: accountsData } = useGetAllAccountsQuery({ limit: 100 });
+  const accounts: any[] = accountsData?.data ?? [];
 
   const { data: salesData, isLoading: salesLoading } = useGetAllSalesQuery(
     { customerId, limit: 200 },
@@ -129,7 +123,7 @@ const CustomerCollection = () => {
       for (const r of selected) {
         await collectPayment({
           id: r.saleId,
-          data: { amount: Number(r.amount), rebate: Number(r.rebate) || 0, method, note, collectionDate },
+          data: { amount: Number(r.amount), rebate: Number(r.rebate) || 0, accountId: accountId || undefined, note, collectionDate },
         }).unwrap();
         done++;
       }
@@ -151,7 +145,7 @@ const CustomerCollection = () => {
     try {
       await collectBulkPayment({
         customerId,
-        data: { amount: amt, rebate: Number(bulkRebate) || 0, method, note, collectionDate },
+        data: { amount: amt, rebate: Number(bulkRebate) || 0, accountId: accountId || undefined, note, collectionDate },
       }).unwrap();
       toast.success('Collection recorded');
       setBulkAmount('');
@@ -172,11 +166,11 @@ const CustomerCollection = () => {
     try {
       await collectBulkPayment({
         customerId: qCustomerId,
-        data: { amount: amt, rebate: Number(qRebate) || 0, method: qMethod, note: qNote, collectionDate: today },
+        data: { amount: amt, rebate: Number(qRebate) || 0, accountId: qAccountId || undefined, note: qNote, collectionDate: today },
       }).unwrap();
       toast.success('Quick collection done');
       setQuickOpen(false);
-      setQCustomerId(''); setQAmount(''); setQRebate(''); setQNote(''); setQMethod('cash');
+      setQCustomerId(''); setQAmount(''); setQRebate(''); setQNote(''); setQAccountId('');
     } catch (err: any) {
       toast.error(err?.data?.message || 'Collection failed');
     } finally {
@@ -184,7 +178,7 @@ const CustomerCollection = () => {
     }
   };
 
-  const canSubmit = customerId && !isSubmitting &&
+  const canSubmit = customerId && accountId && !isSubmitting &&
     (mode === 'invoice' ? selected.length > 0 : !!bulkAmount);
 
   return (
@@ -447,14 +441,19 @@ const CustomerCollection = () => {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Payment Method</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                    Deposit to Account <span className="text-red-500">*</span>
+                  </label>
                   <select
-                    value={method}
-                    onChange={(e) => setMethod(e.target.value)}
+                    value={accountId}
+                    onChange={(e) => setAccountId(e.target.value)}
                     className="w-full px-3 py-2.5 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
                   >
-                    {PAYMENT_METHODS.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
+                    <option value="">— Select account —</option>
+                    {accounts.map((a: any) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} {a.currentBalance !== undefined ? `(৳${Number(a.currentBalance).toLocaleString()})` : ''}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -530,8 +529,10 @@ const CustomerCollection = () => {
 
               <div className="mt-4 pt-4 border-t border-[#DBDFE9] space-y-2 text-xs text-gray-500">
                 <div className="flex justify-between">
-                  <span>Method</span>
-                  <span className="capitalize font-medium">{method.replace('_', ' ')}</span>
+                  <span>Account</span>
+                  <span className="font-medium text-right max-w-[120px] truncate">
+                    {accounts.find((a: any) => a.id === accountId)?.name || <span className="text-red-400">Not selected</span>}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Date</span>
@@ -615,14 +616,19 @@ const CustomerCollection = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Payment Method</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Deposit to Account <span className="text-red-500">*</span>
+                </label>
                 <select
-                  value={qMethod}
-                  onChange={(e) => setQMethod(e.target.value)}
+                  value={qAccountId}
+                  onChange={(e) => setQAccountId(e.target.value)}
                   className="w-full px-3 py-2.5 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:border-[#ff6d29]"
                 >
-                  {PAYMENT_METHODS.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
+                  <option value="">— Select account —</option>
+                  {accounts.map((a: any) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} {a.currentBalance !== undefined ? `(৳${Number(a.currentBalance).toLocaleString()})` : ''}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -649,7 +655,7 @@ const CustomerCollection = () => {
 
               <button
                 onClick={handleQuickCollect}
-                disabled={qSubmitting || !qCustomerId || !qAmount}
+                disabled={qSubmitting || !qCustomerId || !qAmount || !qAccountId}
                 className="w-full py-3 bg-[#ff6d29] text-white rounded-lg text-sm font-semibold hover:bg-[#e65a1f] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
               >
                 {qSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}

@@ -13,7 +13,9 @@ import { StockLedgerEntity, StockTransactionType } from 'src/modules/inventory/p
 import {
   CreatePurchaseDto, CreateSupplierAdjustmentDto, CreateSupplierDto, GetPurchasesDto,
   GetSuppliersDto, UpdateSupplierDto, PaySupplierDto,
+  CreatePurchaseReturnDto, GetPurchaseReturnsDto,
 } from '../dto/purchase.dto';
+import { PurchaseReturnEntity, PurchaseReturnItemEntity, ReturnStatus } from '../entities/purchase-return.entity';
 import { SupplierLedgerAdjustmentEntity, AdjustmentType } from '../entities/supplier-adjustment.entity';
 import { AccountEntity } from 'src/modules/accounting/entities/account.entity';
 import { AccountLedgerEntity, LedgerTransactionType } from 'src/modules/accounting/entities/account-ledger.entity';
@@ -38,6 +40,8 @@ export class PurchaseService {
     private readonly accountRepo: Repository<AccountEntity>,
     @InjectRepository(AccountLedgerEntity)
     private readonly accountLedgerRepo: Repository<AccountLedgerEntity>,
+    @InjectRepository(PurchaseReturnEntity)
+    private readonly purchaseReturnRepo: Repository<PurchaseReturnEntity>,
     private readonly locationService: StockLocationService,
     private readonly dataSource: DataSource,
   ) {}
@@ -527,5 +531,140 @@ export class PurchaseService {
       data: paginated,
       meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: page },
     };
+  }
+
+  // ─── Purchase Returns ────────────────────────────────────────────────────────
+
+  async createPurchaseReturn(businessId: string, dto: CreatePurchaseReturnDto, userId: string) {
+    return this.dataSource.transaction(async (tx) => {
+      const purchase = await tx.findOne(PurchaseEntity, {
+        where: { id: dto.purchaseId, businessId },
+        relations: ['items'],
+      });
+      if (!purchase) throw new NotFoundException('Purchase not found');
+
+      // Validate return quantities against original purchase items
+      for (const item of dto.items) {
+        const original = purchase.items.find((i) => i.productId === item.productId);
+        if (!original) throw new BadRequestException(`Product ${item.productId} not found in this purchase`);
+        if (Number(item.quantity) > Number(original.quantity)) {
+          throw new BadRequestException(`Return qty (${item.quantity}) exceeds purchased qty (${original.quantity}) for product`);
+        }
+      }
+
+      const totalAmount = dto.items.reduce((s, i) => s + Number(i.quantity) * Number(i.unitCost), 0);
+      const refNo = `PR-${Date.now().toString().slice(-8)}`;
+
+      const ret = tx.create(PurchaseReturnEntity, {
+        businessId,
+        purchaseId: dto.purchaseId,
+        supplierId: purchase.supplierId,
+        referenceNo: refNo,
+        returnDate: dto.returnDate ? new Date(dto.returnDate) : new Date(),
+        totalAmount,
+        status: ReturnStatus.PENDING,
+        reason: dto.reason,
+        note: dto.note,
+        createdBy: userId,
+      });
+      const saved = await tx.save(PurchaseReturnEntity, ret);
+
+      for (const item of dto.items) {
+        await tx.save(PurchaseReturnItemEntity, {
+          purchaseReturnId: saved.id,
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitCost: item.unitCost,
+          total: Number(item.quantity) * Number(item.unitCost),
+        });
+      }
+
+      return tx.findOne(PurchaseReturnEntity, {
+        where: { id: saved.id },
+        relations: ['items', 'purchase', 'supplier'],
+      });
+    });
+  }
+
+  async findAllPurchaseReturns(businessId: string, query: GetPurchaseReturnsDto) {
+    const { search = '', page = 1, limit = 10 } = query;
+    const qb = this.purchaseReturnRepo
+      .createQueryBuilder('r')
+      .leftJoinAndSelect('r.purchase', 'purchase')
+      .leftJoinAndSelect('r.supplier', 'supplier')
+      .leftJoinAndSelect('r.items', 'items')
+      .where('r.businessId = :businessId', { businessId });
+
+    if (search) {
+      qb.andWhere('(r.referenceNo ILIKE :s OR supplier.name ILIKE :s OR purchase.invoiceNo ILIKE :s)', { s: `%${search}%` });
+    }
+
+    qb.orderBy('r.createdAt', 'DESC').skip((page - 1) * limit).take(limit);
+    const [data, totalItems] = await qb.getManyAndCount();
+    return { data, meta: { totalItems, totalPages: Math.ceil(totalItems / limit), currentPage: Number(page) } };
+  }
+
+  async approvePurchaseReturn(businessId: string, id: string) {
+    return this.dataSource.transaction(async (tx) => {
+      const ret = await tx.findOne(PurchaseReturnEntity, {
+        where: { id, businessId },
+        relations: ['items', 'purchase'],
+      });
+      if (!ret) throw new NotFoundException('Purchase return not found');
+      if (ret.status !== ReturnStatus.PENDING) throw new BadRequestException('Only pending returns can be approved');
+
+      const location = await this.locationService.resolve(businessId, ret.purchase.warehouseId, tx);
+
+      // Reverse stock for each returned item
+      for (const item of ret.items) {
+        const stock = await tx.findOne(ProductStockEntity, {
+          where: { businessId, productId: item.productId, locationId: location.id },
+        });
+        if (stock) {
+          stock.outQty = Number(stock.outQty) + Number(item.quantity);
+          stock.currentQty = Math.max(0, Number(stock.currentQty) - Number(item.quantity));
+          await tx.save(ProductStockEntity, stock);
+        }
+
+        await tx.save(StockLedgerEntity, {
+          businessId,
+          productId: item.productId,
+          locationId: location.id,
+          transactionType: StockTransactionType.PURCHASE_RETURN,
+          referenceType: 'purchase_return',
+          referenceId: ret.id,
+          qtyIn: 0,
+          qtyOut: item.quantity,
+          balanceAfter: stock ? Math.max(0, Number(stock.currentQty)) : 0,
+          unitCost: item.unitCost,
+        });
+      }
+
+      // Reduce supplier payable balance (return reduces what we owe)
+      if (ret.supplierId && Number(ret.totalAmount) > 0) {
+        const supplier = await tx.findOne(SupplierEntity, { where: { id: ret.supplierId, businessId } });
+        if (supplier) {
+          const reduction = Math.min(Number(ret.totalAmount), Number(supplier.currentBalance));
+          if (reduction > 0) {
+            await tx.decrement(SupplierEntity, { id: ret.supplierId, businessId }, 'currentBalance', reduction);
+          }
+        }
+      }
+
+      // Update purchase totals
+      const purchase = ret.purchase;
+      const newGrandTotal = Math.max(0, Number(purchase.grandTotal) - Number(ret.totalAmount));
+      const newDue = Math.max(0, Number(purchase.dueAmount) - Number(ret.totalAmount));
+      purchase.grandTotal = newGrandTotal;
+      purchase.dueAmount = newDue;
+      if (newDue <= 0 && Number(purchase.paidAmount) >= newGrandTotal) {
+        purchase.paymentStatus = PaymentStatus.PAID;
+      }
+      await tx.save(PurchaseEntity, purchase);
+
+      ret.status = ReturnStatus.APPROVED;
+      return tx.save(PurchaseReturnEntity, ret);
+    });
   }
 }

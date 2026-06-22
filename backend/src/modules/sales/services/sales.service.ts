@@ -15,7 +15,7 @@ import { SaleReturnEntity, SaleReturnItemEntity, ReturnStatus } from '../entitie
 import { ProductStockEntity } from 'src/modules/inventory/product/entities/product-stock.entity';
 import { StockLedgerEntity, StockTransactionType } from 'src/modules/inventory/product/entities/stock-ledger.entity';
 import {
-  CreateCustomerDto, CreateCustomerAdjustmentDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
+  CreateCustomerDto, CreateCustomerAdjustmentDto, CreateSaleDto, UpdateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
   CollectPaymentDto, CollectBulkPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
   ConvertQuotationDto, CreateSaleReturnDto, GetSaleReturnsDto, GetCustomerStatementDto,
   CreateCustomerTypeDto, UpdateCustomerTypeDto, CreateCouponDto, UpdateCouponDto, ValidateCouponDto,
@@ -24,6 +24,8 @@ import { CustomerLedgerAdjustmentEntity, AdjustmentType } from '../entities/cust
 import { CouponEntity, DiscountType } from '../entities/coupon.entity';
 import { SmsMarketingService } from 'src/modules/sms-marketing/services/sms-marketing.service';
 import { TransactionalSmsEvent } from 'src/modules/sms-marketing/entities/transactional-sms.entity';
+import { AccountEntity } from 'src/modules/accounting/entities/account.entity';
+import { AccountLedgerEntity, LedgerTransactionType } from 'src/modules/accounting/entities/account-ledger.entity';
 
 @Injectable()
 export class SalesService {
@@ -39,6 +41,8 @@ export class SalesService {
     @InjectRepository(StockLedgerEntity) private readonly ledgerRepo: Repository<StockLedgerEntity>,
     @InjectRepository(CustomerLedgerAdjustmentEntity)
     private readonly customerAdjustmentRepo: Repository<CustomerLedgerAdjustmentEntity>,
+    @InjectRepository(AccountEntity) private readonly accountRepo: Repository<AccountEntity>,
+    @InjectRepository(AccountLedgerEntity) private readonly accountLedgerRepo: Repository<AccountLedgerEntity>,
     private readonly locationService: StockLocationService,
     private readonly dataSource: DataSource,
     private readonly smsService: SmsMarketingService,
@@ -376,6 +380,32 @@ export class SalesService {
         await tx.increment(CustomerEntity, { id: dto.customerId, businessId }, 'currentBalance', due);
       }
 
+      // Record accounting ledger entries for payments linked to accounts
+      for (const entry of paymentEntries) {
+        if (!entry.accountId || Number(entry.amount) <= 0) continue;
+
+        const account = await tx.findOne(AccountEntity, {
+          where: { id: entry.accountId, businessId },
+        });
+        if (!account) continue;
+
+        const newBalance = Number(account.currentBalance) + Number(entry.amount);
+        await tx.increment(AccountEntity, { id: account.id }, 'currentBalance', Number(entry.amount));
+        await tx.save(AccountLedgerEntity, {
+          businessId,
+          accountId: account.id,
+          transactionDate: new Date(dto.saleDate),
+          transactionType: LedgerTransactionType.SALE_PAYMENT,
+          referenceType: 'sale',
+          referenceId: savedSale.id,
+          debit: Number(entry.amount),
+          credit: 0,
+          balanceAfter: newBalance,
+          note: `Sale payment — ${savedSale.invoiceNo}`,
+          createdBy: userId,
+        });
+      }
+
       return tx.findOne(SaleEntity, { where: { id: savedSale.id }, relations: ['items', 'customer'] });
     }).then((sale) => {
       if (sale?.customer?.phone) {
@@ -469,10 +499,146 @@ export class SalesService {
         await tx.decrement(CustomerEntity, { id: sale.customerId, businessId }, 'currentBalance', Number(sale.dueAmount));
       }
 
+      // Reverse account ledger entries recorded during sale creation
+      const salePaymentLedgers = await tx.find(AccountLedgerEntity, {
+        where: { businessId, referenceType: 'sale', referenceId: sale.id, transactionType: LedgerTransactionType.SALE_PAYMENT },
+      });
+      for (const ledger of salePaymentLedgers) {
+        await tx.decrement(AccountEntity, { id: ledger.accountId }, 'currentBalance', Number(ledger.debit));
+        await tx.remove(AccountLedgerEntity, ledger);
+      }
+
       sale.status = SaleStatus.CANCELLED;
       await tx.save(SaleEntity, sale);
       return { message: 'Sale cancelled successfully' };
     });
+  }
+
+  async updateSale(businessId: string, id: string, dto: UpdateSaleDto) {
+    const qr = this.dataSource.createQueryRunner();
+    await qr.connect();
+    await qr.startTransaction();
+
+    try {
+      const m = qr.manager;
+
+      const sale = await m.findOne(SaleEntity, { where: { id, businessId }, relations: ['items'] });
+      if (!sale) throw new NotFoundException('Sale not found');
+      if (sale.status === SaleStatus.CANCELLED) throw new BadRequestException('Cannot edit a cancelled sale');
+
+      const location = await this.locationService.resolve(businessId, sale.warehouseId, m);
+
+      // ── 1. Reverse old stock effects ──────────────────────────────────────
+      for (const item of sale.items) {
+        const stock = await m.findOne(ProductStockEntity, {
+          where: { businessId, productId: item.productId, locationId: location.id },
+        });
+        if (stock) {
+          stock.currentQty = Number(stock.currentQty) + Number(item.quantity);
+          stock.outQty = Math.max(0, Number(stock.outQty) - Number(item.quantity));
+          await m.save(ProductStockEntity, stock);
+        }
+      }
+      await m.delete(StockLedgerEntity, { businessId, referenceType: 'sale', referenceId: id });
+      await m.delete(SaleItemEntity, { saleId: id });
+
+      // ── 2. Reverse old customer due ───────────────────────────────────────
+      const oldDue = Number(sale.dueAmount);
+      if (sale.customerId && oldDue > 0) {
+        await m.decrement(CustomerEntity, { id: sale.customerId, businessId }, 'currentBalance', oldDue);
+      }
+
+      // ── 3. Apply new items ────────────────────────────────────────────────
+      let subtotal = 0;
+      let totalProfit = 0;
+
+      for (const item of dto.items) {
+        const stock = await m.findOne(ProductStockEntity, {
+          where: { businessId, productId: item.productId, locationId: location.id },
+        });
+        if (!stock || Number(stock.currentQty) < Number(item.quantity)) {
+          throw new BadRequestException(
+            `Insufficient stock for product ${item.productId}. Available: ${stock?.currentQty ?? 0}`,
+          );
+        }
+
+        const discount = item.discountAmount ?? 0;
+        const lineTotal = Number(item.quantity) * Number(item.unitPrice) - discount;
+        const costPrice = Number(stock.avgCost);
+        const profit = lineTotal - Number(item.quantity) * costPrice;
+        subtotal += lineTotal;
+        totalProfit += profit;
+
+        const newItem = m.create(SaleItemEntity, {
+          saleId: id,
+          productId: item.productId,
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unitPrice),
+          discountAmount: discount,
+          total: lineTotal,
+          costPrice,
+          profit,
+        });
+        await m.save(SaleItemEntity, newItem);
+
+        stock.currentQty = Number(stock.currentQty) - Number(item.quantity);
+        stock.outQty = Number(stock.outQty) + Number(item.quantity);
+        await m.save(ProductStockEntity, stock);
+
+        const ledger = m.create(StockLedgerEntity, {
+          businessId,
+          productId: item.productId,
+          locationId: location.id,
+          transactionType: StockTransactionType.SALE,
+          referenceType: 'sale',
+          referenceId: id,
+          qtyIn: 0,
+          qtyOut: Number(item.quantity),
+          balanceAfter: Number(stock.currentQty),
+          unitCost: costPrice,
+        });
+        await m.save(StockLedgerEntity, ledger);
+      }
+
+      // ── 4. Recalculate totals ─────────────────────────────────────────────
+      const newDiscount = dto.discountAmount ?? 0;
+      const newTax = dto.taxAmount ?? 0;
+      const newDelivery = dto.deliveryCharge ?? 0;
+      const newGrandTotal = Math.max(0, subtotal - newDiscount + newTax + newDelivery);
+
+      const existingPaid = Number(sale.paidAmount);
+      const newDue = Math.max(0, newGrandTotal - existingPaid);
+      const newPaymentStatus = this.computePaymentStatus(existingPaid, newGrandTotal);
+
+      // ── 5. Update customer balance for new due ────────────────────────────
+      const newCustomerId = dto.customerId !== undefined ? (dto.customerId || null) : sale.customerId;
+      if (newCustomerId && newDue > 0) {
+        await m.increment(CustomerEntity, { id: newCustomerId, businessId }, 'currentBalance', newDue);
+      }
+
+      // ── 6. Update sale entity ─────────────────────────────────────────────
+      sale.customerId = newCustomerId ?? undefined;
+      if (dto.saleDate) sale.saleDate = new Date(dto.saleDate);
+      sale.subtotal = subtotal;
+      sale.discountAmount = newDiscount;
+      sale.taxAmount = newTax;
+      sale.deliveryCharge = newDelivery;
+      sale.grandTotal = newGrandTotal;
+      sale.dueAmount = newDue;
+      sale.totalProfit = totalProfit;
+      sale.paymentStatus = newPaymentStatus;
+      if (dto.note !== undefined) sale.note = dto.note;
+      await m.save(SaleEntity, sale);
+
+      await qr.commitTransaction();
+
+      return m.findOne(SaleEntity, { where: { id }, relations: ['items', 'customer'] });
+    } catch (err) {
+      await qr.rollbackTransaction();
+      throw err;
+    } finally {
+      await qr.release();
+    }
   }
 
   async collectPayment(businessId: string, saleId: string, dto: CollectPaymentDto) {
@@ -494,6 +660,26 @@ export class SalesService {
 
       if (sale.customerId && totalReduction > 0) {
         await tx.decrement(CustomerEntity, { id: sale.customerId, businessId }, 'currentBalance', totalReduction);
+      }
+
+      if (dto.accountId && collectedAmount > 0) {
+        const account = await tx.findOne(AccountEntity, { where: { id: dto.accountId, businessId } });
+        if (account) {
+          const newBalance = Number(account.currentBalance) + collectedAmount;
+          await tx.increment(AccountEntity, { id: account.id }, 'currentBalance', collectedAmount);
+          await tx.save(AccountLedgerEntity, {
+            businessId,
+            accountId: account.id,
+            transactionDate: dto.collectionDate ? new Date(dto.collectionDate) : new Date(),
+            transactionType: LedgerTransactionType.SALE_PAYMENT,
+            referenceType: 'collection',
+            referenceId: sale.id,
+            debit: collectedAmount,
+            credit: 0,
+            balanceAfter: newBalance,
+            note: dto.note || `Collection for invoice ${sale.invoiceNo}`,
+          });
+        }
       }
 
       return { sale, collectedAmount, rebateAmount: rebate };
@@ -741,6 +927,26 @@ export class SalesService {
       const actualReduction = Math.min(totalReduction, Number(customer.currentBalance));
       if (actualReduction > 0) {
         await tx.decrement(CustomerEntity, { id: customerId, businessId }, 'currentBalance', actualReduction);
+      }
+
+      if (dto.accountId && dto.amount > 0) {
+        const account = await tx.findOne(AccountEntity, { where: { id: dto.accountId, businessId } });
+        if (account) {
+          const newBalance = Number(account.currentBalance) + dto.amount;
+          await tx.increment(AccountEntity, { id: account.id }, 'currentBalance', dto.amount);
+          await tx.save(AccountLedgerEntity, {
+            businessId,
+            accountId: account.id,
+            transactionDate: dto.collectionDate ? new Date(dto.collectionDate) : new Date(),
+            transactionType: LedgerTransactionType.SALE_PAYMENT,
+            referenceType: 'collection',
+            referenceId: customerId,
+            debit: dto.amount,
+            credit: 0,
+            balanceAfter: newBalance,
+            note: dto.note || `Bulk collection from customer`,
+          });
+        }
       }
 
       return { message: 'Bulk collection recorded', amount: dto.amount, rebate };

@@ -68,6 +68,7 @@ export class GetCustomersDto {
 export class PaymentEntryDto {
   @ApiProperty() @IsString() @IsNotEmpty() method: string;
   @ApiProperty() @Type(() => Number) @IsNumber() @Min(0) amount: number;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() accountId?: string;
 }
 
 export class SaleItemDto {
@@ -94,6 +95,16 @@ export class CreateSaleDto {
   @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
 }
 
+export class UpdateSaleDto {
+  @ApiPropertyOptional() @IsOptional() @IsUUID() customerId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsDateString() saleDate?: string;
+  @ApiProperty({ type: [SaleItemDto] }) @IsArray() @ValidateNested({ each: true }) @Type(() => SaleItemDto) items: SaleItemDto[];
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) discountAmount?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) taxAmount?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) deliveryCharge?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
+}
+
 export class GetSalesDto {
   @ApiPropertyOptional() @IsOptional() @IsString() search?: string;
   @ApiPropertyOptional() @IsOptional() @IsUUID() customerId?: string;
@@ -108,8 +119,7 @@ export class GetSalesDto {
 export class CollectPaymentDto {
   @ApiProperty() @Type(() => Number) @IsNumber() @Min(0.01) amount: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) rebate?: number;
-  @ApiPropertyOptional() @IsOptional() @IsString() paymentMethod?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() method?: string;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() accountId?: string;
   @ApiPropertyOptional() @IsOptional() @IsDateString() collectionDate?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
 }
@@ -117,8 +127,7 @@ export class CollectPaymentDto {
 export class CollectBulkPaymentDto {
   @ApiProperty() @Type(() => Number) @IsNumber() @Min(0.01) amount: number;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) rebate?: number;
-  @ApiPropertyOptional() @IsOptional() @IsString() method?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() paymentMethod?: string;
+  @ApiPropertyOptional() @IsOptional() @IsUUID() accountId?: string;
   @ApiPropertyOptional() @IsOptional() @IsDateString() collectionDate?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
 }

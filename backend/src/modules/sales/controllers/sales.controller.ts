@@ -4,7 +4,7 @@ import { ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SalesService } from '../services/sales.service';
 import { CustomerImportExportService } from '../services/customer-import-export.service';
 import {
-  CreateCustomerDto, CreateCustomerAdjustmentDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
+  CreateCustomerDto, CreateCustomerAdjustmentDto, CreateSaleDto, UpdateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
   CollectPaymentDto, CollectBulkPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
   ConvertQuotationDto, CreateSaleReturnDto, GetSaleReturnsDto, GetCustomerStatementDto,
   CreateCustomerTypeDto, UpdateCustomerTypeDto, CreateCouponDto, UpdateCouponDto, ValidateCouponDto,
@@ -160,6 +160,12 @@ export class SalesController {
   @ApiOperation({ summary: 'Get sale by ID' })
   findOne(@BusinessId() biz: string, @Param('id') id: string) {
     return this.salesService.findSale(biz, id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Edit sale — recalculates stock, totals, customer balance' })
+  updateSale(@BusinessId() biz: string, @Param('id') id: string, @Body() dto: UpdateSaleDto) {
+    return this.salesService.updateSale(biz, id, dto);
   }
 
   @Patch(':id/cancel')
