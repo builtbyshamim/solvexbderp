@@ -8,7 +8,6 @@ import {
   MdOutlineLocalShipping,
   MdOutlineSms,
   MdOutlineSettings,
-  MdOutlineAdminPanelSettings,
 } from 'react-icons/md';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
 import { useLanguage } from '../context/LanguageContext';
