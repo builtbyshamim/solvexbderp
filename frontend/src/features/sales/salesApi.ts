@@ -1,6 +1,8 @@
 import { baseApi } from "../../redux/api/baseApi";
 import { tagTypes } from "../../redux/tag-types";
 
+const COUPON_URL = "/sales/coupons";
+
 const CUSTOMER_URL = "/sales/customers";
 const CUSTOMER_TYPE_URL = "/sales/customer-types";
 const SALE_URL = "/sales";
@@ -172,6 +174,27 @@ export const salesApi = baseApi.injectEndpoints({
         { type: tagTypes.customer, id: "LIST" },
       ],
     }),
+
+    // ── Coupons ────────────────────────────────────────────────────────────
+    getAllCoupons: build.query({
+      query: () => ({ url: COUPON_URL, method: "GET" }),
+      providesTags: [{ type: tagTypes.sale, id: "COUPONS" }],
+    }),
+    createCoupon: build.mutation({
+      query: (data: any) => ({ url: COUPON_URL, method: "POST", data }),
+      invalidatesTags: [{ type: tagTypes.sale, id: "COUPONS" }],
+    }),
+    updateCoupon: build.mutation({
+      query: ({ id, data }: { id: string; data: any }) => ({ url: `${COUPON_URL}/${id}`, method: "PATCH", data }),
+      invalidatesTags: [{ type: tagTypes.sale, id: "COUPONS" }],
+    }),
+    deleteCoupon: build.mutation({
+      query: (id: string) => ({ url: `${COUPON_URL}/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: tagTypes.sale, id: "COUPONS" }],
+    }),
+    validateCoupon: build.mutation({
+      query: (data: { code: string; subtotal: number }) => ({ url: `${COUPON_URL}/validate`, method: "POST", data }),
+    }),
   }),
 });
 
@@ -203,4 +226,9 @@ export const {
   useGetAllSaleReturnsQuery,
   useCreateSaleReturnMutation,
   useApproveReturnMutation,
+  useGetAllCouponsQuery,
+  useCreateCouponMutation,
+  useUpdateCouponMutation,
+  useDeleteCouponMutation,
+  useValidateCouponMutation,
 } = salesApi;

@@ -36,6 +36,7 @@ import { SmsMarketingModule } from './modules/sms-marketing/sms-marketing.module
 import { AffiliateModule } from './modules/affiliate/affiliate.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 import { PackageModule } from './modules/packages/package.module';
+import { BillingModule } from './modules/billing/billing.module';
 
 @Module({
   imports: [
@@ -101,6 +102,7 @@ import { PackageModule } from './modules/packages/package.module';
     AffiliateModule,
     SuperAdminModule,
     PackageModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [

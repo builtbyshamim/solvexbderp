@@ -22,6 +22,7 @@ const WHITELIST_PATHS = [
   '/api/v1/business/subscribe',
   '/api/v1/business/subscription/renew',
   '/api/v1/auth/',
+  '/api/v1/billing/',  // payment requests must be accessible when expired
 ];
 
 @Injectable()

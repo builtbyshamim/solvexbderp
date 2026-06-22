@@ -15,20 +15,23 @@ import {
   Package,
   BarChart3,
   MessageSquare,
+  Smartphone,
 } from 'lucide-react';
 import Cookies from 'js-cookie';
 import toast from 'react-hot-toast';
 import { accessTokenKey, refreshTokenKey } from '../contents/token';
+import { useGetPendingCountQuery } from '../redux/api/billingApi';
 
 const NAV_ITEMS = [
-  { id: 1, label: 'Dashboard', path: '/super-admin/dashboard', icon: LayoutDashboard },
-  { id: 2, label: 'Businesses', path: '/super-admin/businesses', icon: Building2 },
-  { id: 3, label: 'Users', path: '/super-admin/users', icon: Users },
-  { id: 4, label: 'Subscriptions', path: '/super-admin/subscriptions', icon: CreditCard },
-  { id: 5, label: 'Packages', path: '/super-admin/packages', icon: Package },
-  { id: 6, label: 'Reports', path: '/super-admin/reports', icon: BarChart3 },
-  { id: 7, label: 'Announcements', path: '/super-admin/announcements', icon: MessageSquare },
-  { id: 8, label: 'Settings', path: '/super-admin/settings', icon: Settings },
+  { id: 1, label: 'Dashboard',        path: '/super-admin/dashboard',        icon: LayoutDashboard },
+  { id: 2, label: 'Businesses',       path: '/super-admin/businesses',       icon: Building2 },
+  { id: 3, label: 'Users',            path: '/super-admin/users',            icon: Users },
+  { id: 4, label: 'Subscriptions',    path: '/super-admin/subscriptions',    icon: CreditCard },
+  { id: 5, label: 'Packages',         path: '/super-admin/packages',         icon: Package },
+  { id: 6, label: 'Payment Requests', path: '/super-admin/payment-requests', icon: Smartphone, badge: true },
+  { id: 7, label: 'Reports',          path: '/super-admin/reports',          icon: BarChart3 },
+  { id: 8, label: 'Announcements',    path: '/super-admin/announcements',    icon: MessageSquare },
+  { id: 9, label: 'Settings',         path: '/super-admin/settings',         icon: Settings },
 ];
 
 const SuperAdminSidebar = ({
@@ -39,6 +42,8 @@ const SuperAdminSidebar = ({
   onClose: () => void;
 }) => {
   const location = useLocation();
+  const { data: pendingData } = useGetPendingCountQuery(undefined, { pollingInterval: 60000 });
+  const pendingCount = pendingData?.count ?? 0;
 
   const NavLink = ({ item, onClick }: { item: (typeof NAV_ITEMS)[0]; onClick?: () => void }) => {
     const isActive = location.pathname === item.path;
@@ -53,9 +58,14 @@ const SuperAdminSidebar = ({
             : 'text-slate-400 hover:text-white hover:bg-white/5'
         }`}
       >
-        <Icon className={`h-4.5 w-4.5 flex-shrink-0 ${isActive ? 'text-[#ff6d29]' : ''}`} style={{ height: '18px', width: '18px' }} />
-        {item.label}
-        {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#ff6d29]" />}
+        <Icon className={`flex-shrink-0 ${isActive ? 'text-[#ff6d29]' : ''}`} style={{ height: '18px', width: '18px' }} />
+        <span className="flex-1">{item.label}</span>
+        {item.badge && pendingCount > 0 && (
+          <span className="ml-auto px-1.5 py-0.5 bg-amber-400 text-[#26272F] text-[10px] font-bold rounded-full leading-none min-w-[18px] text-center">
+            {pendingCount}
+          </span>
+        )}
+        {isActive && !item.badge && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#ff6d29]" />}
       </Link>
     );
   };

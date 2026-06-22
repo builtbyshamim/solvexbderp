@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLocation, Link, useNavigate, Navigate } from 'react-router-dom';
 import {
   Lock, CreditCard, LogOut, Clock, AlertTriangle,
@@ -8,7 +9,10 @@ import { useLogoutMutation } from '../../redux/api/authApi';
 import Cookies from 'js-cookie';
 import { accessTokenKey, refreshTokenKey } from '../../contents/token';
 import { useGetPublicPackagesQuery } from '../../redux/api/packagesApi';
+import type { Package } from '../../redux/api/packagesApi';
 import { yearlyDiscount } from '../../data/mockPackages';
+import { useGetMyPendingRequestQuery } from '../../redux/api/billingApi';
+import PaymentRequestModal from '../../features/billing/PaymentRequestModal';
 
 const PLAN_ICONS: Record<string, React.ElementType> = {
   Starter: Zap, Pro: Crown, Enterprise: Building2,
@@ -24,6 +28,8 @@ function SubscriptionLockedPage({ status, daysLeft, expiresAt }: {
   const navigate = useNavigate();
   const [logout] = useLogoutMutation();
   const { data: packagesData } = useGetPublicPackagesQuery();
+  const { data: pendingRequest, refetch: refetchPending } = useGetMyPendingRequestQuery();
+  const [payPkg, setPayPkg] = useState<Package | null>(null);
   const plans = (packagesData ?? []).filter((p) => p.isActive && !p.isEnterprise);
 
   const handleLogout = async () => {
@@ -130,10 +136,25 @@ function SubscriptionLockedPage({ status, daysLeft, expiresAt }: {
           </div>
         </div>
 
+        {/* Pending payment request banner */}
+        {pendingRequest && (
+          <div className="w-full flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl mb-2">
+            <Clock className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-amber-800 text-sm">Payment Under Review</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Your {pendingRequest.paymentMethod.toUpperCase()} payment (TxnID:{' '}
+                <span className="font-mono font-medium">{pendingRequest.transactionId}</span>
+                ) is being verified. Subscription will activate once confirmed.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Plan cards */}
-        {!isSuspended && plans.length > 0 && (
+        {!isSuspended && !pendingRequest && plans.length > 0 && (
           <div className="w-full">
-            <h3 className="text-base font-bold text-[#26272F] mb-4">Choose Your Plan</h3>
+            <h3 className="text-base font-bold text-[#26272F] mb-4">Choose Your Plan — Pay to Activate</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               {plans.map((plan) => {
                 const Icon = PLAN_ICONS[plan.name] ?? Zap;
@@ -176,28 +197,29 @@ function SubscriptionLockedPage({ status, daysLeft, expiresAt }: {
                       ))}
                     </ul>
 
-                    <a
-                      href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Hi! I want to subscribe to SolvexBD ${plan.name} plan.`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                    <button
+                      onClick={() => setPayPkg(plan)}
+                      className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors min-h-[44px] ${
                         plan.highlight
                           ? 'bg-[#ff6d29] hover:bg-orange-600 text-white'
                           : 'bg-[#26272F] hover:bg-gray-800 text-white'
                       }`}
                     >
-                      <Phone className="h-4 w-4" />
-                      Subscribe to {plan.name}
-                    </a>
+                      <CreditCard className="h-4 w-4" />
+                      Pay &amp; Activate {plan.name}
+                    </button>
                   </div>
                 );
               })}
             </div>
+            <p className="text-xs text-center text-gray-400">
+              Send via bKash / Rocket / Nagad to <strong>01617650797</strong> → Submit Transaction ID → Admin confirms
+            </p>
           </div>
         )}
 
         {/* Contact + go to subscription page */}
-        <div className="w-full flex flex-col sm:flex-row items-center gap-3">
+        <div className="w-full flex flex-col sm:flex-row items-center gap-3 mt-4">
           <Link
             to="/admin/settings/subscription"
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-[#ff6d29] text-[#ff6d29] text-sm font-semibold hover:bg-orange-50 transition-colors"
@@ -220,6 +242,17 @@ function SubscriptionLockedPage({ status, daysLeft, expiresAt }: {
           Your data is safe and will be restored immediately after subscription renewal.
         </p>
       </div>
+
+      {/* Payment modal */}
+      {payPkg && (
+        <PaymentRequestModal
+          isOpen={!!payPkg}
+          onClose={() => setPayPkg(null)}
+          pkg={payPkg}
+          billingCycle="monthly"
+          onSuccess={() => refetchPending()}
+        />
+      )}
     </div>
   );
 }

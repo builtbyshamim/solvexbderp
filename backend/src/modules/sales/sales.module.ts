@@ -6,6 +6,7 @@ import { SaleEntity, SaleItemEntity } from './entities/sale.entity';
 import { QuotationEntity, QuotationItemEntity } from './entities/quotation.entity';
 import { SaleReturnEntity, SaleReturnItemEntity } from './entities/sale-return.entity';
 import { CustomerLedgerAdjustmentEntity } from './entities/customer-adjustment.entity';
+import { CouponEntity } from './entities/coupon.entity';
 import { SalesService } from './services/sales.service';
 import { CustomerImportExportService } from './services/customer-import-export.service';
 import { SalesController } from './controllers/sales.controller';
@@ -19,6 +20,7 @@ import { SmsMarketingModule } from '../sms-marketing/sms-marketing.module';
       QuotationEntity, QuotationItemEntity,
       SaleReturnEntity, SaleReturnItemEntity,
       CustomerLedgerAdjustmentEntity,
+      CouponEntity,
     ]),
     ProductModule,
     SmsMarketingModule,

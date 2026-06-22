@@ -90,6 +90,7 @@ export class CreateSaleDto {
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) deliveryCharge?: number;
   @ApiPropertyOptional() @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => PaymentEntryDto) payments?: PaymentEntryDto[];
   @ApiPropertyOptional() @IsOptional() @IsString() offerLabel?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() couponCode?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
 }
 
@@ -106,7 +107,19 @@ export class GetSalesDto {
 
 export class CollectPaymentDto {
   @ApiProperty() @Type(() => Number) @IsNumber() @Min(0.01) amount: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) rebate?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() paymentMethod?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() method?: string;
+  @ApiPropertyOptional() @IsOptional() @IsDateString() collectionDate?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
+}
+
+export class CollectBulkPaymentDto {
+  @ApiProperty() @Type(() => Number) @IsNumber() @Min(0.01) amount: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) rebate?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() method?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() paymentMethod?: string;
+  @ApiPropertyOptional() @IsOptional() @IsDateString() collectionDate?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() note?: string;
 }
 
@@ -193,4 +206,59 @@ export class GetSaleReturnsDto {
 export class GetCustomerStatementDto {
   @ApiPropertyOptional() @IsOptional() @IsString() dateFrom?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() dateTo?: string;
+}
+
+// ─── Coupon DTOs ──────────────────────────────────────────────────────────────
+
+export class CreateCouponDto {
+  @ApiProperty({ description: 'Unique coupon code e.g. SAVE10' })
+  @IsString() @IsNotEmpty()
+  code: string;
+
+  @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+
+  @ApiProperty({ enum: ['percentage', 'fixed'] })
+  @IsEnum(['percentage', 'fixed'])
+  discountType: 'percentage' | 'fixed';
+
+  @ApiProperty({ description: 'Percentage (0-100) or fixed amount' })
+  @Type(() => Number) @IsNumber() @Min(0)
+  discountValue: number;
+
+  @ApiPropertyOptional({ description: 'Minimum order subtotal required' })
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0)
+  minOrderAmount?: number;
+
+  @ApiPropertyOptional({ description: 'Cap for percentage discount (null = no cap)' })
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0)
+  maxDiscountAmount?: number;
+
+  @ApiPropertyOptional({ description: 'Max total uses (null = unlimited)' })
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1)
+  usageLimit?: number;
+
+  @ApiPropertyOptional({ description: 'Expiry date-time (ISO string)' })
+  @IsOptional() @IsString()
+  expiresAt?: string;
+
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() isActive?: boolean;
+}
+
+export class UpdateCouponDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() @IsNotEmpty() code?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
+  @ApiPropertyOptional({ enum: ['percentage', 'fixed'] }) @IsOptional() @IsEnum(['percentage', 'fixed']) discountType?: 'percentage' | 'fixed';
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) discountValue?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) minOrderAmount?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(0) maxDiscountAmount?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) usageLimit?: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() expiresAt?: string;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() isActive?: boolean;
+}
+
+export class ValidateCouponDto {
+  @ApiProperty() @IsString() @IsNotEmpty() code: string;
+  @ApiProperty({ description: 'Cart subtotal (before any discount)' })
+  @Type(() => Number) @IsNumber() @Min(0)
+  subtotal: number;
 }

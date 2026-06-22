@@ -6,17 +6,23 @@ import {
   ResetBusinessDto,
   SubscriptionActionDto,
   ToggleStatusDto,
+  ReviewPaymentRequestDto,
+  GetPaymentRequestsDto,
 } from '../dto/super-admin.dto';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/shared/enums/user-role.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { UserEntity } from 'src/modules/users/entities/user.entity';
+import { BillingService } from 'src/modules/billing/services/billing.service';
 
 @ApiTags('Super Admin')
 @Controller({ path: 'super-admin', version: '1' })
 @Roles(UserRole.SUPER_ADMIN)
 export class SuperAdminController {
-  constructor(private readonly service: SuperAdminService) {}
+  constructor(
+    private readonly service: SuperAdminService,
+    private readonly billing: BillingService,
+  ) {}
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Platform-wide dashboard stats' })
@@ -60,5 +66,29 @@ export class SuperAdminController {
     @CurrentUser() admin: UserEntity,
   ) {
     return this.service.resetBusinessData(id, dto, admin.id);
+  }
+
+  // ── Payment Requests ──────────────────────────────────────────────────────
+
+  @Get('payment-requests')
+  @ApiOperation({ summary: 'List all payment requests' })
+  getPaymentRequests(@Query() dto: GetPaymentRequestsDto) {
+    return this.billing.getAllRequests(dto);
+  }
+
+  @Get('payment-requests/pending-count')
+  @ApiOperation({ summary: 'Count pending payment requests (for badge)' })
+  getPendingCount() {
+    return this.billing.getPendingCount().then((count) => ({ count }));
+  }
+
+  @Patch('payment-requests/:id/review')
+  @ApiOperation({ summary: 'Approve or reject a payment request' })
+  reviewPaymentRequest(
+    @Param('id') id: string,
+    @Body() dto: ReviewPaymentRequestDto,
+    @CurrentUser() admin: UserEntity,
+  ) {
+    return this.billing.reviewRequest(id, dto, admin);
   }
 }

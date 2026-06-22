@@ -4,6 +4,7 @@ import {
   CheckCircle2, Crown, Zap, AlertCircle, Building2,
   MessageCircle, Send, Phone, User, Briefcase, MessageSquare,
   ChevronDown, ChevronUp, TrendingUp, Clock, Shield, RefreshCw,
+  CreditCard,
 } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
 import { useLanguage } from '../../context/LanguageContext';
@@ -11,9 +12,10 @@ import { useFetchMeQuery } from '../../redux/api/authApi';
 import {
   useGetPublicPackagesQuery,
   useSubscribeToPackageMutation,
-  useRenewSubscriptionMutation,
 } from '../../redux/api/packagesApi';
 import type { Package } from '../../redux/api/packagesApi';
+import { useGetMyPendingRequestQuery } from '../../redux/api/billingApi';
+import PaymentRequestModal from '../billing/PaymentRequestModal';
 
 const WHATSAPP_NUMBER = '8801XXXXXXXXX';
 
@@ -141,12 +143,13 @@ const Subscription = () => {
 
   const { data: packagesData, isLoading: loadingPlans } = useGetPublicPackagesQuery();
   const [subscribe, { isLoading: isSubscribing }] = useSubscribeToPackageMutation();
-  const [renew, { isLoading: isRenewing }] = useRenewSubscriptionMutation();
+  const { data: pendingRequest, refetch: refetchPending } = useGetMyPendingRequestQuery();
 
   const [billing, setBilling] = useState<'monthly' | 'yearly'>(
     (subscription?.billingCycle as 'monthly' | 'yearly') ?? 'monthly'
   );
   const [actionPlanId, setActionPlanId] = useState<string | null>(null);
+  const [payPkg, setPayPkg]             = useState<Package | null>(null);
 
   const plans: Package[] = (packagesData ?? []).filter((p) => p.isActive);
   const yearlySavePct = representativeDiscount(plans);
@@ -164,17 +167,8 @@ const Subscription = () => {
     }
   };
 
-  const handleRenew = async () => {
-    setActionPlanId('renew');
-    try {
-      const result = await renew({ billingCycle: billing }).unwrap();
-      toast.success(result.message);
-      refetchMe();
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to renew. Please try again.');
-    } finally {
-      setActionPlanId(null);
-    }
+  const handleRenewOrPay = (pkg: Package) => {
+    setPayPkg(pkg);
   };
 
   return (
@@ -216,19 +210,18 @@ const Subscription = () => {
                 {subscription.status}
               </span>
               {/* Renew button — shown when subscription expires soon or is expired */}
-              {currentPlanId && (subscription.status === 'expired' || (subscription.daysLeft !== null && subscription.daysLeft <= 7)) && (
-                <button
-                  onClick={handleRenew}
-                  disabled={isRenewing && actionPlanId === 'renew'}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ff6d29] hover:bg-[#e65a1f] text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-60"
-                >
-                  {isRenewing && actionPlanId === 'renew'
-                    ? <span className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    : <RefreshCw className="h-3 w-3" />
-                  }
-                  Renew Now
-                </button>
-              )}
+              {currentPlanId && (subscription.status === 'expired' || (subscription.daysLeft !== null && subscription.daysLeft <= 7)) && (() => {
+                const currentPkg = plans.find((p) => p.id === currentPlanId);
+                return currentPkg ? (
+                  <button
+                    onClick={() => handleRenewOrPay(currentPkg)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ff6d29] hover:bg-[#e65a1f] text-white text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    <CreditCard className="h-3 w-3" />
+                    Renew Now
+                  </button>
+                ) : null;
+              })()}
             </div>
           </div>
 
@@ -267,13 +260,30 @@ const Subscription = () => {
         </div>
       )}
 
+      {/* ── Pending payment request banner ──────────────────────────────── */}
+      {pendingRequest && (
+        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl mb-6 text-sm">
+          <Clock className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-amber-800">Payment Under Review</p>
+            <p className="text-amber-700 mt-0.5">
+              Your {pendingRequest.paymentMethod.toUpperCase()} payment (TxnID:{' '}
+              <span className="font-mono font-medium">{pendingRequest.transactionId}</span>) is being verified.
+              Subscription will activate once confirmed.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Expired warning ────────────────────────────────────────────────── */}
-      {subscription?.status === 'expired' && (
+      {subscription?.status === 'expired' && !pendingRequest && (
         <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl mb-6 text-sm text-red-700">
           <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">Subscription Expired</p>
-            <p className="text-red-600 mt-0.5">Renew your plan below to regain access to all features.</p>
+            <p className="text-red-600 mt-0.5">
+              Send payment via bKash/Rocket/Nagad and click "Renew" on your plan below.
+            </p>
           </div>
         </div>
       )}
@@ -307,7 +317,7 @@ const Subscription = () => {
             const isCurrentPlan = plan.id === currentPlanId;
             const price = billing === 'monthly' ? plan.monthlyPrice : monthlyEquiv(plan);
             const discount = calcYearlyDiscount(plan);
-            const isActing = (isSubscribing || isRenewing) && actionPlanId === plan.id;
+            const isActing = isSubscribing && actionPlanId === plan.id;
 
             return (
               <div
@@ -398,21 +408,17 @@ const Subscription = () => {
                         </div>
                         {(subscription?.status === 'expired' || (subscription?.daysLeft !== null && subscription?.daysLeft <= 7)) && (
                           <button
-                            onClick={handleRenew}
-                            disabled={isRenewing}
-                            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#ff6d29] hover:bg-[#e65a1f] text-white text-sm font-semibold transition-colors disabled:opacity-60 min-h-[44px]"
+                            onClick={() => handleRenewOrPay(plan)}
+                            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#ff6d29] hover:bg-[#e65a1f] text-white text-sm font-semibold transition-colors min-h-[44px]"
                           >
-                            {isRenewing && actionPlanId === 'renew'
-                              ? <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              : <RefreshCw className="h-4 w-4" />
-                            }
+                            <CreditCard className="h-4 w-4" />
                             Renew {billing === 'yearly' ? '(Yearly)' : '(Monthly)'}
                           </button>
                         )}
                       </div>
                     ) : (
                       <button
-                        onClick={() => handleSubscribe(plan.id)}
+                        onClick={() => handleRenewOrPay(plan)}
                         disabled={isActing}
                         className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-white text-sm font-semibold transition-colors min-h-[44px] disabled:opacity-60 ${
                           isHighlight ? 'bg-purple-600 hover:bg-purple-700' : 'bg-[#26272F] hover:bg-gray-800'
@@ -420,10 +426,10 @@ const Subscription = () => {
                       >
                         {isActing
                           ? <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          : null
+                          : <CreditCard className="h-4 w-4" />
                         }
                         {isActing
-                          ? 'Activating...'
+                          ? 'Opening...'
                           : currentPlanId
                           ? `Switch to ${plan.name}`
                           : plan.trialDays > 0
@@ -441,16 +447,19 @@ const Subscription = () => {
       )}
 
       <p className="text-center text-xs text-gray-400 mt-6">
-        All prices are exclusive of VAT · Questions?{' '}
-        <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[#ff6d29] hover:underline"
-        >
-          Contact us on WhatsApp
-        </a>
+        Pay via bKash / Rocket / Nagad to <strong>01617650797</strong> · Admin verifies &amp; activates within hours.
       </p>
+
+      {/* Payment request modal */}
+      {payPkg && (
+        <PaymentRequestModal
+          isOpen={!!payPkg}
+          onClose={() => setPayPkg(null)}
+          pkg={payPkg}
+          billingCycle={billing}
+          onSuccess={() => { refetchPending(); refetchMe(); }}
+        />
+      )}
     </div>
   );
 };

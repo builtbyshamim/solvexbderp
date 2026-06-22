@@ -5,9 +5,9 @@ import { SalesService } from '../services/sales.service';
 import { CustomerImportExportService } from '../services/customer-import-export.service';
 import {
   CreateCustomerDto, CreateCustomerAdjustmentDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
-  CollectPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
+  CollectPaymentDto, CollectBulkPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
   ConvertQuotationDto, CreateSaleReturnDto, GetSaleReturnsDto, GetCustomerStatementDto,
-  CreateCustomerTypeDto, UpdateCustomerTypeDto,
+  CreateCustomerTypeDto, UpdateCustomerTypeDto, CreateCouponDto, UpdateCouponDto, ValidateCouponDto,
 } from '../dto/sales.dto';
 import { BusinessId } from 'src/common/decorators/business-id.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -101,6 +101,16 @@ export class SalesController {
   @ApiOperation({ summary: 'Get customer statement / ledger' })
   getCustomerStatement(@BusinessId() biz: string, @Param('id') id: string, @Query() q: GetCustomerStatementDto) {
     return this.salesService.getCustomerStatement(biz, id, q);
+  }
+
+  @Post('customers/:id/collect')
+  @ApiOperation({ summary: 'Bulk collect payment for a customer (distributes across outstanding invoices)' })
+  collectBulkPayment(
+    @BusinessId() biz: string,
+    @Param('id') id: string,
+    @Body() dto: CollectBulkPaymentDto,
+  ) {
+    return this.salesService.collectBulkPayment(biz, id, dto);
   }
 
   @Post('customers/:id/adjust')
@@ -213,5 +223,37 @@ export class SalesController {
   @ApiOperation({ summary: 'Approve a sale return and restore stock' })
   approveReturn(@BusinessId() biz: string, @Param('id') id: string) {
     return this.salesService.approveReturn(biz, id);
+  }
+
+  // ── Coupons ────────────────────────────────────────────────────────────────
+
+  @Post('coupons')
+  @ApiOperation({ summary: 'Create a coupon / discount code' })
+  createCoupon(@BusinessId() biz: string, @Body() dto: CreateCouponDto) {
+    return this.salesService.createCoupon(biz, dto);
+  }
+
+  @Get('coupons')
+  @ApiOperation({ summary: 'Get all coupons for this business' })
+  getAllCoupons(@BusinessId() biz: string) {
+    return this.salesService.findAllCoupons(biz);
+  }
+
+  @Post('coupons/validate')
+  @ApiOperation({ summary: 'Validate a coupon code and get discount amount' })
+  validateCoupon(@BusinessId() biz: string, @Body() dto: ValidateCouponDto) {
+    return this.salesService.validateCoupon(biz, dto);
+  }
+
+  @Patch('coupons/:id')
+  @ApiOperation({ summary: 'Update coupon' })
+  updateCoupon(@BusinessId() biz: string, @Param('id') id: string, @Body() dto: UpdateCouponDto) {
+    return this.salesService.updateCoupon(biz, id, dto);
+  }
+
+  @Delete('coupons/:id')
+  @ApiOperation({ summary: 'Delete coupon' })
+  deleteCoupon(@BusinessId() biz: string, @Param('id') id: string) {
+    return this.salesService.deleteCoupon(biz, id);
   }
 }

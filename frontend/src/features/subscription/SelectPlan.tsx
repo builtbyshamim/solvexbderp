@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   CheckCircle2, Zap, Crown, Building2, ArrowRight,
-  Phone, Users, Package as PackageIcon, Warehouse, Star,
+  Phone, Users, Package as PackageIcon, Warehouse, Star, CreditCard,
 } from 'lucide-react';
 import { useGetPublicPackagesQuery, useSubscribeToPackageMutation } from '../../redux/api/packagesApi';
 import type { Package } from '../../redux/api/packagesApi';
+import PaymentRequestModal from '../billing/PaymentRequestModal';
 
 const PLAN_ICONS: Record<string, React.ElementType> = {
   Starter: Zap, Pro: Crown, Enterprise: Building2,
@@ -73,12 +74,14 @@ function PlanCard({
   selected,
   onSelect,
   isLoading,
+  onPayDirectly,
 }: {
   pkg: Package;
   cycle: 'monthly' | 'yearly';
   selected: boolean;
   onSelect: (id: string) => void;
   isLoading: boolean;
+  onPayDirectly?: (pkg: Package) => void;
 }) {
   const Icon = PLAN_ICONS[pkg.name] ?? Zap;
   const isEnterprise = pkg.isEnterprise;
@@ -195,6 +198,17 @@ function PlanCard({
           </>
         )}
       </button>
+
+      {pkg.trialDays > 0 && onPayDirectly && (
+        <button
+          type="button"
+          onClick={() => onPayDirectly(pkg)}
+          className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl text-xs font-medium text-gray-500 hover:text-[#ff6d29] hover:bg-orange-50 transition-colors border border-dashed border-gray-200 hover:border-[#ff6d29]/40"
+        >
+          <CreditCard className="h-3.5 w-3.5" />
+          Skip trial — Pay directly (bKash / Rocket / Nagad)
+        </button>
+      )}
     </div>
   );
 }
@@ -202,10 +216,11 @@ function PlanCard({
 export default function SelectPlan() {
   const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId]     = useState<string | null>(null);
+  const [payPkg, setPayPkg]             = useState<Package | null>(null);
 
   const { data: packages, isLoading: loadingPackages } = useGetPublicPackagesQuery();
-  const [subscribe, { isLoading: isSubscribing }] = useSubscribeToPackageMutation();
+  const [subscribe, { isLoading: isSubscribing }]      = useSubscribeToPackageMutation();
 
   const plans = (packages ?? []).filter((p) => p.isActive);
   const nonEnterprise = plans.filter((p) => !p.isEnterprise);
@@ -217,8 +232,7 @@ export default function SelectPlan() {
   const handleSelect = async (packageId: string) => {
     const pkg = plans.find((p) => p.id === packageId);
     if (!pkg) return;
-
-    if (pkg.isEnterprise) return; // handled by WhatsApp link
+    if (pkg.isEnterprise) return;
 
     setSelectedId(packageId);
     try {
@@ -322,6 +336,7 @@ export default function SelectPlan() {
                 selected={selectedId === pkg.id}
                 onSelect={handleSelect}
                 isLoading={isSubscribing}
+                onPayDirectly={setPayPkg}
               />
             ))}
           </div>
@@ -342,6 +357,17 @@ export default function SelectPlan() {
           </a>
         </p>
       </div>
+
+      {/* Payment modal */}
+      {payPkg && (
+        <PaymentRequestModal
+          isOpen={!!payPkg}
+          onClose={() => setPayPkg(null)}
+          pkg={payPkg}
+          billingCycle={billingCycle}
+          onSuccess={() => navigate('/admin', { replace: true })}
+        />
+      )}
     </div>
   );
 }

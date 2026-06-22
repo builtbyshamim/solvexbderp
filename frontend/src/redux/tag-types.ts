@@ -32,6 +32,7 @@ export const tagTypes = {
   affiliate: "affiliate",
   superAdmin: "superAdmin",
   packages: "packages",
+  paymentRequest: "paymentRequest",
 };
 
 export const tagTypesList = Object.values(tagTypes);

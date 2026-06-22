@@ -16,17 +16,19 @@ import { ProductStockEntity } from 'src/modules/inventory/product/entities/produ
 import { StockLedgerEntity, StockTransactionType } from 'src/modules/inventory/product/entities/stock-ledger.entity';
 import {
   CreateCustomerDto, CreateCustomerAdjustmentDto, CreateSaleDto, GetCustomersDto, GetSalesDto, UpdateCustomerDto,
-  CollectPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
+  CollectPaymentDto, CollectBulkPaymentDto, CreateQuotationDto, GetQuotationsDto, UpdateQuotationStatusDto,
   ConvertQuotationDto, CreateSaleReturnDto, GetSaleReturnsDto, GetCustomerStatementDto,
-  CreateCustomerTypeDto, UpdateCustomerTypeDto,
+  CreateCustomerTypeDto, UpdateCustomerTypeDto, CreateCouponDto, UpdateCouponDto, ValidateCouponDto,
 } from '../dto/sales.dto';
 import { CustomerLedgerAdjustmentEntity, AdjustmentType } from '../entities/customer-adjustment.entity';
+import { CouponEntity, DiscountType } from '../entities/coupon.entity';
 import { SmsMarketingService } from 'src/modules/sms-marketing/services/sms-marketing.service';
 import { TransactionalSmsEvent } from 'src/modules/sms-marketing/entities/transactional-sms.entity';
 
 @Injectable()
 export class SalesService {
   constructor(
+    @InjectRepository(CouponEntity) private readonly couponRepo: Repository<CouponEntity>,
     @InjectRepository(CustomerTypeEntity) private readonly customerTypeRepo: Repository<CustomerTypeEntity>,
     @InjectRepository(CustomerEntity) private readonly customerRepo: Repository<CustomerEntity>,
     @InjectRepository(SaleEntity) private readonly saleRepo: Repository<SaleEntity>,
@@ -297,10 +299,30 @@ export class SalesService {
         itemsData.push({ productId: item.productId, quantity: Number(item.quantity), unitPrice: Number(item.unitPrice), discountAmount: discount, total: lineTotal, costPrice, profit });
       }
 
-      const discount = dto.discountAmount ?? 0;
+      let couponDiscount = 0;
+      let appliedCoupon: CouponEntity | null = null;
+      if (dto.couponCode) {
+        appliedCoupon = await tx.findOne(CouponEntity, {
+          where: { businessId, code: ILike(dto.couponCode), isActive: true },
+        });
+        if (!appliedCoupon) throw new BadRequestException(`Coupon "${dto.couponCode}" is invalid or inactive`);
+        if (appliedCoupon.expiresAt && appliedCoupon.expiresAt < new Date()) throw new BadRequestException('Coupon has expired');
+        if (appliedCoupon.usageLimit !== null && appliedCoupon.usedCount >= appliedCoupon.usageLimit) throw new BadRequestException('Coupon usage limit reached');
+        if (subtotal < Number(appliedCoupon.minOrderAmount)) throw new BadRequestException(`Minimum order amount ৳${appliedCoupon.minOrderAmount} required for this coupon`);
+
+        if (appliedCoupon.discountType === DiscountType.PERCENTAGE) {
+          couponDiscount = (subtotal * Number(appliedCoupon.discountValue)) / 100;
+          if (appliedCoupon.maxDiscountAmount !== null) couponDiscount = Math.min(couponDiscount, Number(appliedCoupon.maxDiscountAmount));
+        } else {
+          couponDiscount = Math.min(Number(appliedCoupon.discountValue), subtotal);
+        }
+        couponDiscount = Math.round(couponDiscount * 100) / 100;
+      }
+
+      const discount = (dto.discountAmount ?? 0) + couponDiscount;
       const tax = dto.taxAmount ?? 0;
       const delivery = dto.deliveryCharge ?? 0;
-      const grandTotal = subtotal - discount + tax + delivery;
+      const grandTotal = Math.max(0, subtotal - discount + tax + delivery);
 
       // Resolve paid amount from payments array (multi-method) or single paidAmount
       const paymentEntries = dto.payments ?? [];
@@ -323,10 +345,14 @@ export class SalesService {
         paymentStatus: this.computePaymentStatus(paid, grandTotal),
         paymentMethod: payMethod,
         payments: paymentEntries.length > 0 ? paymentEntries : undefined,
-        offerLabel: dto.offerLabel,
+        offerLabel: dto.offerLabel ?? (appliedCoupon ? `Coupon: ${appliedCoupon.code}` : undefined),
         note: dto.note, createdBy: userId,
       });
       const savedSale = await tx.save(SaleEntity, sale);
+
+      if (appliedCoupon) {
+        await tx.increment(CouponEntity, { id: appliedCoupon.id }, 'usedCount', 1);
+      }
 
       for (const item of itemsData) {
         await tx.save(SaleItemEntity, { ...item, saleId: savedSale.id });
@@ -455,19 +481,22 @@ export class SalesService {
       if (!sale) throw new NotFoundException('Sale not found');
       if (sale.paymentStatus === PaymentStatus.PAID) throw new BadRequestException('Sale is already fully paid');
 
-      const maxCollectable = Number(sale.dueAmount);
-      const amount = Math.min(dto.amount, maxCollectable);
+      const maxDue = Number(sale.dueAmount);
+      const rebate = Math.min(dto.rebate ?? 0, maxDue);
+      const collectedAmount = Math.min(dto.amount, maxDue - rebate);
+      const totalReduction = collectedAmount + rebate;
 
-      sale.paidAmount = Number(sale.paidAmount) + amount;
-      sale.dueAmount = Number(sale.dueAmount) - amount;
-      sale.paymentStatus = this.computePaymentStatus(Number(sale.paidAmount), Number(sale.grandTotal));
+      sale.paidAmount = Number(sale.paidAmount) + collectedAmount;
+      sale.dueAmount = Math.max(0, Number(sale.dueAmount) - totalReduction);
+      sale.paymentStatus = this.computePaymentStatus(Number(sale.paidAmount), Number(sale.grandTotal) - rebate);
+      if (sale.dueAmount <= 0) sale.paymentStatus = PaymentStatus.PAID;
       await tx.save(SaleEntity, sale);
 
-      if (sale.customerId && amount > 0) {
-        await tx.decrement(CustomerEntity, { id: sale.customerId, businessId }, 'currentBalance', amount);
+      if (sale.customerId && totalReduction > 0) {
+        await tx.decrement(CustomerEntity, { id: sale.customerId, businessId }, 'currentBalance', totalReduction);
       }
 
-      return { sale, collectedAmount: amount };
+      return { sale, collectedAmount, rebateAmount: rebate };
     });
 
     if (result.sale.customerId) {
@@ -668,5 +697,137 @@ export class SalesService {
       await tx.save(SaleReturnEntity, ret);
       return { message: 'Return approved and stock restored' };
     });
+  }
+
+  // ─── Bulk Customer Payment Collection ─────────────────────────────────────
+
+  async collectBulkPayment(businessId: string, customerId: string, dto: CollectBulkPaymentDto) {
+    const customer = await this.customerRepo.findOne({ where: { id: customerId, businessId } });
+    if (!customer) throw new NotFoundException('Customer not found');
+
+    const rebate = dto.rebate ?? 0;
+    const totalReduction = dto.amount + rebate;
+
+    return this.dataSource.transaction(async (tx) => {
+      // Distribute across unpaid/partial invoices (oldest first)
+      const outstandingSales = await tx.find(SaleEntity, {
+        where: { businessId, customerId },
+        order: { saleDate: 'ASC', createdAt: 'ASC' },
+      });
+
+      let remaining = dto.amount;
+      let remainingRebate = rebate;
+
+      for (const sale of outstandingSales) {
+        if (sale.paymentStatus === PaymentStatus.PAID || Number(sale.dueAmount) <= 0) continue;
+        if (remaining <= 0 && remainingRebate <= 0) break;
+
+        const saleDue = Number(sale.dueAmount);
+        const applyRebate = Math.min(remainingRebate, saleDue);
+        const applyAmount = Math.min(remaining, saleDue - applyRebate);
+        const reduction = applyAmount + applyRebate;
+
+        sale.paidAmount = Number(sale.paidAmount) + applyAmount;
+        sale.dueAmount = Math.max(0, saleDue - reduction);
+        if (sale.dueAmount <= 0) sale.paymentStatus = PaymentStatus.PAID;
+        else if (Number(sale.paidAmount) > 0) sale.paymentStatus = PaymentStatus.PARTIAL;
+        await tx.save(SaleEntity, sale);
+
+        remaining -= applyAmount;
+        remainingRebate -= applyRebate;
+      }
+
+      // Decrement customer balance by full reduction
+      const actualReduction = Math.min(totalReduction, Number(customer.currentBalance));
+      if (actualReduction > 0) {
+        await tx.decrement(CustomerEntity, { id: customerId, businessId }, 'currentBalance', actualReduction);
+      }
+
+      return { message: 'Bulk collection recorded', amount: dto.amount, rebate };
+    });
+  }
+
+  // ─── Coupon CRUD ──────────────────────────────────────────────────────────
+
+  async createCoupon(businessId: string, dto: CreateCouponDto) {
+    const exists = await this.couponRepo.findOne({ where: { businessId, code: ILike(dto.code) } });
+    if (exists) throw new ConflictException(`Coupon code "${dto.code}" already exists`);
+
+    const coupon = this.couponRepo.create({
+      businessId,
+      code: dto.code.toUpperCase().trim(),
+      description: dto.description ?? null,
+      discountType: dto.discountType as DiscountType,
+      discountValue: dto.discountValue,
+      minOrderAmount: dto.minOrderAmount ?? 0,
+      maxDiscountAmount: dto.maxDiscountAmount ?? null,
+      usageLimit: dto.usageLimit ?? null,
+      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
+      isActive: dto.isActive ?? true,
+    });
+    return this.couponRepo.save(coupon);
+  }
+
+  async findAllCoupons(businessId: string) {
+    return this.couponRepo.find({
+      where: { businessId },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async updateCoupon(businessId: string, id: string, dto: UpdateCouponDto) {
+    const coupon = await this.couponRepo.findOne({ where: { id, businessId } });
+    if (!coupon) throw new NotFoundException('Coupon not found');
+
+    if (dto.code && dto.code.toUpperCase() !== coupon.code) {
+      const exists = await this.couponRepo.findOne({ where: { businessId, code: ILike(dto.code) } });
+      if (exists) throw new ConflictException(`Coupon code "${dto.code}" already exists`);
+      dto.code = dto.code.toUpperCase().trim();
+    }
+
+    Object.assign(coupon, {
+      ...dto,
+      expiresAt: dto.expiresAt !== undefined ? (dto.expiresAt ? new Date(dto.expiresAt) : null) : coupon.expiresAt,
+    });
+    return this.couponRepo.save(coupon);
+  }
+
+  async deleteCoupon(businessId: string, id: string) {
+    const coupon = await this.couponRepo.findOne({ where: { id, businessId } });
+    if (!coupon) throw new NotFoundException('Coupon not found');
+    await this.couponRepo.remove(coupon);
+    return { message: 'Coupon deleted' };
+  }
+
+  async validateCoupon(businessId: string, dto: ValidateCouponDto) {
+    const coupon = await this.couponRepo.findOne({
+      where: { businessId, code: ILike(dto.code), isActive: true },
+    });
+    if (!coupon) throw new NotFoundException(`Coupon "${dto.code}" is invalid or inactive`);
+    if (coupon.expiresAt && coupon.expiresAt < new Date()) throw new BadRequestException('Coupon has expired');
+    if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) throw new BadRequestException('Coupon usage limit reached');
+    if (dto.subtotal < Number(coupon.minOrderAmount)) throw new BadRequestException(`Minimum order amount ৳${coupon.minOrderAmount} required`);
+
+    let discountAmount: number;
+    if (coupon.discountType === DiscountType.PERCENTAGE) {
+      discountAmount = (dto.subtotal * Number(coupon.discountValue)) / 100;
+      if (coupon.maxDiscountAmount !== null) discountAmount = Math.min(discountAmount, Number(coupon.maxDiscountAmount));
+    } else {
+      discountAmount = Math.min(Number(coupon.discountValue), dto.subtotal);
+    }
+    discountAmount = Math.round(discountAmount * 100) / 100;
+
+    return {
+      valid: true,
+      coupon: {
+        id: coupon.id,
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: Number(coupon.discountValue),
+        description: coupon.description,
+      },
+      discountAmount,
+      finalTotal: Math.max(0, dto.subtotal - discountAmount),
+    };
   }
 }

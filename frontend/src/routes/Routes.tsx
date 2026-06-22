@@ -4,6 +4,7 @@ import SuperAdminLayout from '../layouts/SuperAdminLayout';
 import AuthUserNotAccessRoute from '../components/providers/AuthUserNotAccessRoute';
 import ProtectedRoute from '../components/providers/ProtectedRoute';
 import SuperAdminRoute from '../components/providers/SuperAdminRoute';
+import SuperAdminOnlyRoute from '../components/providers/SuperAdminOnlyRoute';
 
 // Super Admin
 import SuperAdminLogin from '../features/super-admin/SuperAdminLogin';
@@ -11,6 +12,7 @@ import SuperAdminDashboard from '../features/super-admin/SuperAdminDashboard';
 import BusinessesList from '../features/super-admin/BusinessesList';
 import ComingSoonPage from '../features/super-admin/ComingSoonPage';
 import PackageManagement from '../features/super-admin/PackageManagement';
+import PaymentRequests from '../features/super-admin/PaymentRequests';
 
 // Auth
 import LoginPage from '../components/auth/Login';
@@ -143,6 +145,7 @@ const router = createBrowserRouter([
       { path: 'users', element: <ComingSoonPage title="All Users" /> },
       { path: 'subscriptions', element: <ComingSoonPage title="Subscriptions" /> },
       { path: 'packages', element: <PackageManagement /> },
+      { path: 'payment-requests', element: <PaymentRequests /> },
       { path: 'reports', element: <ComingSoonPage title="Platform Reports" /> },
       { path: 'announcements', element: <ComingSoonPage title="Announcements" /> },
       { path: 'settings', element: <ComingSoonPage title="Platform Settings" /> },
@@ -289,9 +292,23 @@ const router = createBrowserRouter([
       { path: 'settings/invoice', element: <InvoiceSettings /> },
       { path: 'settings/affiliate', element: <MyAffiliate /> },
 
-      // Super Admin - Affiliate
-      { path: 'super-admin/affiliates', element: <AffiliateManagement /> },
-      { path: 'super-admin/affiliates/:id', element: <AffiliateDetail /> },
+      // Super Admin - Affiliate (super_admin role only)
+      {
+        path: 'super-admin/affiliates',
+        element: (
+          <SuperAdminOnlyRoute>
+            <AffiliateManagement />
+          </SuperAdminOnlyRoute>
+        ),
+      },
+      {
+        path: 'super-admin/affiliates/:id',
+        element: (
+          <SuperAdminOnlyRoute>
+            <AffiliateDetail />
+          </SuperAdminOnlyRoute>
+        ),
+      },
     ],
   },
 ]);

@@ -1,4 +1,6 @@
 import { IsEnum, IsIn, IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+export { ReviewPaymentRequestDto, GetPaymentRequestsDto } from 'src/modules/billing/dto/billing.dto';
 
 export class GetBusinessesDto {
   @IsOptional()
