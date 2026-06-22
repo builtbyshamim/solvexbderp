@@ -273,19 +273,14 @@ const NewQuotationModal = ({ onClose }: { onClose: () => void }) => {
 
 const ConvertModal = ({ quotation, onClose }: { quotation: any; onClose: () => void }) => {
   const { t } = useLanguage();
-  const { warehouseId: activeWarehouseId, warehouses, hasWarehouses } = useActiveWarehouse();
-  const [warehouseId, setWarehouseId] = useState(activeWarehouseId ?? '');
+  const { warehouses, hasWarehouses } = useActiveWarehouse();
+  const [warehouseId, setWarehouseId] = useState('');
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
   const [paidAmount, setPaidAmount] = useState(String(quotation.grandTotal ?? 0));
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [convert, { isLoading }] = useConvertQuotationMutation();
 
-  useEffect(() => {
-    if (activeWarehouseId && !warehouseId) setWarehouseId(activeWarehouseId);
-  }, [activeWarehouseId]);
-
   const handleConvert = async () => {
-    if (!warehouseId) { toast.error('Select a warehouse'); return; }
     try {
       await convert({
         id: quotation.id,
@@ -319,19 +314,13 @@ const ConvertModal = ({ quotation, onClose }: { quotation: any; onClose: () => v
           {hasWarehouses && (
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                {t('sales.quotations.warehouse')} {warehouses.length > 1 && '*'}
+                {t('sales.quotations.warehouse')} <span className="text-gray-400 font-normal">(optional)</span>
               </label>
-              {warehouses.length === 1 ? (
-                <div className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm text-gray-600 bg-gray-50">
-                  {warehouses[0].name}
-                </div>
-              ) : (
-                <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}
-                  className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:border-[#ff6d29]">
-                  <option value="">Select Warehouse</option>
-                  {warehouses.map((w: any) => <option key={w.id} value={w.id}>{w.name}{w.isDefault ? ' ★' : ''}</option>)}
-                </select>
-              )}
+              <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)}
+                className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:border-[#ff6d29]">
+                <option value="">Business Default</option>
+                {warehouses.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
             </div>
           )}
           <div>

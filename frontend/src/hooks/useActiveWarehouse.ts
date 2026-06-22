@@ -26,18 +26,16 @@ export function useActiveWarehouse() {
 
   const hasWarehouses = warehouses.length > 0;
 
-  // Auto-select: if nothing stored, or stored ID no longer exists, pick default / first
+  // Validate: if stored selectedId no longer exists in the list, clear it
   useEffect(() => {
-    if (!hasWarehouses) return;
-
-    const stillExists = selectedId && warehouses.some((w) => w.id === selectedId);
+    if (!selectedId || !hasWarehouses) return;
+    const stillExists = warehouses.some((w) => w.id === selectedId);
     if (!stillExists) {
-      const pick = warehouses.find((w) => w.isDefault) ?? warehouses[0];
-      dispatch(setActiveWarehouse({ id: pick.id, name: pick.name }));
+      dispatch(setActiveWarehouse(null));
     }
   }, [warehouses.length, selectedId]);
 
-  // The currently active warehouse object (may be null if no warehouses)
+  // The currently active warehouse object (null = no warehouse selected = use business default)
   const activeWarehouse = warehouses.find((w) => w.id === selectedId) ?? null;
 
   return {

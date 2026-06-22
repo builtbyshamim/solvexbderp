@@ -9,6 +9,7 @@ import { useGetAllCustomersQuery, useValidateCouponMutation } from '../sales/sal
 import { useGetAllProductsQuery } from '../inventory/products/productApi';
 import { useActiveWarehouse } from '../../hooks/useActiveWarehouse';
 import { useNavigate } from 'react-router-dom';
+import { useGetAllAccountsQuery } from '../accounting/accountingApi';
 
 interface CartItem {
   id: string;
@@ -21,19 +22,20 @@ interface CartItem {
 }
 
 interface PaymentRow {
-  method: string;
+  accountId: string;
   amount: string;
 }
 
-const PAYMENT_METHODS = [
-  { value: 'cash', label: 'Cash' },
-  { value: 'card', label: 'Card' },
-  { value: 'bkash', label: 'bKash' },
-  { value: 'nagad', label: 'Nagad' },
-  { value: 'rocket', label: 'Rocket' },
-  { value: 'bank_transfer', label: 'Bank' },
-  { value: 'credit', label: 'Due' },
-];
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  cash: 'Cash',
+  bank: 'Bank',
+  mobile_banking: 'Mobile Banking',
+  receivable: 'Receivable',
+  payable: 'Payable',
+  income: 'Income',
+  expense: 'Expense',
+  equity: 'Equity',
+};
 
 const LIMIT = 12;
 
@@ -187,7 +189,7 @@ const POSTerminal = () => {
   const [gridProducts, setGridProducts] = useState<any[]>([]);
 
   // ── Multi-payment state ──
-  const [payments, setPayments] = useState<PaymentRow[]>([{ method: 'cash', amount: '' }]);
+  const [payments, setPayments] = useState<PaymentRow[]>([{ accountId: '', amount: '' }]);
 
   // ── Coupon state ──
   const [couponInput, setCouponInput] = useState('');
@@ -218,13 +220,12 @@ const POSTerminal = () => {
   const { data: customersData } = useGetAllCustomersQuery({ limit: 200 });
   const customers: any[] = customersData?.data ?? [];
 
-  const { warehouseId: activeWarehouseId, warehouses } = useActiveWarehouse();
+  const { data: accountsData } = useGetAllAccountsQuery({});
+  const accounts: any[] = (accountsData as any) || [];
+
+  const { warehouses } = useActiveWarehouse();
   const [createSale, { isLoading: isCheckingOut }] = useCreateSaleMutation();
   const [validateCoupon, { isLoading: isValidatingCoupon }] = useValidateCouponMutation();
-
-  useEffect(() => {
-    if (activeWarehouseId && !warehouseId) setWarehouseId(activeWarehouseId);
-  }, [activeWarehouseId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getStock = (p: any): number => {
     const stocks: any[] = p.stocks ?? [];
@@ -271,7 +272,7 @@ const POSTerminal = () => {
   const due = totalPaid < grandTotal ? grandTotal - totalPaid : 0;
 
   // ── Payment row helpers ──
-  const addPaymentRow = () => setPayments((prev) => [...prev, { method: 'cash', amount: '' }]);
+  const addPaymentRow = () => setPayments((prev) => [...prev, { accountId: '', amount: '' }]);
   const removePaymentRow = (idx: number) => setPayments((prev) => prev.filter((_, i) => i !== idx));
   const updatePaymentRow = (idx: number, field: keyof PaymentRow, value: string) =>
     setPayments((prev) => prev.map((p, i) => (i === idx ? { ...p, [field]: value } : p)));
@@ -309,7 +310,14 @@ const POSTerminal = () => {
     if (!warehouseId) { toast.error('No warehouse available'); return; }
 
     const paymentEntries = payments
-      .map((p) => ({ method: p.method, amount: Number(p.amount) || 0 }))
+      .map((p) => {
+        const acc = accounts.find((a: any) => a.id === p.accountId);
+        return {
+          method: acc?.accountType ?? 'cash',
+          amount: Number(p.amount) || 0,
+          accountId: p.accountId || undefined,
+        };
+      })
       .filter((p) => p.amount > 0);
 
     const totalPaidFinal = paymentEntries.reduce((s, p) => s + p.amount, 0);
@@ -330,7 +338,7 @@ const POSTerminal = () => {
       toast.success('Sale completed!');
       const newId = result?.data?.id ?? result?.id;
       setCart([]);
-      setPayments([{ method: 'cash', amount: '' }]);
+      setPayments([{ accountId: '', amount: '' }]);
       setDiscountPct('0');
       setCustomerId('');
       setAppliedCoupon(null);
@@ -358,12 +366,13 @@ const POSTerminal = () => {
         <div className="p-3 border-b border-[#DBDFE9]">
           <div className="flex gap-2 mb-3">
             <ProductSearchDropdown warehouseId={warehouseId} onSelect={addToCart} />
-            {warehouses.length > 1 && (
+            {warehouses.length > 0 && (
               <select
                 value={warehouseId}
                 onChange={(e) => setWarehouseId(e.target.value)}
                 className="px-2 py-2 border border-[#DBDFE9] rounded-lg text-xs focus:outline-none focus:border-[#ff6d29] shrink-0"
               >
+                <option value="">Business Default</option>
                 {warehouses.map((w: any) => (
                   <option key={w.id} value={w.id}>{w.name}</option>
                 ))}
@@ -601,12 +610,15 @@ const POSTerminal = () => {
             {payments.map((row, idx) => (
               <div key={idx} className="flex items-center gap-1.5">
                 <select
-                  value={row.method}
-                  onChange={(e) => updatePaymentRow(idx, 'method', e.target.value)}
+                  value={row.accountId}
+                  onChange={(e) => updatePaymentRow(idx, 'accountId', e.target.value)}
                   className="flex-1 px-2 py-2 border border-[#DBDFE9] rounded-lg text-xs focus:outline-none focus:border-[#ff6d29]"
                 >
-                  {PAYMENT_METHODS.map((m) => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
+                  <option value="">Select Account</option>
+                  {accounts.map((acc: any) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name} ({ACCOUNT_TYPE_LABELS[acc.accountType] ?? acc.accountType})
+                    </option>
                   ))}
                 </select>
                 <div className="relative flex-1">

@@ -18,6 +18,7 @@ import toast from 'react-hot-toast';
 import { useCreateSaleMutation, useGetAllCustomersQuery } from './salesApi';
 import { useGetAllProductsQuery } from '../inventory/products/productApi';
 import { useActiveWarehouse } from '../../hooks/useActiveWarehouse';
+import { useGetAllAccountsQuery } from '../accounting/accountingApi';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,20 +37,20 @@ interface SaleItem {
 
 interface PaymentEntry {
   id: number;
-  method: string;
+  accountId: string;
   amount: string;
 }
 
-const PAYMENT_METHODS = [
-  { value: 'cash', label: 'Cash' },
-  { value: 'card', label: 'Card' },
-  { value: 'bkash', label: 'bKash' },
-  { value: 'nagad', label: 'Nagad' },
-  { value: 'rocket', label: 'Rocket' },
-  { value: 'bank_transfer', label: 'Bank Transfer' },
-  { value: 'credit', label: 'Credit (Due)' },
-  { value: 'other', label: 'Other' },
-];
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  cash: 'Cash',
+  bank: 'Bank',
+  mobile_banking: 'Mobile Banking',
+  receivable: 'Receivable',
+  payable: 'Payable',
+  income: 'Income',
+  expense: 'Expense',
+  equity: 'Equity',
+};
 
 // ─── Product Search Dropdown ──────────────────────────────────────────────────
 
@@ -100,10 +101,15 @@ const ProductSearch = ({
   };
 
   const getStock = (p: any) => {
-    if (!warehouseId) {
-      return (p.stocks ?? []).reduce((s: number, st: any) => s + Number(st.currentQty ?? 0), 0);
+    const stocks: any[] = p.stocks ?? [];
+    if (!stocks.length) return 0;
+    if (warehouseId) {
+      const wh = stocks.find((s: any) => s.warehouseId === warehouseId);
+      if (wh) return Number(wh.currentQty ?? 0);
     }
-    return p.stocks?.find((s: any) => s.warehouseId === warehouseId)?.currentQty ?? 0;
+    const def = stocks.find((s: any) => s.warehouseId === null);
+    if (def) return Number(def.currentQty ?? 0);
+    return stocks.reduce((sum: number, s: any) => sum + Number(s.currentQty ?? 0), 0);
   };
 
   const dropdown =
@@ -204,12 +210,14 @@ const AddSale = () => {
 
   const { data: customersData } = useGetAllCustomersQuery({ limit: 500 });
   const customers: any[] = customersData?.data ?? [];
-  const { warehouseId: activeWarehouseId, warehouses, hasWarehouses } = useActiveWarehouse();
+  const { warehouses, hasWarehouses } = useActiveWarehouse();
+  const { data: accountsData } = useGetAllAccountsQuery({});
+  const accounts: any[] = (accountsData as any) || [];
 
   // ── form state ──
   const [form, setForm] = useState({
     customerId: '',
-    warehouseId: activeWarehouseId ?? '',
+    warehouseId: '',
     date: new Date().toISOString().split('T')[0],
     invoiceNo: '',
     // order discount
@@ -223,10 +231,6 @@ const AddSale = () => {
     offerLabel: '',
     note: '',
   });
-
-  useEffect(() => {
-    if (activeWarehouseId) setForm((f) => ({ ...f, warehouseId: activeWarehouseId }));
-  }, [activeWarehouseId]);
 
   // ── items ──
   const [items, setItems] = useState<SaleItem[]>([
@@ -245,7 +249,7 @@ const AddSale = () => {
   ]);
 
   // ── payments ──
-  const [payments, setPayments] = useState<PaymentEntry[]>([{ id: 1, method: 'cash', amount: '' }]);
+  const [payments, setPayments] = useState<PaymentEntry[]>([{ id: 1, accountId: '', amount: '' }]);
 
   // When warehouse changes after products are already added, reset their stock cap
   // so the old maxStock doesn't block; backend re-validates.
@@ -309,7 +313,7 @@ const AddSale = () => {
 
   // ── payment helpers ──
   const addPayment = () =>
-    setPayments((prev) => [...prev, { id: Date.now(), method: 'cash', amount: '' }]);
+    setPayments((prev) => [...prev, { id: Date.now(), accountId: '', amount: '' }]);
 
   const updatePayment = (id: number, patch: Partial<PaymentEntry>) =>
     setPayments((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
@@ -374,6 +378,15 @@ const AddSale = () => {
     const validPayments = payments.filter((p) => Number(p.amount) > 0);
 
     try {
+      const mappedPayments = validPayments.map((p) => {
+        const acc = accounts.find((a: any) => a.id === p.accountId);
+        return {
+          method: acc?.accountType ?? 'cash',
+          amount: Number(p.amount),
+          accountId: p.accountId || undefined,
+        };
+      });
+
       const payload: any = {
         customerId: form.customerId || undefined,
         warehouseId: form.warehouseId || undefined,
@@ -389,11 +402,8 @@ const AddSale = () => {
         taxAmount: vatAmount,
         deliveryCharge: deliveryCharge || undefined,
         paidAmount: totalPaid,
-        payments:
-          validPayments.length > 0
-            ? validPayments.map((p) => ({ method: p.method, amount: Number(p.amount) }))
-            : undefined,
-        paymentMethod: validPayments[0]?.method || 'cash',
+        payments: mappedPayments.length > 0 ? mappedPayments : undefined,
+        paymentMethod: mappedPayments[0]?.method || 'cash',
         offerLabel: form.offerLabel || undefined,
         note: form.note || undefined,
       };
@@ -460,27 +470,18 @@ const AddSale = () => {
               {hasWarehouses && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                    Warehouse <span className="text-gray-400 font-normal">(optional — defaults to business stock)</span>
+                    Warehouse <span className="text-gray-400 font-normal">(optional)</span>
                   </label>
-                  {warehouses.length === 1 ? (
-                    <div className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm text-gray-600 bg-gray-50">
-                      {warehouses[0].name}
-                    </div>
-                  ) : (
-                    <select
-                      value={form.warehouseId}
-                      onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
-                      className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
-                    >
-                      <option value="">Select Warehouse</option>
-                      {warehouses.map((w: any) => (
-                        <option key={w.id} value={w.id}>
-                          {w.name}
-                          {w.isDefault ? ' ★' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <select
+                    value={form.warehouseId}
+                    onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
+                    className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
+                  >
+                    <option value="">Business Default</option>
+                    {warehouses.map((w: any) => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </select>
                 </div>
               )}
               <div>
@@ -876,13 +877,14 @@ const AddSale = () => {
                 {payments.map((p) => (
                   <div key={p.id} className="flex items-center gap-2">
                     <select
-                      value={p.method}
-                      onChange={(e) => updatePayment(p.id, { method: e.target.value })}
+                      value={p.accountId}
+                      onChange={(e) => updatePayment(p.id, { accountId: e.target.value })}
                       className="flex-1 px-2 py-1.5 border border-[#DBDFE9] rounded text-sm focus:outline-none focus:border-[#ff6d29] min-w-0"
                     >
-                      {PAYMENT_METHODS.map((m) => (
-                        <option key={m.value} value={m.value}>
-                          {m.label}
+                      <option value="">Select Account</option>
+                      {accounts.map((acc: any) => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.name} ({ACCOUNT_TYPE_LABELS[acc.accountType] ?? acc.accountType})
                         </option>
                       ))}
                     </select>

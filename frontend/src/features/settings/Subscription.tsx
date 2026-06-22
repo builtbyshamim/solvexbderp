@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import toast from 'react-hot-toast';
+
 import {
   CheckCircle2,
   Crown,
@@ -181,30 +181,17 @@ const Subscription = () => {
   const currentPlanId = subscription?.packageId ?? null;
 
   const { data: packagesData, isLoading: loadingPlans } = useGetPublicPackagesQuery();
-  const [subscribe, { isLoading: isSubscribing }] = useSubscribeToPackageMutation();
+  const [, { isLoading: isSubscribing }] = useSubscribeToPackageMutation();
   const { data: pendingRequest, refetch: refetchPending } = useGetMyPendingRequestQuery();
 
   const [billing, setBilling] = useState<'monthly' | 'yearly'>(
     (subscription?.billingCycle as 'monthly' | 'yearly') ?? 'monthly',
   );
-  const [actionPlanId, setActionPlanId] = useState<string | null>(null);
+  const [actionPlanId] = useState<string | null>(null);
   const [payPkg, setPayPkg] = useState<Package | null>(null);
 
   const plans: Package[] = (packagesData ?? []).filter((p) => p.isActive);
   const yearlySavePct = representativeDiscount(plans);
-
-  const handleSubscribe = async (packageId: string) => {
-    setActionPlanId(packageId);
-    try {
-      const result = await subscribe({ packageId, billingCycle: billing }).unwrap();
-      toast.success(result.message);
-      refetchMe();
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to subscribe. Please try again.');
-    } finally {
-      setActionPlanId(null);
-    }
-  };
 
   const handleRenewOrPay = (pkg: Package) => {
     setPayPkg(pkg);
@@ -234,12 +221,7 @@ const Subscription = () => {
                 })()}
               </div>
               <div>
-                <p
-                  onClick={() => handleSubscribe(subscription.packageId)}
-                  className="text-xs text-gray-400"
-                >
-                  Current Plan
-                </p>
+                <p  className="text-xs text-gray-400">Current Plan</p>
                 <p className="font-bold text-[#26272F] capitalize">
                   {subscription.plan ?? 'No plan selected'}
                 </p>

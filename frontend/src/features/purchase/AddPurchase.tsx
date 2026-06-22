@@ -73,8 +73,15 @@ const ProductSearch = ({
   const handleOpen = () => { updateDropdownPosition(); setOpen(true); };
 
   const getStock = (p: any) => {
-    if (!warehouseId) return (p.stocks ?? []).reduce((s: number, st: any) => s + Number(st.currentQty ?? 0), 0);
-    return Number(p.stocks?.find((s: any) => s.warehouseId === warehouseId)?.currentQty ?? 0);
+    const stocks: any[] = p.stocks ?? [];
+    if (!stocks.length) return 0;
+    if (warehouseId) {
+      const wh = stocks.find((s: any) => s.warehouseId === warehouseId);
+      if (wh) return Number(wh.currentQty ?? 0);
+    }
+    const def = stocks.find((s: any) => s.warehouseId === null);
+    if (def) return Number(def.currentQty ?? 0);
+    return stocks.reduce((sum: number, s: any) => sum + Number(s.currentQty ?? 0), 0);
   };
 
   return (
@@ -289,7 +296,7 @@ const EMPTY_ITEM = (): PurchaseItem => ({
 
 const AddPurchase = () => {
   const navigate = useNavigate();
-  const { warehouseId: activeWarehouseId, warehouses, hasWarehouses } = useActiveWarehouse();
+  const { warehouses, hasWarehouses } = useActiveWarehouse();
   const [createPurchase, { isLoading: isSaving }] = useCreatePurchaseMutation();
 
   // Supplier search
@@ -306,7 +313,7 @@ const AddPurchase = () => {
   const [form, setForm] = useState({
     supplierId: '',
     supplierName: '',
-    warehouseId: activeWarehouseId ?? '',
+    warehouseId: '',
     invoiceNo: '',
     purchaseDate: new Date().toISOString().split('T')[0],
     discountAmount: '',
@@ -317,11 +324,6 @@ const AddPurchase = () => {
 
   const [items, setItems] = useState<PurchaseItem[]>([EMPTY_ITEM()]);
   const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([newSplit()]);
-
-  // Sync warehouse from global selector
-  useEffect(() => {
-    if (activeWarehouseId) setForm((f) => ({ ...f, warehouseId: activeWarehouseId }));
-  }, [activeWarehouseId]);
 
   // Close supplier dropdown on outside click
   useEffect(() => {
@@ -488,18 +490,14 @@ const AddPurchase = () => {
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">
                     Warehouse <span className="text-gray-400 font-normal">(optional)</span>
                   </label>
-                  {warehouses.length === 1 ? (
-                    <div className="px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm text-gray-600 bg-gray-50">{warehouses[0].name}</div>
-                  ) : (
-                    <select value={form.warehouseId} onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
-                      className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
-                    >
-                      <option value="">Select warehouse</option>
-                      {warehouses.map((w: any) => (
-                        <option key={w.id} value={w.id}>{w.name}{w.isDefault ? ' ★' : ''}</option>
-                      ))}
-                    </select>
-                  )}
+                  <select value={form.warehouseId} onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
+                    className="w-full px-3 py-2 border border-[#DBDFE9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/20 focus:border-[#ff6d29]"
+                  >
+                    <option value="">Business Default</option>
+                    {warehouses.map((w: any) => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </select>
                 </div>
               )}
 

@@ -88,6 +88,7 @@ import KPI from '../features/hrm/KPI';
 import SalesReport from '../features/reports/SalesReport';
 import PurchaseReport from '../features/reports/PurchaseReport';
 import StockReportPage from '../features/reports/StockReport';
+import StockPositionReport from '../features/reports/StockPositionReport';
 import ProfitLossReport from '../features/reports/ProfitLossReport';
 import CustomerReport from '../features/reports/CustomerReport';
 import SupplierReport from '../features/reports/SupplierReport';
@@ -267,6 +268,7 @@ const router = createBrowserRouter([
       { path: 'reports/sales', element: <SalesReport /> },
       { path: 'reports/purchase', element: <PurchaseReport /> },
       { path: 'reports/stock', element: <StockReportPage /> },
+      { path: 'reports/stock-position', element: <StockPositionReport /> },
       { path: 'reports/profit-loss', element: <ProfitLossReport /> },
       { path: 'reports/customers', element: <CustomerReport /> },
       { path: 'reports/suppliers', element: <SupplierReport /> },
