@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import {
-  Clock, CheckCircle2, XCircle, Smartphone, CreditCard,
-  RefreshCw, ChevronDown, Filter, Search,
-} from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Smartphone, CreditCard, RefreshCw } from 'lucide-react';
 import {
   useGetAllPaymentRequestsQuery,
   useReviewPaymentRequestMutation,
@@ -11,26 +8,20 @@ import {
 } from '../../redux/api/billingApi';
 
 const STATUS_STYLES = {
-  pending:  { bg: 'bg-amber-100',  text: 'text-amber-700',  icon: Clock },
-  approved: { bg: 'bg-green-100',  text: 'text-green-700',  icon: CheckCircle2 },
-  rejected: { bg: 'bg-red-100',    text: 'text-red-600',    icon: XCircle },
+  pending: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Clock },
+  approved: { bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircle2 },
+  rejected: { bg: 'bg-red-100', text: 'text-red-600', icon: XCircle },
 } as const;
 
 const METHOD_COLORS = {
-  bkash:  'bg-pink-100 text-pink-700',
+  bkash: 'bg-pink-100 text-pink-700',
   rocket: 'bg-purple-100 text-purple-700',
-  nagad:  'bg-orange-100 text-orange-700',
+  nagad: 'bg-orange-100 text-orange-700',
 } as const;
 
-function ReviewModal({
-  req,
-  onClose,
-}: {
-  req: PaymentRequest;
-  onClose: () => void;
-}) {
+function ReviewModal({ req, onClose }: { req: PaymentRequest; onClose: () => void }) {
   const [action, setAction] = useState<'approved' | 'rejected'>('approved');
-  const [note, setNote]     = useState('');
+  const [note, setNote] = useState('');
   const [review, { isLoading }] = useReviewPaymentRequestMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,17 +43,19 @@ function ReviewModal({
         {/* Payment details */}
         <div className="bg-gray-50 rounded-xl divide-y divide-gray-100 text-sm mb-5">
           {[
-            ['Business',       req.business?.name ?? '—'],
-            ['Plan',           `${req.package?.name ?? '—'} (${req.billingCycle})`],
-            ['Method',         req.paymentMethod.toUpperCase()],
-            ['Sender Mobile',  req.senderMobile],
+            ['Business', req.business?.name ?? '—'],
+            ['Plan', `${req.package?.name ?? '—'} (${req.billingCycle})`],
+            ['Method', req.paymentMethod.toUpperCase()],
+            ['Sender Mobile', req.senderMobile],
             ['Transaction ID', req.transactionId],
-            ['Amount',         `৳${req.amount.toLocaleString()}`],
-            ['Submitted',      new Date(req.createdAt).toLocaleString()],
+            ['Amount', `৳${req.amount.toLocaleString()}`],
+            ['Submitted', new Date(req.createdAt).toLocaleString()],
           ].map(([k, v]) => (
             <div key={k} className="flex items-center justify-between px-3 py-2">
               <span className="text-gray-500">{k}</span>
-              <span className="font-medium text-[#26272F] text-right max-w-[220px] truncate">{v}</span>
+              <span className="font-medium text-[#26272F] text-right max-w-[220px] truncate">
+                {v}
+              </span>
             </div>
           ))}
         </div>
@@ -97,7 +90,9 @@ function ReviewModal({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={2}
-              placeholder={action === 'approved' ? 'e.g. Verified TxnID' : 'e.g. Transaction ID not found'}
+              placeholder={
+                action === 'approved' ? 'e.g. Verified TxnID' : 'e.g. Transaction ID not found'
+              }
               className="w-full px-3 py-2.5 border border-[#DBDFE9] rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#ff6d29]/30 focus:border-[#ff6d29]"
             />
           </div>
@@ -114,11 +109,17 @@ function ReviewModal({
               type="submit"
               disabled={isLoading}
               className={`flex-1 py-2.5 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 min-h-[44px] transition-colors ${
-                action === 'approved' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+                action === 'approved'
+                  ? 'bg-green-500 hover:bg-green-600'
+                  : 'bg-red-500 hover:bg-red-600'
               }`}
             >
-              {isLoading && <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              {isLoading ? 'Processing...' : `Confirm ${action === 'approved' ? 'Approval' : 'Rejection'}`}
+              {isLoading && (
+                <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
+              {isLoading
+                ? 'Processing...'
+                : `Confirm ${action === 'approved' ? 'Approval' : 'Rejection'}`}
             </button>
           </div>
         </form>
@@ -129,8 +130,8 @@ function ReviewModal({
 
 export default function PaymentRequests() {
   const [statusFilter, setStatusFilter] = useState<string>('pending');
-  const [page, setPage]                 = useState(1);
-  const [selected, setSelected]         = useState<PaymentRequest | null>(null);
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<PaymentRequest | null>(null);
 
   const { data, isLoading, refetch } = useGetAllPaymentRequestsQuery({
     status: statusFilter,
@@ -138,8 +139,8 @@ export default function PaymentRequests() {
     limit: 20,
   });
 
-  const items      = data?.items ?? [];
-  const total      = data?.total ?? 0;
+  const items = data?.items ?? [];
+  const total = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
 
   return (
@@ -163,14 +164,17 @@ export default function PaymentRequests() {
       {/* Filter tabs */}
       <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
         {[
-          { key: 'pending',  label: 'Pending',  count: true },
+          { key: 'pending', label: 'Pending', count: true },
           { key: 'approved', label: 'Approved' },
           { key: 'rejected', label: 'Rejected' },
-          { key: 'all',      label: 'All' },
+          { key: 'all', label: 'All' },
         ].map(({ key, label }) => (
           <button
             key={key}
-            onClick={() => { setStatusFilter(key); setPage(1); }}
+            onClick={() => {
+              setStatusFilter(key);
+              setPage(1);
+            }}
             className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
               statusFilter === key
                 ? 'bg-[#ff6d29] text-white shadow-sm'
@@ -223,16 +227,22 @@ export default function PaymentRequests() {
                         <span className="font-bold text-[#26272F] truncate">
                           {req.business?.name ?? 'Unknown Business'}
                         </span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${methodCls}`}>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${methodCls}`}
+                        >
                           {req.paymentMethod.toUpperCase()}
                         </span>
-                        <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${st.bg} ${st.text}`}>
+                        <span
+                          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${st.bg} ${st.text}`}
+                        >
                           <StIcon className="h-3 w-3" />
                           {req.status}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1 text-xs text-gray-500">
-                        <span>{req.package?.name ?? '—'} · {req.billingCycle}</span>
+                        <span>
+                          {req.package?.name ?? '—'} · {req.billingCycle}
+                        </span>
                         <span>৳{req.amount.toLocaleString()}</span>
                         <span className="font-mono">TxnID: {req.transactionId}</span>
                         <span>From: {req.senderMobile}</span>
@@ -284,9 +294,7 @@ export default function PaymentRequests() {
       )}
 
       {/* Review modal */}
-      {selected && (
-        <ReviewModal req={selected} onClose={() => setSelected(null)} />
-      )}
+      {selected && <ReviewModal req={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }

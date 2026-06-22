@@ -1,9 +1,22 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import {
-  CheckCircle2, Crown, Zap, AlertCircle, Building2,
-  MessageCircle, Send, Phone, User, Briefcase, MessageSquare,
-  ChevronDown, ChevronUp, TrendingUp, Clock, Shield, RefreshCw,
+  CheckCircle2,
+  Crown,
+  Zap,
+  AlertCircle,
+  Building2,
+  MessageCircle,
+  Send,
+  Phone,
+  User,
+  Briefcase,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  TrendingUp,
+  Clock,
+  Shield,
   CreditCard,
 } from 'lucide-react';
 import PageHeader from '../../components/shared/PageHeader';
@@ -20,7 +33,9 @@ import PaymentRequestModal from '../billing/PaymentRequestModal';
 const WHATSAPP_NUMBER = '8801XXXXXXXXX';
 
 const PLAN_ICONS: Record<string, React.ElementType> = {
-  Starter: Zap, Pro: Crown, Enterprise: Building2,
+  Starter: Zap,
+  Pro: Crown,
+  Enterprise: Building2,
 };
 
 function calcYearlyDiscount(pkg: Package) {
@@ -86,23 +101,34 @@ const EnterpriseContact = () => {
 
   return (
     <div className="space-y-2.5 mt-4">
-      <a href={wa} target="_blank" rel="noopener noreferrer"
-        className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] text-white font-semibold text-sm transition-colors">
+      <a
+        href={wa}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#25D366] hover:bg-[#1ebe5d] text-white font-semibold text-sm transition-colors"
+      >
         <MessageCircle className="h-4 w-4" /> Chat on WhatsApp
       </a>
-      <button onClick={() => setOpen((v) => !v)}
-        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-orange-300 text-orange-600 text-sm font-medium hover:bg-orange-50 transition-colors">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-orange-300 text-orange-600 text-sm font-medium hover:bg-orange-50 transition-colors"
+      >
         <Send className="h-4 w-4" />
         Send Enquiry
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </button>
 
       {open && (
-        <form onSubmit={async (e) => {
-          e.preventDefault(); setLoading(true);
-          await new Promise(r => setTimeout(r, 800));
-          setLoading(false); setSubmitted(true);
-        }} className="space-y-2.5">
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setLoading(true);
+            await new Promise((r) => setTimeout(r, 800));
+            setLoading(false);
+            setSubmitted(true);
+          }}
+          className="space-y-2.5"
+        >
           {[
             { name: 'name', icon: User, placeholder: 'Your Name', type: 'text' },
             { name: 'mobile', icon: Phone, placeholder: 'Mobile Number', type: 'tel' },
@@ -110,22 +136,35 @@ const EnterpriseContact = () => {
           ].map(({ name, icon: Icon, placeholder, type }) => (
             <div key={name} className="relative">
               <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input type={type} required placeholder={placeholder}
+              <input
+                type={type}
+                required
+                placeholder={placeholder}
                 value={(form as any)[name]}
                 onChange={(e) => setForm((p) => ({ ...p, [name]: e.target.value }))}
-                className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent" />
+                className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent"
+              />
             </div>
           ))}
           <div className="relative">
             <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <textarea required rows={2} placeholder="Your requirements..."
+            <textarea
+              required
+              rows={2}
+              placeholder="Your requirements..."
               value={form.message}
               onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
-              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent resize-none" />
+              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent resize-none"
+            />
           </div>
-          <button type="submit" disabled={loading}
-            className="w-full py-2.5 rounded-xl bg-[#ff6d29] hover:bg-orange-600 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
-            {loading && <span className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 rounded-xl bg-[#ff6d29] hover:bg-orange-600 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+          >
+            {loading && (
+              <span className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            )}
             {loading ? 'Sending...' : 'Submit Request'}
           </button>
         </form>
@@ -146,10 +185,10 @@ const Subscription = () => {
   const { data: pendingRequest, refetch: refetchPending } = useGetMyPendingRequestQuery();
 
   const [billing, setBilling] = useState<'monthly' | 'yearly'>(
-    (subscription?.billingCycle as 'monthly' | 'yearly') ?? 'monthly'
+    (subscription?.billingCycle as 'monthly' | 'yearly') ?? 'monthly',
   );
   const [actionPlanId, setActionPlanId] = useState<string | null>(null);
-  const [payPkg, setPayPkg]             = useState<Package | null>(null);
+  const [payPkg, setPayPkg] = useState<Package | null>(null);
 
   const plans: Package[] = (packagesData ?? []).filter((p) => p.isActive);
   const yearlySavePct = representativeDiscount(plans);
@@ -195,33 +234,45 @@ const Subscription = () => {
                 })()}
               </div>
               <div>
-                <p className="text-xs text-gray-400">Current Plan</p>
+                <p
+                  onClick={() => handleSubscribe(subscription.packageId)}
+                  className="text-xs text-gray-400"
+                >
+                  Current Plan
+                </p>
                 <p className="font-bold text-[#26272F] capitalize">
                   {subscription.plan ?? 'No plan selected'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${
-                subscription.status === 'active' ? 'bg-green-100 text-green-700' :
-                subscription.status === 'trial'  ? 'bg-blue-100 text-blue-700' :
-                'bg-red-100 text-red-500'
-              }`}>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                  subscription.status === 'active'
+                    ? 'bg-green-100 text-green-700'
+                    : subscription.status === 'trial'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-red-100 text-red-500'
+                }`}
+              >
                 {subscription.status}
               </span>
               {/* Renew button — shown when subscription expires soon or is expired */}
-              {currentPlanId && (subscription.status === 'expired' || (subscription.daysLeft !== null && subscription.daysLeft <= 7)) && (() => {
-                const currentPkg = plans.find((p) => p.id === currentPlanId);
-                return currentPkg ? (
-                  <button
-                    onClick={() => handleRenewOrPay(currentPkg)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ff6d29] hover:bg-[#e65a1f] text-white text-xs font-semibold rounded-lg transition-colors"
-                  >
-                    <CreditCard className="h-3 w-3" />
-                    Renew Now
-                  </button>
-                ) : null;
-              })()}
+              {currentPlanId &&
+                (subscription.status === 'expired' ||
+                  (subscription.daysLeft !== null && subscription.daysLeft <= 7)) &&
+                (() => {
+                  const currentPkg = plans.find((p) => p.id === currentPlanId);
+                  return currentPkg ? (
+                    <button
+                      onClick={() => handleRenewOrPay(currentPkg)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ff6d29] hover:bg-[#e65a1f] text-white text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      <CreditCard className="h-3 w-3" />
+                      Renew Now
+                    </button>
+                  ) : null;
+                })()}
             </div>
           </div>
 
@@ -229,15 +280,20 @@ const Subscription = () => {
             <div>
               <p className="text-xs text-gray-400">Expires</p>
               <p className="font-medium text-[#26272F] text-sm">
-                {subscription.expiresAt ? new Date(subscription.expiresAt).toLocaleDateString() : 'Unlimited'}
+                {subscription.expiresAt
+                  ? new Date(subscription.expiresAt).toLocaleDateString()
+                  : 'Unlimited'}
               </p>
             </div>
             <div>
               <p className="text-xs text-gray-400">Days Left</p>
-              <p className={`font-medium text-sm ${
-                subscription.daysLeft !== null && subscription.daysLeft <= 7
-                  ? 'text-red-500' : 'text-[#26272F]'
-              }`}>
+              <p
+                className={`font-medium text-sm ${
+                  subscription.daysLeft !== null && subscription.daysLeft <= 7
+                    ? 'text-red-500'
+                    : 'text-[#26272F]'
+                }`}
+              >
                 {subscription.daysLeft !== null ? `${subscription.daysLeft} days` : '—'}
               </p>
             </div>
@@ -251,8 +307,14 @@ const Subscription = () => {
               <div>
                 <p className="text-xs text-gray-400">Limits</p>
                 <p className="font-medium text-[#26272F] text-sm">
-                  {subscription.package.maxUsers === -1 ? 'Unlimited' : `${subscription.package.maxUsers}`} users ·&nbsp;
-                  {subscription.package.maxProducts === -1 ? 'Unlimited' : subscription.package.maxProducts} products
+                  {subscription.package.maxUsers === -1
+                    ? 'Unlimited'
+                    : `${subscription.package.maxUsers}`}{' '}
+                  users ·&nbsp;
+                  {subscription.package.maxProducts === -1
+                    ? 'Unlimited'
+                    : subscription.package.maxProducts}{' '}
+                  products
                 </p>
               </div>
             )}
@@ -268,8 +330,8 @@ const Subscription = () => {
             <p className="font-semibold text-amber-800">Payment Under Review</p>
             <p className="text-amber-700 mt-0.5">
               Your {pendingRequest.paymentMethod.toUpperCase()} payment (TxnID:{' '}
-              <span className="font-mono font-medium">{pendingRequest.transactionId}</span>) is being verified.
-              Subscription will activate once confirmed.
+              <span className="font-mono font-medium">{pendingRequest.transactionId}</span>) is
+              being verified. Subscription will activate once confirmed.
             </p>
           </div>
         </div>
@@ -300,7 +362,9 @@ const Subscription = () => {
       {billing === 'yearly' && yearlySavePct > 0 && (
         <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-xl mb-4 text-sm text-green-700">
           <TrendingUp className="h-4 w-4 flex-shrink-0" />
-          <span>Yearly billing saves you <strong>{yearlySavePct}%</strong> — billed once per year.</span>
+          <span>
+            Yearly billing saves you <strong>{yearlySavePct}%</strong> — billed once per year.
+          </span>
         </div>
       )}
 
@@ -326,11 +390,13 @@ const Subscription = () => {
                   isCurrentPlan
                     ? 'border-[#ff6d29] shadow-md shadow-orange-100'
                     : isHighlight
-                    ? 'border-purple-300 bg-gradient-to-br from-purple-50 to-white'
-                    : 'border-[#DBDFE9] bg-white hover:border-gray-300'
+                      ? 'border-purple-300 bg-gradient-to-br from-purple-50 to-white'
+                      : 'border-[#DBDFE9] bg-white hover:border-gray-300'
                 }`}
               >
-                {isCurrentPlan && <div className="absolute top-0 left-0 right-0 h-1 bg-[#ff6d29]" />}
+                {isCurrentPlan && (
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-[#ff6d29]" />
+                )}
                 {isHighlight && !isCurrentPlan && (
                   <div className="absolute top-3 right-3">
                     <span className="text-[10px] font-bold bg-purple-600 text-white px-2 py-0.5 rounded-full">
@@ -341,12 +407,20 @@ const Subscription = () => {
 
                 <div className="p-5 flex-1">
                   <div className="flex items-center gap-2.5 mb-3">
-                    <div className={`p-2 rounded-lg ${
-                      isEnterprise ? 'bg-orange-50' : isHighlight ? 'bg-purple-100' : 'bg-blue-50'
-                    }`}>
-                      <Icon className={`h-5 w-5 ${
-                        isEnterprise ? 'text-[#ff6d29]' : isHighlight ? 'text-purple-500' : 'text-blue-500'
-                      }`} />
+                    <div
+                      className={`p-2 rounded-lg ${
+                        isEnterprise ? 'bg-orange-50' : isHighlight ? 'bg-purple-100' : 'bg-blue-50'
+                      }`}
+                    >
+                      <Icon
+                        className={`h-5 w-5 ${
+                          isEnterprise
+                            ? 'text-[#ff6d29]'
+                            : isHighlight
+                              ? 'text-purple-500'
+                              : 'text-blue-500'
+                        }`}
+                      />
                     </div>
                     <div>
                       <h4 className="text-base font-bold text-[#26272F]">{plan.name}</h4>
@@ -366,7 +440,9 @@ const Subscription = () => {
                   ) : (
                     <div className="mb-4">
                       <div className="flex items-end gap-1">
-                        <span className="text-3xl font-black text-[#26272F]">৳{price.toLocaleString()}</span>
+                        <span className="text-3xl font-black text-[#26272F]">
+                          ৳{price.toLocaleString()}
+                        </span>
                         <span className="text-sm text-gray-400 mb-1">/mo</span>
                       </div>
                       {billing === 'yearly' && discount > 0 && (
@@ -375,7 +451,9 @@ const Subscription = () => {
                         </p>
                       )}
                       {billing === 'monthly' && discount > 0 && (
-                        <p className="text-xs text-gray-400">Save {discount}% with yearly billing</p>
+                        <p className="text-xs text-gray-400">
+                          Save {discount}% with yearly billing
+                        </p>
                       )}
                     </div>
                   )}
@@ -406,7 +484,8 @@ const Subscription = () => {
                         <div className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-orange-50 border border-orange-200 text-sm font-semibold text-[#ff6d29]">
                           <CheckCircle2 className="h-4 w-4" /> Current Plan
                         </div>
-                        {(subscription?.status === 'expired' || (subscription?.daysLeft !== null && subscription?.daysLeft <= 7)) && (
+                        {(subscription?.status === 'expired' ||
+                          (subscription?.daysLeft !== null && subscription?.daysLeft <= 7)) && (
                           <button
                             onClick={() => handleRenewOrPay(plan)}
                             className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#ff6d29] hover:bg-[#e65a1f] text-white text-sm font-semibold transition-colors min-h-[44px]"
@@ -421,21 +500,23 @@ const Subscription = () => {
                         onClick={() => handleRenewOrPay(plan)}
                         disabled={isActing}
                         className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-white text-sm font-semibold transition-colors min-h-[44px] disabled:opacity-60 ${
-                          isHighlight ? 'bg-purple-600 hover:bg-purple-700' : 'bg-[#26272F] hover:bg-gray-800'
+                          isHighlight
+                            ? 'bg-purple-600 hover:bg-purple-700'
+                            : 'bg-[#26272F] hover:bg-gray-800'
                         }`}
                       >
-                        {isActing
-                          ? <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          : <CreditCard className="h-4 w-4" />
-                        }
+                        {isActing ? (
+                          <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <CreditCard className="h-4 w-4" />
+                        )}
                         {isActing
                           ? 'Opening...'
                           : currentPlanId
-                          ? `Switch to ${plan.name}`
-                          : plan.trialDays > 0
-                          ? 'Start Free Trial'
-                          : 'Get Started'
-                        }
+                            ? `Switch to ${plan.name}`
+                            : plan.trialDays > 0
+                              ? 'Start Free Trial'
+                              : 'Get Started'}
                       </button>
                     )}
                   </div>
@@ -447,7 +528,8 @@ const Subscription = () => {
       )}
 
       <p className="text-center text-xs text-gray-400 mt-6">
-        Pay via bKash / Rocket / Nagad to <strong>01617650797</strong> · Admin verifies &amp; activates within hours.
+        Pay via bKash / Rocket / Nagad to <strong>01617650797</strong> · Admin verifies &amp;
+        activates within hours.
       </p>
 
       {/* Payment request modal */}
@@ -457,7 +539,10 @@ const Subscription = () => {
           onClose={() => setPayPkg(null)}
           pkg={payPkg}
           billingCycle={billing}
-          onSuccess={() => { refetchPending(); refetchMe(); }}
+          onSuccess={() => {
+            refetchPending();
+            refetchMe();
+          }}
         />
       )}
     </div>
