@@ -20,7 +20,7 @@ async function bootstrap() {
     origin: [
       'http://localhost:5173', // Apnar local frontend development port
       'http://localhost:3000',
-      'https://www.yourdomain.com', // Apnar main domain
+      'https://pos.solvexbd.com', // Apnar main domain
       'https://admin.yourdomain.com', // Admin panel domain (jodi thake)
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
