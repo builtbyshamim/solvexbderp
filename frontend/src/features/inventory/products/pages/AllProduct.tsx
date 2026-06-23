@@ -426,7 +426,12 @@ const AllProduct = () => {
                         />
                       </td>
                       <td className="px-4 py-3 font-medium text-[#26272F] max-w-[180px]">
-                        <span className="line-clamp-2">{product.name}</span>
+                        <Link
+                          to={`/admin/inventory/products/${product.id}`}
+                          className="line-clamp-2 hover:text-[#ff6d29] hover:underline transition-colors"
+                        >
+                          {product.name}
+                        </Link>
                       </td>
                       <td className="px-4 py-3 capitalize text-gray-600">
                         {product.productType ?? product.type ?? '—'}
@@ -460,6 +465,12 @@ const AllProduct = () => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
+                          <Link
+                            to={`/admin/inventory/products/${product.id}`}
+                            className="px-3 py-1.5 text-xs border border-[#DBDFE9] text-[#ff6d29] rounded-lg hover:bg-orange-50 transition-colors"
+                          >
+                            View
+                          </Link>
                           <Link
                             to={`/admin/inventory/products/edit/${product.id}`}
                             className="px-3 py-1.5 text-xs border border-[#DBDFE9] text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"

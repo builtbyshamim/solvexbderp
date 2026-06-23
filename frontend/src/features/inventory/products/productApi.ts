@@ -110,6 +110,29 @@ export const productApi = baseApi.injectEndpoints({
       }),
     }),
 
+    // ✅ GET PRODUCT DETAILS (sales/purchase history, stock ledger, summary)
+    getProductDetails: build.query({
+      query: (id: string) => ({
+        url: `${COMMON_URL}/${id}/details`,
+        method: "GET",
+      }),
+      providesTags: (_result, _error, id) => [{ type: tagTypes.product, id: `details-${id}` }],
+    }),
+
+    // ✅ UPDATE OPENING STOCK
+    updateOpeningStock: build.mutation({
+      query: ({ id, openingQty }: { id: string; openingQty: number }) => ({
+        url: `${COMMON_URL}/${id}/opening-stock`,
+        method: "PATCH",
+        data: { openingQty },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: tagTypes.product, id: arg.id },
+        { type: tagTypes.product, id: `details-${arg.id}` },
+        { type: tagTypes.product, id: "LIST" },
+      ],
+    }),
+
     // ✅ IMPORT PRODUCTS
     importProducts: build.mutation({
       query: (formData: FormData) => ({
@@ -134,4 +157,6 @@ export const {
   useSetThumbnailMutation,
   useReorderImagesMutation,
   useImportProductsMutation,
+  useGetProductDetailsQuery,
+  useUpdateOpeningStockMutation,
 } = productApi;

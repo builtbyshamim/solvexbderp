@@ -26,6 +26,7 @@ import Dashboard from '../components/dashboard/Dashboard';
 import AllProduct from '../features/inventory/products/pages/AllProduct';
 import AddProduct from '../features/inventory/products/pages/AddProduct';
 import EditProduct from '../features/inventory/products/pages/EditProduct';
+import ProductDetail from '../features/inventory/products/pages/ProductDetail';
 import AllCategory from '../features/inventory/category/pages/AllCategory';
 import AllBrand from '../features/inventory/brand/AllBrand';
 import AllUnit from '../features/inventory/unit/AllUnit';
@@ -209,6 +210,7 @@ const router = createBrowserRouter([
       { path: 'inventory/products', element: <AllProduct /> },
       { path: 'inventory/products/add', element: <AddProduct /> },
       { path: 'inventory/products/edit/:id', element: <EditProduct /> },
+      { path: 'inventory/products/:id', element: <ProductDetail /> },
       { path: 'inventory/categories', element: <AllCategory /> },
       { path: 'inventory/brands', element: <AllBrand /> },
       { path: 'inventory/units', element: <AllUnit /> },

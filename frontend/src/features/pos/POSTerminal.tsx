@@ -7,7 +7,6 @@ import toast from 'react-hot-toast';
 import { useCreateSaleMutation } from '../sales/salesApi';
 import { useGetAllCustomersQuery, useValidateCouponMutation } from '../sales/salesApi';
 import { useGetAllProductsQuery } from '../inventory/products/productApi';
-import { useActiveWarehouse } from '../../hooks/useActiveWarehouse';
 import { useNavigate } from 'react-router-dom';
 import { useGetAllAccountsQuery } from '../accounting/accountingApi';
 
@@ -41,10 +40,8 @@ const LIMIT = 12;
 
 // ── Product Search Dropdown ───────────────────────────────────────────────────
 const ProductSearchDropdown = ({
-  warehouseId,
   onSelect,
 }: {
-  warehouseId: string;
   onSelect: (p: any) => void;
 }) => {
   const [query, setQuery] = useState('');
@@ -87,10 +84,7 @@ const ProductSearchDropdown = ({
   const getStock = (p: any): number => {
     const stocks: any[] = p.stocks ?? [];
     if (!stocks.length) return 0;
-    if (warehouseId) {
-      const exact = stocks.find((s) => s.warehouseId === warehouseId);
-      if (exact) return Number(exact.currentQty ?? 0);
-    }
+    // POS uses the business default location (no warehouse); show its stock
     const def = stocks.find((s) => s.warehouseId === null);
     if (def) return Number(def.currentQty ?? 0);
     return stocks.reduce((sum, s) => sum + Number(s.currentQty ?? 0), 0);
@@ -181,7 +175,6 @@ const POSTerminal = () => {
   const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerId, setCustomerId] = useState('');
-  const [warehouseId, setWarehouseId] = useState('');
   const [discountPct, setDiscountPct] = useState('0');
   const [category, setCategory] = useState('All');
   const [gridSearch, setGridSearch] = useState('');
@@ -223,22 +216,14 @@ const POSTerminal = () => {
   const { data: accountsData } = useGetAllAccountsQuery({});
   const accounts: any[] = (accountsData as any) || [];
 
-  const { warehouses } = useActiveWarehouse();
   const [createSale, { isLoading: isCheckingOut }] = useCreateSaleMutation();
   const [validateCoupon, { isLoading: isValidatingCoupon }] = useValidateCouponMutation();
 
   const getStock = (p: any): number => {
     const stocks: any[] = p.stocks ?? [];
     if (!stocks.length) return 0;
-    if (warehouseId) {
-      const exact = stocks.find((s) => s.warehouseId === warehouseId);
-      if (exact) return Number(exact.currentQty ?? 0);
-      const def = stocks.find((s) => s.warehouseId === null);
-      if (def) return Number(def.currentQty ?? 0);
-    } else {
-      const def = stocks.find((s) => s.warehouseId === null);
-      if (def) return Number(def.currentQty ?? 0);
-    }
+    const def = stocks.find((s) => s.warehouseId === null);
+    if (def) return Number(def.currentQty ?? 0);
     return stocks.reduce((sum, s) => sum + Number(s.currentQty ?? 0), 0);
   };
 
@@ -307,7 +292,6 @@ const POSTerminal = () => {
   // ── Checkout ──
   const handleCheckout = async () => {
     if (cart.length === 0) { toast.error('Cart is empty'); return; }
-    if (!warehouseId) { toast.error('No warehouse available'); return; }
 
     const paymentEntries = payments
       .map((p) => {
@@ -325,7 +309,6 @@ const POSTerminal = () => {
     try {
       const result = await createSale({
         customerId: customerId || undefined,
-        warehouseId,
         saleDate: new Date().toISOString().split('T')[0],
         items: cart.map((i) => ({ productId: i.id, quantity: i.qty, unitPrice: i.price, discountAmount: 0 })),
         discountAmount: discountAmt,
@@ -365,19 +348,7 @@ const POSTerminal = () => {
       <div className="flex-1 flex flex-col overflow-hidden bg-white border border-[#DBDFE9] rounded-lg">
         <div className="p-3 border-b border-[#DBDFE9]">
           <div className="flex gap-2 mb-3">
-            <ProductSearchDropdown warehouseId={warehouseId} onSelect={addToCart} />
-            {warehouses.length > 0 && (
-              <select
-                value={warehouseId}
-                onChange={(e) => setWarehouseId(e.target.value)}
-                className="px-2 py-2 border border-[#DBDFE9] rounded-lg text-xs focus:outline-none focus:border-[#ff6d29] shrink-0"
-              >
-                <option value="">Business Default</option>
-                {warehouses.map((w: any) => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
-              </select>
-            )}
+            <ProductSearchDropdown onSelect={addToCart} />
           </div>
           <div className="flex items-center gap-2 mb-2">
             <div className="relative flex-1 sm:max-w-xs">

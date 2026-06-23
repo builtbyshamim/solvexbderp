@@ -7,7 +7,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ProductService } from '../services/product.service';
 import { ProductImportExportService } from '../services/product-import-export.service';
-import { CreateProductDto, GetProductsDto, UpdateProductDto } from '../dto/product.dto';
+import { CreateProductDto, GetProductsDto, UpdateOpeningStockDto, UpdateProductDto } from '../dto/product.dto';
 import { BusinessId } from 'src/common/decorators/business-id.decorator';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { ImageKitService } from 'src/modules/image-upload/imagekit.service';
@@ -91,6 +91,12 @@ export class ProductController {
     return this.importExportService.importProducts(businessId, user.id, file);
   }
 
+  @Get(':id/details')
+  @ApiOperation({ summary: 'Get product full details with sales/purchase history' })
+  getDetails(@BusinessId() businessId: string, @Param('id') id: string) {
+    return this.productService.getProductDetails(businessId, id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get product by ID' })
   findOne(@BusinessId() businessId: string, @Param('id') id: string) {
@@ -101,6 +107,17 @@ export class ProductController {
   @ApiOperation({ summary: 'Get stock levels per warehouse' })
   getStock(@BusinessId() businessId: string, @Param('id') id: string) {
     return this.productService.getStock(businessId, id);
+  }
+
+  @Patch(':id/opening-stock')
+  @ApiOperation({ summary: 'Update product opening stock' })
+  updateOpeningStock(
+    @BusinessId() businessId: string,
+    @CurrentUser() user: UserEntity,
+    @Param('id') id: string,
+    @Body() dto: UpdateOpeningStockDto,
+  ) {
+    return this.productService.updateOpeningStock(businessId, id, dto.openingQty ?? 0, user.id);
   }
 
   @Patch(':id')

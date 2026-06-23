@@ -199,6 +199,15 @@ export class UpdateProductDto {
   isActive?: boolean;
 }
 
+export class UpdateOpeningStockDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  openingQty?: number;
+}
+
 export class GetProductsDto {
   @ApiPropertyOptional()
   @IsOptional()
