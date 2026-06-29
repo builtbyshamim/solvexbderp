@@ -13,6 +13,39 @@
   Inventory · POS · HRM · Accounting · Subscription · Super Admin
 </p>
 
+<p align="center">
+  <a href="https://solvexbd-erp.vercel.app/" target="_blank">
+    <img src="https://img.shields.io/badge/Live_Demo-solvexbd--erp.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" />
+  </a>
+</p>
+
+---
+
+## Live Demo
+
+**URL:** [https://solvexbd-erp.vercel.app/](https://solvexbd-erp.vercel.app/)
+
+### Super Admin Login
+
+> Super Admin has a dedicated login route with a separate JWT secret.
+
+| Field | Value |
+|---|---|
+| Login URL | [https://solvexbd-erp.vercel.app/super-admin/login](https://solvexbd-erp.vercel.app/super-admin/login) |
+| Email | `admin@gmail.com` |
+| Password | `Admin1234@` |
+
+### Regular Business Login (OTP)
+
+| Field | Value |
+|---|---|
+| Login URL | [https://solvexbd-erp.vercel.app/login](https://solvexbd-erp.vercel.app/login) |
+| Mobile | Any valid BD number (e.g. `01617650797`) |
+| OTP | `123456` (fixed in development mode) |
+
+> New mobile numbers auto-register a business with a 15-day free trial.
+> Returning numbers are logged in directly — no password needed.
+
 ---
 
 ## Overview

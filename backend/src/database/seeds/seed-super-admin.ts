@@ -20,8 +20,8 @@ dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 // ── Seed credentials — change these before going live ────────────────────────
 const SUPER_ADMIN = {
   name: 'Super Admin',
-  email: 'superadmin@bizcore.com',
-  password: 'SuperAdmin@123',
+  email: 'admin@gmail.com',
+  password: 'Admin1234@',
   mobile: '01000000000',
 };
 // ─────────────────────────────────────────────────────────────────────────────
@@ -35,8 +35,7 @@ async function main() {
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    ssl:
-      process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
     // We use raw queries — no entities needed
     entities: [],
     synchronize: false,
@@ -62,7 +61,8 @@ async function main() {
   const passwordHash = await bcrypt.hash(SUPER_ADMIN.password, 12);
 
   // Generate a simple referral code
-  const referralCode = 'SA-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+  const referralCode =
+    'SA-' + Math.random().toString(36).slice(2, 8).toUpperCase();
 
   await ds.query(
     `INSERT INTO users

@@ -17,6 +17,31 @@
 
 ---
 
+## Live Demo & Test Credentials
+
+**Frontend:** [https://solvexbd-erp.vercel.app/](https://solvexbd-erp.vercel.app/)
+
+### Super Admin
+
+| Field | Value |
+|---|---|
+| Login URL | `/super-admin/login` |
+| Email | `admin@gmail.com` |
+| Password | `Admin1234@` |
+| Mobile | `01000000000` |
+
+> Super Admin uses a separate JWT secret (`SUPER_ADMIN_JWT_SECRET`) and role that cannot be claimed by any tenant token.
+
+### Business User (OTP Login)
+
+| Field | Value |
+|---|---|
+| Login URL | `/login` |
+| Mobile | Any valid BD number |
+| OTP | `123456` (fixed in development) |
+
+---
+
 ## Table of Contents
 
 1. [Overview](#overview)

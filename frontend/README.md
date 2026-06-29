@@ -10,8 +10,35 @@
 <h1 align="center">SolvexBD ERP — Frontend</h1>
 <p align="center">
   Multi-tenant SaaS ERP Dashboard · React 19 · Vite 7 · Tailwind CSS 4 · RTK Query<br/>
-  <strong>Dev URL:</strong> <code>http://localhost:5173</code>
+  <strong>Live:</strong>
+  <a href="https://solvexbd-erp.vercel.app/">https://solvexbd-erp.vercel.app/</a>
+  &nbsp;|&nbsp;
+  <strong>Dev:</strong> <code>http://localhost:5173</code>
 </p>
+
+---
+
+## Live Demo & Test Credentials
+
+### Super Admin
+
+| Field | Value |
+|---|---|
+| URL | [https://solvexbd-erp.vercel.app/super-admin/login](https://solvexbd-erp.vercel.app/super-admin/login) |
+| Email | `admin@gmail.com` |
+| Password | `Admin1234@` |
+
+Super Admin lands on `/super-admin/dashboard` with full platform control — business list, subscription management, payment approval, and package configuration.
+
+### Business User (Mobile OTP)
+
+| Field | Value |
+|---|---|
+| URL | [https://solvexbd-erp.vercel.app/login](https://solvexbd-erp.vercel.app/login) |
+| Mobile | Any valid BD number (e.g. `01617650797`) |
+| OTP | `123456` (fixed in development mode) |
+
+First-time mobile numbers go through a 3-step registration (mobile → OTP → name + password) and land on `/select-plan`. Returning numbers are logged in directly after OTP verification.
 
 ---
 
