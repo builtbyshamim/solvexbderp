@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { Eye, EyeOff, Lock, Phone, Shield, User, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import {
   useMobileSendOtpMutation,
   useMobileVerifyOtpMutation,
   useMobileRegisterMutation,
 } from '../../redux/api/authApi';
+import { setCredentials } from '../../redux/features/authSlice';
 
 type Step = 1 | 2 | 3;
 
@@ -57,6 +59,7 @@ const StepIndicator = ({ step }: { step: Step }) => (
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [step, setStep] = useState<Step>(1);
   const [mobile, setMobile] = useState('');
   const [tempToken, setTempToken] = useState('');
@@ -84,8 +87,10 @@ const LoginPage = () => {
   const handleVerifyOtp = async (data: OtpForm) => {
     try {
       const result = await verifyOtp({ mobile, code: data.code }).unwrap();
+      console.log(result, 'result');
 
       if (!result.isNewUser) {
+        if (result.user) dispatch(setCredentials(result.user));
         toast.success(`Welcome back, ${result.user?.name || 'there'}!`);
         navigate('/admin');
       } else {
@@ -104,6 +109,7 @@ const LoginPage = () => {
         name: data.name,
         password: data.password,
       }).unwrap();
+      if (result.user) dispatch(setCredentials(result.user));
       toast.success(`Welcome, ${result.user?.name || data.name}!`);
       navigate('/select-plan', { replace: true });
     } catch (err: any) {

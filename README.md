@@ -1,1230 +1,543 @@
-# 🏢 BizCore ERP — Multi-tenant SaaS Business Management System
+<p align="center">
+  <img src="https://img.shields.io/badge/NestJS-11-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
+  <img src="https://img.shields.io/badge/TypeORM-0.3-FE0902?style=for-the-badge" />
+</p>
 
-> **Fintech-grade** Inventory · POS · HRM · Accounting platform built for 5,000+ concurrent shops.  
-> Zero calculation errors. Every paisa accounted for.
-
----
-
-## 📑 Table of Contents
-
-1. [Project Overview](#project-overview)
-2. [Tech Stack](#tech-stack)
-3. [System Architecture](#system-architecture)
-4. [Module Overview](#module-overview)
-5. [Database Design](#database-design)
-6. [Backend — NestJS Setup](#backend--nestjs-setup)
-7. [Frontend — React.js Setup](#frontend--nextjs-setup)
-8. [Authentication & Multi-tenancy](#authentication--multi-tenancy)
-9. [Subscription & Package System](#subscription--package-system)
-10. [API Documentation (Swagger)](#api-documentation-swagger)
-11. [Redis Caching Strategy](#redis-caching-strategy)
-12. [Transaction & Rollback Strategy](#transaction--rollback-strategy)
-13. [Reusable Frontend Components](#reusable-frontend-components)
-14. [Bilingual Support (EN / BN)](#bilingual-support-en--bn)
-15. [Super Admin Panel](#super-admin-panel)
-16. [Environment Variables](#environment-variables)
-17. [Project Structure](#project-structure)
-18. [Installation & Running](#installation--running)
-19. [MCV Server / Persistent Session Guide](#mcv-server--persistent-session-guide)
-20. [Deployment Checklist](#deployment-checklist)
-21. [Roadmap](#roadmap)
+<h1 align="center">SolvexBD ERP</h1>
+<p align="center">
+  <strong>Enterprise-grade Multi-tenant SaaS ERP for Bangladeshi businesses</strong><br/>
+  Inventory · POS · HRM · Accounting · Subscription · Super Admin
+</p>
 
 ---
 
-## Project Overview
+## Overview
 
-BizCore is a **Multi-tenant SaaS ERP** where each registered business gets an isolated workspace. The system currently covers four core pillars:
+SolvexBD ERP is a production-ready, multi-tenant SaaS platform where each registered business gets a fully isolated workspace. Built for **5,000+ concurrent shops**, it covers everything a small-to-medium Bangladeshi business needs — from stock management and point-of-sale billing to payroll processing and double-entry accounting.
 
-| Pillar | What it does |
-|---|---|
-| **Inventory** | Products, Categories, Units, Brands, Warranties, Stock Ledger, Adjustments, Transfers |
-| **POS** | Fast billing, barcode scan, hold/resume sale, multiple payment splits, coupon/gift-card |
-| **HRM** | Employees, Attendance, Leave, Payroll, Loans, Advance, KPI, Exit |
-| **Accounting** | Double-entry ledger, Cash/Bank/Mobile-banking accounts, P&L, Balance Sheet, Cash Flow |
+Every monetary value is stored as `DECIMAL(15,2)`, every stock quantity as `DECIMAL(15,4)`, and every financial transaction is enforced through a **double-entry ledger** — zero rounding errors, zero data loss.
 
-### Key Constraints
+---
 
-- **Mobile-number-first** — OTP login, no email required
-- **Single store per business** (warehouse-level granularity instead of branches)
-- **Subscription-gated** — 2 plans + 15-day free trial; limits enforced on users & products
-- **Fintech precision** — all monetary values stored as `DECIMAL(15,2)`, all stock as `DECIMAL(15,4)`, double-entry enforced everywhere
-- **5,000+ concurrent shops** — designed for horizontal scale from day one
+## Key Features
+
+### Multi-tenancy & Security
+- Row-level tenant isolation via `business_id` on every data table
+- JWT-based auth with **access token + refresh token** rotation
+- **Mobile-number-first** OTP login — no email required for end users
+- Role-based access control: `super_admin`, `admin`, `employee`
+- Separate Super Admin JWT secret — cannot be spoofed by tenant tokens
+- Helmet, rate limiting, and IP tracking on all sensitive endpoints
+
+### Subscription System
+- **15-day free trial** auto-created on registration
+- Two paid plans (Starter / Pro) with enforced limits on users and products
+- Super Admin can renew, upgrade, suspend, unsuspend, or extend trials
+- Full audit log (`subscription_audit_log`) for every plan action
+
+### Inventory Management
+- Products with variants, SKU, barcode generation
+- Categories (tree), Units, Brands, Warranties
+- Warehouse management with default warehouse logic
+- Append-only **Stock Ledger** — every movement is traceable
+- Stock adjustments (plus/minus) and warehouse transfers
+- Real-time available stock vs reserved stock tracking
+
+### Point of Sale (POS)
+- Fast billing with barcode scan support
+- Hold / resume sale
+- Multi-payment splits (cash, mobile banking, card)
+- Coupon and gift card support
+- A4 invoice print + 58mm thermal receipt (POS printer)
+
+### Purchase Management
+- Supplier CRUD with running ledger and balance tracking
+- Purchase invoices with line items, discount, tax
+- Stock IN automatically recorded to ledger on purchase
+- Purchase returns with supplier credit and stock reversal
+
+### Sales Management
+- Customer CRUD with ledger, balance, and aging reports
+- Sales invoices with profit calculation per line item
+- Sale returns with stock reversal and refund processing
+- Quotations that can be converted directly to sales
+
+### Accounting (Double-Entry)
+- Cash, Bank, and Mobile Banking accounts
+- Every financial event creates two ledger rows (debit + credit)
+- `sum(debit) === sum(credit)` enforced before every commit
+- **Petty Cash account auto-created** for every new business on registration
+- Reports: P&L, Balance Sheet, Trial Balance, Cash Flow, Account Statement
+
+### HRM
+- Full employee profiles with departments and designations
+- Attendance tracking (manual, QR, device integration)
+- Leave types, requests, and approval workflow
+- Payroll structure, generation, approval, and payslip export
+- Loan and advance tracking with installment deduction from payroll
+- KPI evaluation and ratings
+- Exit management with final settlement
+
+### Super Admin Panel
+- Platform-wide business list with subscription status
+- Subscription control (renew, change plan, suspend, unsuspend, extend trial)
+- Company data reset with scoped deletion (transactions / inventory / HRM / all)
+- System health dashboard (DB connections, Redis memory, queue depth)
+- SMS marketing and announcement broadcast
+- Full audit trail on all Super Admin actions
+
+### Affiliate & Billing
+- Referral code system with tracking
+- Payment request flow (bKash / Rocket / Nagad)
+- Manual payment review and approval by admin
 
 ---
 
 ## Tech Stack
 
-### Backend
 | Layer | Technology |
 |---|---|
-| Runtime | Node.js 20 LTS |
-| Framework | NestJS 10 |
-| ORM | Prisma 5 |
-| Database | PostgreSQL 16 |
-| Cache / Queue | Redis 7 (ioredis) |
-| Auth | JWT (access + refresh) · OTP via SMS gateway |
-| Validation | class-validator · class-transformer · DTOs |
-| API Docs | Swagger / OpenAPI 3 |
-| Job Queue | BullMQ (payroll, reports, notifications) |
-| File Storage | AWS S3 / MinIO (product images, payslips) |
-| SMS | Twilio / Bangladesh local gateway (e.g. SSL Wireless) |
-
-### Frontend
-| Layer | Technology |
-|---|---|
-| Framework | React.js 18 (App Router) |
-| State |  Redux toolkit + Axios |
-| UI | Tailwind CSS + custom css |
-| Forms | React Hook Form + Zod |
-| i18n | next-intl (EN / BN toggle) |
-| Charts | Recharts |
-| Barcode | @zxing/browser |
-
-### Infrastructure
-| Component | Choice |
-|---|---|
-| Container | Docker + Docker Compose |
-| Reverse Proxy | Nginx |
-| CI/CD | GitHub Actions |
-| Monitoring | PM2 (dev/staging) · Prometheus + Grafana (prod) |
+| **Runtime** | Node.js 20 LTS |
+| **Backend Framework** | NestJS 11 |
+| **ORM** | TypeORM 0.3 |
+| **Database** | PostgreSQL 16 |
+| **Cache** | Redis 7 (ioredis) |
+| **Auth** | JWT (access + refresh) · OTP via SMS |
+| **Validation** | class-validator · class-transformer · DTOs |
+| **API Docs** | Swagger / OpenAPI 3 |
+| **File Storage** | AWS S3 · ImageKit |
+| **Email** | Nodemailer |
+| **Frontend Framework** | React 19 (Vite) |
+| **State Management** | Redux Toolkit + RTK Query |
+| **UI** | Tailwind CSS 4 |
+| **Forms** | React Hook Form |
+| **Routing** | React Router DOM 7 |
+| **Barcode** | JSBarcode |
+| **Excel Export** | SheetJS (xlsx) |
+| **Containerization** | Docker + Docker Compose |
+| **Reverse Proxy** | Nginx |
+| **Process Manager** | PM2 |
 
 ---
 
 ## System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      CLIENTS                            │
-│   Browser (Next.js)      Mobile PWA      POS Terminal   │
-└────────────────┬────────────────────────────────────────┘
-                 │ HTTPS
-┌────────────────▼────────────────────────────────────────┐
-│               Nginx Reverse Proxy                        │
-└──────┬──────────────────────────┬───────────────────────┘
-       │                          │
-┌──────▼──────┐           ┌───────▼──────┐
-│  NestJS API │           │  Static CDN  │
-│  Port 3001  │           │  (Next.js)   │
-└──────┬──────┘           └──────────────┘
-       │
-┌──────┼────────────────────────┐
-│      │                        │
-▼      ▼                        ▼
-PostgreSQL   Redis 7         BullMQ Workers
-(Primary DB) (Cache/Session)  (Async Jobs)
+┌────────────────────────────────────────────────────────┐
+│                        CLIENTS                         │
+│      Browser (React 19)     ·     POS Terminal         │
+└───────────────────┬────────────────────────────────────┘
+                    │ HTTPS
+┌───────────────────▼────────────────────────────────────┐
+│                  Nginx Reverse Proxy                    │
+└──────────┬──────────────────────────┬──────────────────┘
+           │                          │
+┌──────────▼──────────┐    ┌──────────▼──────────┐
+│   NestJS API        │    │   React Frontend     │
+│   Port 3001         │    │   Port 3000 (Vite)   │
+└──────────┬──────────┘    └─────────────────────┘
+           │
+┌──────────┼──────────────────────────┐
+│          │                          │
+▼          ▼                          ▼
+PostgreSQL 16    Redis 7         AWS S3 / ImageKit
+(Primary DB)     (Cache/Session)  (File Storage)
 ```
 
 ### Multi-tenancy Model
 
-Every table with business data carries a `business_id` (UUID). A **Row-Level Guard** (NestJS Guard + Prisma middleware) injects `business_id` from the JWT on every query — tenants are physically isolated at the row level within a shared schema.
-
----
-
-## Module Overview
-
-### Phase 1 — Foundation
-```
-Auth          → Registration · OTP · JWT · Refresh Token
-Business      → Business setup · Shop creation · Default warehouse
-Subscription  → Package selection · Trial · Limit enforcement
-SuperAdmin    → Platform-wide control panel
-```
-
-### Phase 2 — Product Foundation
-```
-Category      → CRUD · Tree structure
-Unit          → CRUD
-Brand         → CRUD
-Warranty      → CRUD
-Product       → Single + Variant · SKU · Barcode · Opening stock
-```
-
-### Phase 3 — Inventory
-```
-Warehouse     → CRUD · Default warehouse logic
-Stock Ledger  → Immutable ledger (append-only)
-Stock Adjust  → Plus / Minus adjustments
-Stock Transfer→ Shop↔Warehouse · Warehouse↔Warehouse
-```
-
-### Phase 4 — Purchase
-```
-Supplier      → CRUD · Ledger · Balance
-Purchase      → Invoice · Items · Stock IN · Accounting
-Purchase Return → Stock OUT · Supplier credit
-```
-
-### Phase 5 — Sales / POS
-```
-Customer      → CRUD · Ledger · Balance · Aging
-Sale          → Invoice · Items · Multi-payment · Due
-POS           → Fast bill · Barcode · Hold/Resume · Coupon
-Sale Return   → Stock back · Refund
-Quotation     → Create · Convert to Sale
-```
-
-### Phase 6 — Accounting
-```
-Accounts      → Cash · Bank · Mobile Banking
-Transactions  → Expense · Income
-Account Ledger→ Double-entry engine
-Reports       → P&L · Balance Sheet · Trial Balance · Cash Flow · Statement
-```
-
-### Phase 7 — HRM
-```
-Employees     → Full profile · Documents
-Attendance    → Manual · QR · Device integration
-Leave         → Types · Request · Approval workflow
-Payroll       → Structure · Generate · Approve · Payslip
-Loan/Advance  → Installment tracking · Payroll deduction
-KPI           → Evaluation criteria · Rating
-Exit          → Resignation · Clearance · Final settlement
-```
-
-
-### Phase 8 - SMS Marketing
-```
-SMS Overview      → Analytics · Credit balance · Recent campaign metrics
-Quick Send        → Instant direct SMS to specific mobile numbers
-Group Send        → Bulk campaign broadcasting to targeted segments
-Group             → Manage audience segments (Customers, Employees, Custom)
-EMI Reminder      → Automated cron-triggered SMS for due payments & loan installments
-SMS Templates     → Pre-defined messages with dynamic variables (e.g., {{name}}, {{due_amount}})
-Packages          → SMS credit top-up plans · Gateway routing
-SMS History       → Delivery reports · Status tracking (Sent/Delivered/Failed) · Cost logs
-SMS Configuration → Gateway credentials (SSL Wireless, Twilio, etc.) · Sender ID setup
-```
----
-
-## Database Design
-
-### Naming Conventions
-- All table names: `snake_case` plural
-- UUID primary keys everywhere
-- `business_id` on every tenant table
-- Soft delete via `deleted_at TIMESTAMP NULL`
-- `created_at`, `updated_at` on every table
-
-### Core Tables (abbreviated)
-
-
-## প্রথমে করো:
-1. আমার পুরো project structure দেখো
-2. Existing code, components, styles বোঝো
-3. Tech stack কী আছে সেটা বোঝো
-
-## তারপর এই কাজগুলো করো:
-
-### 🎨 UI - 100% Mobile Responsive + Best Looking
-- সব page mobile first design করো
-- Breakpoints: 320px, 480px, 768px, 1024px, 1280px সব perfect হতে হবে
-- Modern, clean, professional UI বানাও
-- Sidebar mobile-এ drawer হবে, desktop-এ fixed থাকবে
-- Tables mobile-এ card view হবে
-- Forms mobile-এ full width হবে
-- Touch friendly buttons (minimum 44px height)
-- Smooth animations ও transitions দাও
-- Color scheme consistent রাখো সব জায়গায়
-- Loading states ও empty states বানাও
-
-### 🖨️ Invoice Print - দুইটা format:
-
-**Format 1 - A4 / Standard Invoice:**
-- Company logo ও info উপরে
-- Invoice number, date, due date
-- Customer details box
-- Items table (product, qty, rate, amount)
-- Subtotal, discount, tax, grand total
-- Payment terms ও notes section
-- Footer with thank you message
-- Print করলে শুধু invoice দেখাবে, বাকি UI hide হবে
-- @media print CSS perfect করো
-
-**Format 2 - POS Thermal Receipt (58mm width):**
-- 58mm = 220px width
-- Company name centered, bold
-- Date ও time
-- Divider lines (-----)
-- Items: name left, price right
-- Quantity ও unit price নিচে
-- Total amount বড় করে
-- Payment method
-- Thank you message
-- QR code optional
-- Font: monospace, 12px
-- No colors in print (grayscale)
-
-### 📱 Print Button Logic:
-- "Print A4 Invoice" button → A4 format open হবে new window-এ
-- "Print POS (58mm)" button → thermal format open হবে
-- Print preview দেখাবে
-- Browser print dialog automatically আসবে
-
-
-
-```sql
--- Tenant root
-businesses (id, name, mobile, business_type, status, subscription_id, ...)
-
--- Auth
-users (id, business_id, mobile, password_hash, role, ...)
-otp_logs (id, mobile, otp_hash, expires_at, used_at, ...)
-
--- Subscription
-subscription_plans (id, name, max_users, max_products, price_monthly, ...)
-business_subscriptions (id, business_id, plan_id, starts_at, expires_at, status, ...)
-
--- Inventory core
-products (id, business_id, name, sku, category_id, unit_id, brand_id, ...)
-product_variants (id, product_id, name, sku, ...)
-product_stocks (id, business_id, warehouse_id, product_id, opening_qty,
-                in_qty, out_qty, current_qty, reserved_qty, available_qty,
-                avg_cost, last_updated, ...)
-stock_ledger (id, business_id, product_id, warehouse_id, transaction_type,
-              reference_type, reference_id, qty_in, qty_out, balance_after,
-              note, created_by, created_at)
-
--- Purchase
-purchases (id, business_id, supplier_id, warehouse_id, invoice_no, date,
-           subtotal, discount, tax, total, paid, due, status, ...)
-purchase_items (id, purchase_id, product_id, qty, unit_cost, total, ...)
-
--- Sales
-sales (id, business_id, customer_id, warehouse_id, invoice_no, date,
-       subtotal, discount, tax, total, paid, due, profit, status, ...)
-sale_items (id, sale_id, product_id, qty, unit_price, cost_price,
-            discount, tax, total, profit, ...)
-
--- Accounting (Double Entry)
-accounts (id, business_id, name, account_type, opening_balance,
-          current_balance, is_default, ...)
-account_ledgers (id, business_id, account_id, transaction_date,
-                 transaction_type, reference_type, reference_id,
-                 debit, credit, balance_after, note, created_by, ...)
-
--- Customer / Supplier Ledger
-customer_ledger (id, business_id, customer_id, transaction_date,
-                 transaction_type, debit, credit, balance_after, ...)
-customer_balances (customer_id PK, business_id, current_balance, balance_type, ...)
-
-supplier_ledger (id, business_id, supplier_id, transaction_date,
-                 transaction_type, debit, credit, balance_after, ...)
-supplier_balances (supplier_id PK, business_id, current_balance, balance_type, ...)
-
--- HRM
-employees (id, business_id, employee_code, name, mobile, department_id,
-           designation_id, joining_date, employment_type, status, ...)
-payrolls (id, business_id, employee_id, month, year, gross_salary,
-          total_deduction, net_salary, status, ...)
-attendances (id, business_id, employee_id, date, check_in, check_out, status, ...)
-
-
--- SMS Marketing
-sms_configurations (id, business_id, provider, api_key, sender_id, is_active, ...)
-sms_packages (id, name, credit_amount, price, validity_days, status, ...)
-business_sms_credits (business_id PK, available_credits, total_used, last_recharge, ...)
-sms_groups (id, business_id, name, description, is_dynamic, ...)
-sms_group_members (id, group_id, mobile, name, reference_type, reference_id, ...)
-sms_templates (id, business_id, title, content, variables, status, ...)
-sms_history (id, business_id, campaign_id, sender_id, recipient_number, message_body, 
-             status, gateway_response, credits_used, sent_at, ...)
-```
-
-> Full Prisma schema is in `backend/prisma/schema.prisma`
-
----
-
-## Backend — NestJS Setup
-
-### Module Structure
-
-```
-src/
-├── common/
-│   ├── decorators/        # @CurrentUser, @BusinessId, @Roles
-│   ├── filters/           # Global exception filter
-│   ├── guards/            # JwtAuthGuard, RolesGuard, TenantGuard, SubscriptionGuard
-│   ├── interceptors/      # ResponseInterceptor, LoggingInterceptor
-│   ├── middleware/        # TenantMiddleware
-│   └── pipes/             # ValidationPipe config
-│
-├── modules/
-│   ├── auth/              # OTP, JWT, refresh token
-│   ├── business/          # Business + shop setup
-│   ├── subscription/      # Plans, trial, validation
-│   ├── super-admin/       # Platform admin
-│   ├── warehouse/
-│   ├── category/
-│   ├── unit/
-│   ├── brand/
-│   ├── warranty/
-│   ├── product/
-│   ├── stock/             # Ledger, adjustment, transfer
-│   ├── supplier/
-│   ├── purchase/
-│   ├── purchase-return/
-│   ├── customer/
-│   ├── sale/
-│   ├── pos/
-│   ├── sale-return/
-│   ├── quotation/
-│   ├── account/           # Accounts + ledger
-│   ├── expense/
-│   ├── income/
-│   ├── report/
-│   ├── employee/
-│   ├── attendance/
-│   ├── leave/
-│   ├── payroll/
-│   ├── loan/
-│   └── hrm-report/
-│
-├── prisma/                # PrismaService
-├── redis/                 # RedisService
-└── main.ts
-```
-
-### DTO Pattern (example)
-
-```typescript
-// create-product.dto.ts
-import { IsString, IsUUID, IsNumber, IsBoolean, IsOptional, Min } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-
-export class CreateProductDto {
-  @ApiProperty()
-  @IsString()
-  name: string;
-
-  @ApiProperty()
-  @IsUUID()
-  category_id: string;
-
-  @ApiProperty()
-  @IsUUID()
-  unit_id: string;
-
-  @ApiProperty()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  purchase_price: number;
-
-  @ApiProperty()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  selling_price: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 4 })
-  @Min(0)
-  opening_stock?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  has_serial?: boolean;
-}
-```
-
-### Global Validation Pipe
-
-```typescript
-// main.ts
-app.useGlobalPipes(
-  new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-    transformOptions: { enableImplicitConversion: true },
-  }),
-);
-```
-
----
-
-## Frontend — Next.js Setup
-
-### Directory Structure
-
-```
-app/
-├── (auth)/
-│   ├── login/
-│   └── register/
-├── (dashboard)/
-│   ├── layout.tsx          # Sidebar + Header
-│   ├── dashboard/
-│   ├── inventory/
-│   │   ├── products/
-│   │   ├── categories/
-│   │   ├── stock-adjustment/
-│   │   └── stock-transfer/
-│   ├── purchase/
-│   ├── sales/
-│   ├── pos/
-│   ├── customers/
-│   ├── suppliers/
-│   ├── accounting/
-│   ├── hrm/
-│   └── reports/
-├── super-admin/
-│   └── ...
-└── layout.tsx
-
-components/
-├── ui/                     # shadcn base components
-├── shared/
-│   ├── SearchSelect.tsx     # ← Reusable infinite-scroll select
-│   ├── DataTable.tsx        # ← Server-side paginated table
-│   ├── Modal.tsx            # ← Simple action modal wrapper
-│   ├── ConfirmDialog.tsx
-│   ├── PageHeader.tsx
-│   ├── StatusBadge.tsx
-│   ├── CurrencyDisplay.tsx
-│   └── LoadingSpinner.tsx
-└── modules/                # Module-specific components
-```
-
----
-
-## Authentication & Multi-tenancy
-
-### Registration Flow
-
-```
-POST /auth/send-otp      { mobile }
-POST /auth/verify-otp    { mobile, otp }          → temp_token
-POST /auth/register      { temp_token, password }  → creates user + business stub
-POST /business/setup     { name, type, shop_name } → completes onboarding
-POST /subscription/select { plan_id }              → activates plan / trial
-```
-
-### Login Flow
-
-```
-POST /auth/send-otp   { mobile }
-POST /auth/login-otp  { mobile, otp } → { access_token, refresh_token }
-POST /auth/refresh    { refresh_token } → new access_token
-```
-
-### JWT Payload
-
-```json
-{
-  "sub": "user-uuid",
-  "business_id": "business-uuid",
-  "role": "ADMIN | EMPLOYEE | SUPER_ADMIN",
-  "iat": 1700000000,
-  "exp": 1700003600
-}
-```
-
-### Tenant Guard (Prisma Middleware)
-
-```typescript
-// prisma.middleware.ts
-prisma.$use(async (params, next) => {
-  const tenantModels = ['Product', 'Sale', 'Purchase', ...];
-  if (tenantModels.includes(params.model) && params.args.where) {
-    params.args.where.business_id = currentBusinessId; // injected from context
-  }
-  return next(params);
-});
-```
-
----
-
-## Subscription & Package System
-
-### Plans
-
-| Feature | **Starter** | **Pro** |
-|---|---|---|
-| Price | ৳500/month | ৳1200/month |
-| Max Users | 3 | 25 |
-| Max Products | 500 | Unlimited |
-| Warehouses | 1 | 5 |
-| Reports | Basic | Full |
-| Trial | 15 days free | — |
-
-### Enforcement
-
-```typescript
-// subscription.guard.ts
-@Injectable()
-export class SubscriptionGuard implements CanActivate {
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const { business_id } = request.user;
-    const sub = await this.subscriptionService.getActive(business_id);
-
-    if (sub.expires_at < new Date()) throw new ForbiddenException('Subscription expired');
-
-    if (context.getHandler().name === 'createProduct') {
-      const count = await this.productService.count(business_id);
-      if (sub.plan.max_products !== -1 && count >= sub.plan.max_products)
-        throw new ForbiddenException('Product limit reached');
-    }
-    return true;
-  }
-}
-```
-
----
-
-## API Documentation (Swagger)
-
-Swagger UI is available at: `http://localhost:3001/api/docs`
-
-```typescript
-// main.ts
-const config = new DocumentBuilder()
-  .setTitle('BizCore ERP API')
-  .setDescription('Multi-tenant SaaS ERP — Inventory · POS · HRM · Accounting')
-  .setVersion('1.0')
-  .addBearerAuth()
-  .addTag('Auth')
-  .addTag('Business')
-  .addTag('Subscription')
-  .addTag('Products')
-  .addTag('Stock')
-  .addTag('Purchase')
-  .addTag('Sales')
-  .addTag('POS')
-  .addTag('Accounting')
-  .addTag('HRM')
-  .addTag('Reports')
-  .addTag('SuperAdmin')
-  .build();
-
-const document = SwaggerModule.createDocument(app, config);
-SwaggerModule.setup('api/docs', app, document);
-```
-
-Every controller method is decorated with `@ApiOperation`, `@ApiResponse`, and `@ApiBearerAuth`.
-
----
-
-## Redis Caching Strategy
-
-| Key Pattern | TTL | Purpose |
-|---|---|---|
-| `business:{id}:subscription` | 5 min | Subscription validation (hot path) |
-| `business:{id}:default_warehouse` | 1 hour | Warehouse lookup |
-| `product:{id}:stock:{warehouse_id}` | 30 sec | POS live stock check |
-| `otp:{mobile}` | 5 min | OTP verification |
-| `report:{business_id}:{report_type}:{date}` | 10 min | Heavy report cache |
-| `rate_limit:{ip}` | 1 min | OTP rate limiting |
-
-```typescript
-// redis.service.ts
-async get<T>(key: string): Promise<T | null> {
-  const data = await this.redis.get(key);
-  return data ? JSON.parse(data) : null;
-}
-
-async set(key: string, value: unknown, ttlSeconds: number): Promise<void> {
-  await this.redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
-}
-
-async del(key: string): Promise<void> {
-  await this.redis.del(key);
-}
-
-Key Pattern,TTL,Purpose
-business:{id}:sms_config,1 hour,SMS Gateway credentials lookup
-business:{id}:sms_balance,5 min,Quick check before sending campaigns
-```
-
----
-
-## Transaction & Rollback Strategy
-
-Every operation that touches **multiple tables** runs inside a Prisma interactive transaction. This guarantees atomicity — either everything commits or everything rolls back.
-
-### Example: Create Sale
-
-```typescript
-async createSale(dto: CreateSaleDto, businessId: string) {
-  return this.prisma.$transaction(async (tx) => {
-    // 1. Create sale header
-    const sale = await tx.sale.create({ data: { ...dto, business_id: businessId } });
-
-    // 2. Create sale items + calculate profit
-    for (const item of dto.items) {
-      const stock = await tx.productStock.findFirst({
-        where: { product_id: item.product_id, warehouse_id: dto.warehouse_id },
-      });
-      if (!stock || stock.available_qty < item.qty)
-        throw new BadRequestException(`Insufficient stock for product ${item.product_id}`);
-
-      await tx.saleItem.create({ data: { sale_id: sale.id, ...item } });
-
-      // 3. Stock ledger (append-only)
-      await tx.stockLedger.create({
-        data: {
-          business_id: businessId,
-          product_id: item.product_id,
-          warehouse_id: dto.warehouse_id,
-          transaction_type: 'SALE',
-          reference_type: 'sale',
-          reference_id: sale.id,
-          qty_in: 0,
-          qty_out: item.qty,
-          balance_after: stock.current_qty - item.qty,
-        },
-      });
-
-      // 4. Update product stock
-      await tx.productStock.update({
-        where: { id: stock.id },
-        data: {
-          out_qty: { increment: item.qty },
-          current_qty: { decrement: item.qty },
-          available_qty: { decrement: item.qty },
-        },
-      });
-    }
-
-    // 5. Customer ledger
-    if (dto.customer_id) {
-      await this.customerLedgerService.recordSale(tx, dto.customer_id, sale);
-    }
-
-    // 6. Account ledger (double entry)
-    await this.accountLedgerService.recordSale(tx, businessId, sale, dto.payments);
-
-    return sale;
-  });
-}
-```
-
-### Double-Entry Enforcement
-
-Every financial event creates **two ledger rows** (debit side + credit side) via `accountLedgerService.doubleEntry()`. The service validates that `sum(debit) === sum(credit)` before committing.
-
----
-
-## Reusable Frontend Components
-
-### `<SearchSelect />` — Infinite Scroll Searchable Dropdown
-
-```tsx
-// components/shared/SearchSelect.tsx
-interface SearchSelectProps<T> {
-  endpoint: string;          // e.g. '/products'
-  valueKey: keyof T;
-  labelKey: keyof T;
-  placeholder?: string;
-  onChange: (value: T) => void;
-  value?: T | null;
-  createLabel?: string;      // "Create new product"
-  onCreateClick?: () => void;
-}
-```
-
-**Behavior:**
-- Debounced search (300ms) — calls `endpoint?search=<query>&limit=20&page=N`
-- Scroll-to-load-more — when user reaches bottom, fetches next page
-- **"+ Create More"** button at bottom opens creation modal
-- Keyboard accessible (↑↓ Enter Escape)
-
-### `<DataTable />` — Server-side Paginated Table
-
-- Column definitions with sort, filter
-- Bulk select + bulk actions
-- Export to CSV / PDF
-- Responsive (horizontal scroll on mobile)
-
-### `<Modal />` — Simple Action Modal
-
-```tsx
-<Modal
-  title="Add Category"
-  trigger={<Button>+ Add</Button>}
-  onSubmit={handleSubmit}
->
-  <CategoryForm />
-</Modal>
-```
-
-Simple CRUD operations (Add Category, Add Unit, Add Brand, Add Warehouse) open in a modal — no page navigation needed.
-
----
-
-## Bilingual Support (EN / BN)
-
-Toggle button in the top navigation bar switches the entire UI between English and Bangla instantly.
-
-```
-messages/
-├── en.json
-└── bn.json
-```
-
-```json
-// en.json (sample)
-{
-  "nav.dashboard": "Dashboard",
-  "nav.inventory": "Inventory",
-  "product.name": "Product Name",
-  "sale.invoice": "Invoice"
-}
-
-// bn.json (sample)
-{
-  "nav.dashboard": "ড্যাশবোর্ড",
-  "nav.inventory": "ইনভেন্টরি",
-  "product.name": "পণ্যের নাম",
-  "sale.invoice": "ইনভয়েস"
-}
-```
-
-```tsx
-// Usage in component
-const t = useTranslations();
-<h1>{t('nav.dashboard')}</h1>
-```
-
-
-3. Subscription: Renew / Upgrade / Suspend
-PATCH /super-admin/businesses/:id/subscription
-Actions the Super Admin can take:
-✅ Renew Subscription
-Extend the current plan by N months from today (or from expiry date).
-json{
-  "action": "renew",
-  "extend_months": 1,
-  "note": "Manual renewal by admin"
-}
-🔄 Change Plan
-Move the business to a different plan immediately.
-json{
-  "action": "change_plan",
-  "plan_id": "uuid-of-new-plan",
-  "note": "Upgraded to Pro on request"
-}
-⏸ Suspend Account
-Immediately blocks all API access for the business. Users see a "Account suspended" message. Data is kept intact.
-json{
-  "action": "suspend",
-  "reason": "Payment overdue",
-  "note": "Suspended after 3 reminders"
-}
-▶️ Unsuspend Account
-Re-activates a suspended account.
-json{
-  "action": "unsuspend",
-  "note": "Payment received"
-}
-🎁 Extend Trial
-Add extra days to the trial period.
-json{
-  "action": "extend_trial",
-  "extra_days": 7,
-  "note": "Extended trial on request"
-}
-business_subscriptions table:
-sqlbusiness_subscriptions (
-  id              UUID PRIMARY KEY,
-  business_id     UUID NOT NULL,
-  plan_id         UUID NOT NULL,
-  status          ENUM('trial', 'active', 'expired', 'suspended'),
-  starts_at       TIMESTAMP NOT NULL,
-  expires_at      TIMESTAMP NOT NULL,
-  trial_ends_at   TIMESTAMP,
-  suspended_at    TIMESTAMP,
-  suspend_reason  TEXT,
-  renewed_by      UUID,           -- super admin user id
-  note            TEXT,
-  created_at      TIMESTAMP,
-  updated_at      TIMESTAMP
-)
-All subscription changes are logged in a subscription_audit_log table:
-sqlsubscription_audit_log (
-  id              UUID PRIMARY KEY,
-  business_id     UUID NOT NULL,
-  action          VARCHAR(50),    -- renew, suspend, change_plan, extend_trial…
-  old_value       JSONB,
-  new_value       JSONB,
-  performed_by    UUID,           -- super admin id
-  note            TEXT,
-  created_at      TIMESTAMP
-)
-
-4. Company Data Reset
-
-⚠️ Destructive operation — requires double confirmation
-
-Super Admin can wipe all operational data for a business while keeping the account, users, and settings intact. Useful for:
-
-Business wants to start fresh after a test period
-Demo accounts cleanup
-Data corruption recovery
-
-POST /super-admin/businesses/:id/reset
-Request body (requires explicit confirmation):
-json{
-  "confirm_text": "RESET CONFIRM",
-  "reset_scope": "all_data",
-  "note": "Business requested full reset before going live"
-}
-Reset Scopes:
-ScopeWhat gets deletedall_dataEverything below (full wipe)transactions_onlySales, Purchases, Payments, Ledgersinventory_onlyProducts, Stock, Stock Ledgerhrm_onlyAttendance, Payroll, Leave recordsaccounting_onlyAccount Ledgers, Transactions
-What is NEVER deleted during reset:
-
-Business profile & settings
-User accounts & roles
-Subscription record
-Categories, Units, Brands (master data) — optional keep
-Warehouses
-Subscription audit log
-
-Reset Flow (backend):
-typescriptasync resetBusinessData(businessId: string, scope: ResetScope, adminId: string) {
-  return this.prisma.$transaction(async (tx) => {
-    // Log the reset action first
-    await tx.subscriptionAuditLog.create({
-      data: { business_id: businessId, action: 'DATA_RESET', performed_by: adminId, ... }
-    });
-
-    if (scope === 'all_data' || scope === 'transactions_only') {
-      await tx.saleItem.deleteMany({ where: { sale: { business_id: businessId } } });
-      await tx.sale.deleteMany({ where: { business_id: businessId } });
-      await tx.purchaseItem.deleteMany({ where: { purchase: { business_id: businessId } } });
-      await tx.purchase.deleteMany({ where: { business_id: businessId } });
-      await tx.accountLedger.deleteMany({ where: { business_id: businessId } });
-      await tx.customerLedger.deleteMany({ where: { business_id: businessId } });
-      await tx.supplierLedger.deleteMany({ where: { business_id: businessId } });
-      await tx.customerBalance.deleteMany({ where: { business_id: businessId } });
-      await tx.supplierBalance.deleteMany({ where: { business_id: businessId } });
-      // Reset account balances to opening balance
-      await tx.account.updateMany({
-        where: { business_id: businessId },
-        data: { current_balance: tx.account.fields.opening_balance },
-      });
-    }
-
-    if (scope === 'all_data' || scope === 'inventory_only') {
-      await tx.stockLedger.deleteMany({ where: { business_id: businessId } });
-      await tx.productStock.deleteMany({ where: { business_id: businessId } });
-    }
-
-    // Invalidate all Redis cache for this business
-    await this.redisService.delPattern(`business:${businessId}:*`);
-  });
-}
-
-5. Super Admin Dashboard Summary
-GET /super-admin/dashboard
-Returns platform-wide stats:
-json{
-  "total_businesses": 312,
-  "active_subscriptions": 278,
-  "trial_accounts": 24,
-  "expired_accounts": 8,
-  "suspended_accounts": 2,
-  "revenue_this_month": 156000.00,
-  "new_signups_this_month": 34,
-  "plan_breakdown": {
-    "starter": 190,
-    "pro": 88,
-    "trial": 24
-  },
-  "system_health": {
-    "db_connections": 42,
-    "redis_memory_mb": 128,
-    "queue_pending_jobs": 3
-  }
-}
-
-6. Super Admin Role Security
-
-Super Admin has a completely separate login endpoint: POST /super-admin/auth/login
-Uses its own SUPER_ADMIN_JWT_SECRET (not the same as tenant JWT secret)
-Super Admin JWT payload contains role: "SUPER_ADMIN" — verified by a dedicated SuperAdminGuard
-Super Admin accounts are seeded via npm run seed:super-admin — cannot be created through the public API
-All Super Admin actions are written to super_admin_action_logs table for full audit trail
-
-
-
-
----
-
-## Super Admin Panel
-
-Accessible at `/super-admin` — completely separate from tenant dashboards.
-
-| Feature | Description |
-|---|---|
-| Business List | View all registered businesses with status |
-| Subscription Control | Extend trial, change plan, suspend account |
-| Usage Stats | Users, products, sales per business |
-| System Health | DB connections, Redis memory, queue depth |
-| Announcements | Push notifications to all/selected tenants |
-| Package Management | Edit plan limits and pricing |
-
-Super Admin login uses a separate JWT secret and role that can never be spoofed by a tenant JWT.
-
----
-
-## Environment Variables
-
-```env
-# ─── Database ───────────────────────────────────────
-DATABASE_URL=postgresql://user:pass@localhost:5432/bizcore
-
-# ─── Redis ──────────────────────────────────────────
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-
-# ─── JWT ────────────────────────────────────────────
-JWT_ACCESS_SECRET=your_super_secret_access_key
-JWT_REFRESH_SECRET=your_super_secret_refresh_key
-JWT_ACCESS_EXPIRES=1h
-JWT_REFRESH_EXPIRES=7d
-SUPER_ADMIN_JWT_SECRET=separate_super_admin_secret
-
-# ─── OTP / SMS ──────────────────────────────────────
-SMS_PROVIDER=ssl_wireless          # or twilio
-SMS_API_KEY=
-SMS_SENDER_ID=BizCore
-OTP_EXPIRY_MINUTES=5
-
-# ─── Storage ────────────────────────────────────────
-STORAGE_PROVIDER=s3                # or minio
-AWS_BUCKET=bizcore-uploads
-AWS_REGION=ap-southeast-1
-AWS_ACCESS_KEY=
-AWS_SECRET_KEY=
-
-# ─── App ────────────────────────────────────────────
-APP_PORT=3001
-NODE_ENV=development
-FRONTEND_URL=http://localhost:3000
-
-# ─── Subscription ───────────────────────────────────
-TRIAL_DAYS=15
-```
+Every tenant table carries a `business_id` (UUID). A `TenantBaseEntity` abstract class enforces this at the ORM level. A JWT guard injects `business_id` from the token on every authenticated request — tenants are physically isolated at the row level within a shared schema.
 
 ---
 
 ## Project Structure
 
 ```
-bizcore/
-├── backend/                        # NestJS API
-│   ├── src/
-│   │   ├── common/
-│   │   ├── modules/
-│   │   └── main.ts
-│   ├── prisma/
-│   │   ├── schema.prisma
-│   │   └── migrations/
-│   ├── test/
-│   ├── .env
-│   ├── Dockerfile
-│   └── package.json
+solvexbd-erp/
 │
-├── frontend/                       # Next.js 14
-│   ├── app/
-│   ├── components/
-│   ├── messages/                   # i18n (en.json, bn.json)
-│   ├── lib/
-│   ├── store/                      # Zustand stores
-│   ├── hooks/
-│   ├── .env.local
-│   ├── Dockerfile
-│   └── package.json
+├── backend/                          # NestJS 11 API
+│   └── src/
+│       ├── common/
+│       │   ├── decorators/           # @CurrentUser, @BusinessId, @Roles
+│       │   ├── entities/             # TenantBaseEntity (abstract)
+│       │   ├── filters/              # Global exception filter
+│       │   ├── guards/               # JwtAuthGuard, RolesGuard
+│       │   ├── interceptors/         # ResponseInterceptor
+│       │   └── pipes/                # ValidationPipe config
+│       │
+│       └── modules/
+│           ├── auth/                 # OTP, JWT, refresh token, mobile register
+│           ├── users/                # User profiles, roles, permissions
+│           ├── business/             # Business setup
+│           ├── billing/              # Payment requests, bKash/Rocket/Nagad
+│           ├── subscription/         # Plans, trial, limits
+│           ├── packages/             # Package definitions
+│           ├── super-admin/          # Platform control panel
+│           ├── accounting/           # Accounts, double-entry ledger
+│           ├── reports/              # P&L, Balance Sheet, Cash Flow
+│           ├── inventory/
+│           │   ├── product/          # Products, variants, SKU, barcode
+│           │   ├── stock/            # Ledger, adjustment, transfer
+│           │   ├── category/         # Tree categories
+│           │   ├── brand/
+│           │   ├── unit/
+│           │   ├── warehouse/
+│           │   └── warranty/
+│           ├── purchase/             # Suppliers, purchases, returns
+│           ├── sales/                # Customers, sales, returns, quotations, POS
+│           ├── hrm/                  # Employees, attendance, leave, payroll, KPI
+│           ├── affiliate/            # Referral codes, tracking
+│           ├── sms-marketing/        # SMS campaigns
+│           ├── image-upload/         # S3 / ImageKit integration
+│           └── mail/                 # Email service
 │
-├── docker-compose.yml
-├── docker-compose.prod.yml
-├── nginx/
-│   └── nginx.conf
-└── README.md
+└── frontend/                         # React 19 + Vite + Tailwind CSS 4
+    └── src/
+        ├── features/                 # Feature-sliced modules
+        │   ├── accounting/
+        │   ├── billing/
+        │   ├── hrm/
+        │   ├── inventory/
+        │   ├── pos/
+        │   ├── purchase/
+        │   ├── reports/
+        │   ├── sales/
+        │   ├── settings/
+        │   ├── sms-marketing/
+        │   ├── subscription/
+        │   ├── super-admin/
+        │   └── users/
+        ├── redux/
+        │   ├── api/                  # RTK Query endpoints
+        │   └── features/             # Redux slices
+        ├── components/               # Shared UI components
+        ├── layouts/                  # Dashboard, Auth layouts
+        ├── hooks/                    # Custom React hooks
+        ├── helpers/                  # Axios instance, base query
+        └── routes/                   # React Router config
 ```
+
+---
+
+## Database Design Highlights
+
+```sql
+-- Every tenant table follows this pattern
+CREATE TABLE products (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL,           -- tenant isolation
+  name        VARCHAR NOT NULL,
+  sku         VARCHAR UNIQUE,
+  ...
+  created_at  TIMESTAMP DEFAULT NOW(),
+  updated_at  TIMESTAMP DEFAULT NOW()
+);
+
+-- Append-only stock ledger (immutable audit trail)
+CREATE TABLE stock_ledger (
+  id               UUID PRIMARY KEY,
+  business_id      UUID NOT NULL,
+  product_id       UUID NOT NULL,
+  warehouse_id     UUID NOT NULL,
+  transaction_type VARCHAR NOT NULL,   -- PURCHASE, SALE, ADJUSTMENT, TRANSFER
+  reference_type   VARCHAR NOT NULL,
+  reference_id     UUID NOT NULL,
+  qty_in           DECIMAL(15,4) DEFAULT 0,
+  qty_out          DECIMAL(15,4) DEFAULT 0,
+  balance_after    DECIMAL(15,4) NOT NULL,
+  created_at       TIMESTAMP DEFAULT NOW()
+);
+
+-- Double-entry accounting ledger
+CREATE TABLE account_ledgers (
+  id               UUID PRIMARY KEY,
+  business_id      UUID NOT NULL,
+  account_id       UUID NOT NULL,
+  transaction_date DATE NOT NULL,
+  debit            DECIMAL(15,2) DEFAULT 0,
+  credit           DECIMAL(15,2) DEFAULT 0,
+  balance_after    DECIMAL(15,2) NOT NULL,
+  reference_type   VARCHAR,
+  reference_id     UUID,
+  note             TEXT,
+  created_at       TIMESTAMP DEFAULT NOW()
+);
+```
+
+### Naming Conventions
+- All table names: `snake_case` plural
+- UUID primary keys everywhere
+- `business_id` on every tenant table
+- Soft delete via `isActive` flag
+- `created_at`, `updated_at` on every table
+
+---
+
+## API Highlights
+
+All endpoints follow a consistent response envelope:
+
+```json
+{
+  "success": true,
+  "data": { },
+  "statusCode": 200,
+  "timestamp": "2026-06-29T00:00:00.000Z",
+  "path": "/api/v1/..."
+}
+```
+
+### Authentication Flow (Mobile OTP)
+```
+POST /api/v1/auth/mobile/send-otp      { mobile }
+POST /api/v1/auth/mobile/verify-otp    { mobile, code }
+  → isNewUser: false  →  { accessToken, refreshToken, user }   (existing user login)
+  → isNewUser: true   →  { tempToken }                         (new user registration)
+POST /api/v1/auth/mobile/register      { tempToken, name, password }
+  → { accessToken, refreshToken, user }
+POST /api/v1/auth/refresh              { refreshToken }
+  → { accessToken, refreshToken }
+```
+
+### Key Business Rules Enforced in API
+- Stock cannot go negative (checked inside transaction before commit)
+- Double-entry validation: `sum(debit) === sum(credit)` before every ledger commit
+- Subscription limits checked on every product/user create
+- Suspended accounts blocked at guard level — data preserved
+- All multi-table operations wrapped in `QueryRunner` transactions with full rollback
+
+Swagger UI: `http://localhost:3001/api/docs`
+
+---
+
+## Registration → First Login Flow
+
+```
+1. POST /auth/mobile/send-otp       → OTP sent (dev: 123456)
+2. POST /auth/mobile/verify-otp     → isNewUser: true → tempToken
+3. POST /auth/mobile/register       → User + Business + Petty Cash account created
+                                      in one atomic transaction
+                                    → accessToken + refreshToken returned
+4. User lands on /select-plan       → Choose Starter / Pro or continue trial
+5. All subsequent logins:
+   POST /auth/mobile/verify-otp     → isNewUser: false → tokens returned directly
+```
+
+---
+
+## Transaction Safety
+
+Every operation touching multiple tables uses a `QueryRunner` with explicit `startTransaction` / `commitTransaction` / `rollbackTransaction`:
+
+```typescript
+// Example: Sale creation (simplified)
+const qr = this.dataSource.createQueryRunner();
+await qr.connect();
+await qr.startTransaction();
+try {
+  const sale     = await qr.manager.save(SaleEntity, saleData);
+  const items    = await qr.manager.save(SaleItemEntity, itemsData);
+  // Stock ledger (append-only)
+  await qr.manager.save(StockLedgerEntity, ledgerEntry);
+  // Update available stock
+  await qr.manager.update(ProductStockEntity, { id }, { availableQty: newQty });
+  // Customer ledger
+  await qr.manager.save(CustomerLedgerEntity, customerEntry);
+  // Double-entry accounting
+  await qr.manager.save(AccountLedgerEntity, [debitRow, creditRow]);
+
+  await qr.commitTransaction();
+} catch (err) {
+  await qr.rollbackTransaction(); // everything rolls back atomically
+  throw err;
+} finally {
+  await qr.release();
+}
+```
+
+---
+
+## Redis Caching
+
+| Key Pattern | TTL | Purpose |
+|---|---|---|
+| `business:{id}:subscription` | 5 min | Subscription validation (hot path) |
+| `business:{id}:default_warehouse` | 1 hour | Warehouse lookup |
+| `product:{id}:stock:{warehouse_id}` | 30 sec | POS live stock check |
+| `otp:{mobile}` | 10 min | OTP verification |
+| `report:{business_id}:{type}:{date}` | 10 min | Heavy report cache |
+| `rate_limit:{ip}` | 1 min | OTP rate limiting |
 
 ---
 
 ## Installation & Running
 
 ### Prerequisites
-
 - Node.js 20+
-- Docker & Docker Compose
-- PostgreSQL 16 (or use Docker)
-- Redis 7 (or use Docker)
+- PostgreSQL 16
+- Redis 7
+- Docker & Docker Compose (optional)
 
 ### Quick Start (Docker)
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-org/bizcore.git
-cd bizcore
+git clone https://github.com/your-username/solvexbd-erp.git
+cd solvexbd-erp
 
-# 2. Copy environment files
 cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env.local
+# Fill in DATABASE_URL, REDIS_HOST, JWT secrets, etc.
 
-# 3. Start all services
 docker-compose up -d
-
-# 4. Run database migrations
-docker-compose exec backend npx prisma migrate deploy
-
-# 5. Seed super admin + default plans
-docker-compose exec backend npm run seed
 
 # API:      http://localhost:3001
 # Frontend: http://localhost:3000
 # Swagger:  http://localhost:3001/api/docs
 ```
 
-### Local Dev (without Docker)
+### Local Development
 
 ```bash
 # Backend
 cd backend
 npm install
-npx prisma migrate dev
-npx prisma generate
-npm run start:dev
+npm run start:dev        # http://localhost:3001
 
 # Frontend (new terminal)
 cd frontend
 npm install
-npm run dev
+npm run dev              # http://localhost:3000
+```
+
+### Seed Super Admin
+
+```bash
+cd backend
+npm run seed:super-admin
 ```
 
 ---
 
-## MCV Server / Persistent Session Guide
+## Environment Variables
 
-> This guide is for running BizCore on a local MCV server while you are away for up to 10 days.
+```env
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/solvexbd_erp
 
-### Setup PM2 Process Manager
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
 
-```bash
-# Install PM2 globally
-npm install -g pm2
+# JWT
+JWT_SECRET=your_access_secret
+JWT_REFRESH_SECRET=your_refresh_secret
+JWT_ACCESS_TOKEN_TTL=3600        # seconds
+JWT_REFRESH_TOKEN_TTL=604800     # 7 days
+JWT_ISSUER=solvexbd-erp
+JWT_AUDIENCE=localhost:5000
+SUPER_ADMIN_JWT_SECRET=separate_super_admin_secret
 
-# Start backend
-cd backend
-pm2 start "npm run start:prod" --name bizcore-api
+# App
+APP_PORT=3001
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
 
-# Start frontend (built)
-cd ../frontend
-npm run build
-pm2 start "npm run start" --name bizcore-frontend
+# Storage (choose one)
+AWS_BUCKET=solvexbd-uploads
+AWS_REGION=ap-southeast-1
+AWS_ACCESS_KEY=
+AWS_SECRET_KEY=
+IMAGEKIT_PUBLIC_KEY=
+IMAGEKIT_PRIVATE_KEY=
+IMAGEKIT_URL_ENDPOINT=
 
-# Save PM2 process list (auto-restart on server reboot)
-pm2 save
-pm2 startup   # follow the output command to enable on boot
-```
+# Email
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
 
-### Session Resume Workflow
-
-When you return after a session break:
-
-```bash
-# Check all services are running
-pm2 status
-
-# View live logs
-pm2 logs bizcore-api --lines 100
-pm2 logs bizcore-frontend --lines 50
-
-# If any service crashed, restart it
-pm2 restart bizcore-api
-
-# Check database health
-psql $DATABASE_URL -c "SELECT COUNT(*) FROM businesses;"
-
-# Check Redis
-redis-cli ping   # should return PONG
-```
-
-### Auto-continue Development
-
-The project is structured so each module is independently runnable. To continue work on a specific module after a break:
-
-1. Check `pm2 status` — services should be live
-2. Open Swagger at `/api/docs` to verify API is healthy
-3. Run `git status` to see last working state
-4. Resume from the last incomplete module in the [Roadmap](#roadmap)
-
-### Nightly Backup Cron (recommended)
-
-```bash
-# Add to crontab: crontab -e
-0 2 * * * pg_dump $DATABASE_URL > /backups/bizcore_$(date +\%Y\%m\%d).sql
+# Subscription
+TRIAL_DAYS=15
 ```
 
 ---
 
 ## Deployment Checklist
 
-- [ ] `NODE_ENV=production` set in all `.env` files
-- [ ] Separate JWT secrets for prod (not same as dev)
+- [ ] `NODE_ENV=production` in all `.env` files
+- [ ] Separate JWT secrets for production
 - [ ] SSL certificate configured in Nginx
-- [ ] Database connection pooling enabled (PgBouncer or Prisma connection limit)
-- [ ] Redis password set and not exposed
-- [ ] S3 bucket CORS configured for frontend domain
-- [ ] SMS gateway live credentials configured
-- [ ] `prisma migrate deploy` run (not `migrate dev`)
-- [ ] Swagger disabled or password-protected in production
-- [ ] Rate limiting enabled on `/auth/send-otp` (max 5 req/min per mobile)
-- [ ] PM2 startup script registered
-- [ ] Daily DB backup cron active
+- [ ] PostgreSQL connection pooling enabled
+- [ ] Redis password set
+- [ ] S3 / ImageKit credentials configured
+- [ ] Swagger disabled or password-protected
+- [ ] Rate limiting active on `/auth/mobile/send-otp`
+- [ ] PM2 startup script registered (`pm2 startup && pm2 save`)
+- [ ] Daily database backup cron active
 - [ ] Health check endpoint `/health` returning 200
 
 ---
 
 ## Roadmap
 
-### ✅ Phase 1 — Currently Building
-- [x] Auth (OTP · JWT · Refresh)
-- [x] Business & Shop Setup
-- [x] Subscription System (Starter / Pro / 15-day trial)
-- [x] Super Admin Panel
-- [ ] Category · Unit · Brand · Warranty
-- [ ] Product Module (Single + Variant)
-- [ ] Warehouse & Stock Ledger
-- [ ] Stock Adjustment & Transfer
-- [ ] Supplier & Purchase
-- [ ] Customer & Sales / POS
-- [ ] Accounting (Double Entry)
-- [ ] HRM (Employees · Attendance · Payroll)
-- [ ] Reports Module
+### Completed
+- [x] Mobile OTP authentication (send, verify, register, refresh)
+- [x] Multi-tenant business isolation
+- [x] Subscription system (trial, starter, pro) with enforcement
+- [x] Super Admin panel (suspend, renew, reset, audit log)
+- [x] Inventory — Products, Variants, Categories, Brands, Units, Warranties
+- [x] Warehouse & Stock Ledger (append-only)
+- [x] Stock Adjustments & Transfers
+- [x] Supplier management with ledger
+- [x] Purchase invoices with stock IN and accounting
+- [x] Purchase returns
+- [x] Customer management with ledger and aging
+- [x] Sales invoices with profit tracking
+- [x] Sale returns
+- [x] Quotations with conversion to sale
+- [x] POS (fast billing, barcode, hold/resume, multi-payment)
+- [x] Double-entry accounting engine
+- [x] Cash / Bank / Mobile Banking accounts
+- [x] Petty Cash auto-created on registration
+- [x] HRM — Employees, Departments, Designations
+- [x] Attendance, Leave management
+- [x] Payroll with loan deduction
+- [x] KPI evaluation
+- [x] Financial reports (P&L, Balance Sheet, Cash Flow)
+- [x] Affiliate / referral system
+- [x] Manual payment flow (bKash, Rocket, Nagad)
+- [x] SMS marketing module
+- [x] Image upload (S3 + ImageKit)
+- [x] Excel export (SheetJS)
+- [x] A4 invoice print + 58mm thermal POS receipt
+- [x] Bilingual UI (English / Bengali)
 
-### 🔜 Phase 2 — Future
-- [ ] Multi-language invoice PDF (EN/BN)
-- [ ] Mobile app (React Native / PWA)
-- [ ] Bank reconciliation
-- [ ] Advanced analytics & BI dashboard
-- [ ] Webhook & third-party API integrations
+### Upcoming
 - [ ] Offline POS (PWA + IndexedDB sync)
-
-[ ] Phase 8: SMS Marketing (Quick Send · Bulk Campaigns · Automated EMI Reminders)
----
-
-## Contributing
-
-1. Create a feature branch: `git checkout -b feature/module-name`
-2. Follow the DTO + Service + Controller + Module pattern
-3. Add Swagger decorators to every endpoint
-4. Write Prisma transactions wherever multiple tables are touched
-5. Update `messages/en.json` and `messages/bn.json` for any new UI text , just frontend
-6. Submit PR with a clear description of the change
+- [ ] Mobile app (React Native)
+- [ ] Bank reconciliation
+- [ ] Advanced BI dashboard (Recharts)
+- [ ] Webhook & third-party integrations
+- [ ] Multi-warehouse transfer with approval workflow
 
 ---
 
-## License
+## Author
 
-Proprietary — All rights reserved © BizCore 2025
+**Md. Shamim Hossain**
+Full-Stack Developer — NestJS · React · PostgreSQL · TypeScript
+
+- GitHub: [github.com/shamimhossain515419](https://github.com/shamimhossain515419)
+- Email: elias.irozen@gmail.com
 
 ---
 
-*Built with ❤️ for Bangladeshi businesses. প্রতিটি পয়সার হিসাব সঠিক।*
+<p align="center">
+  Built with dedication for Bangladeshi businesses.<br/>
+  <em>প্রতিটি পয়সার হিসাব সঠিক।</em> — Every paisa accounted for.
+</p>

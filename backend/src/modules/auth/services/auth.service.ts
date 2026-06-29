@@ -24,6 +24,7 @@ import { baseEmailTemplate } from 'src/utilits/email-template-builder/base-email
 import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { UserRole } from 'src/common/shared/enums/user-role.enum';
 import { BusinessEntity } from 'src/modules/business/entities/business.entity';
+import { AccountEntity, AccountType } from 'src/modules/accounting/entities/account.entity';
 
 @Injectable()
 export class AuthService {
@@ -378,13 +379,18 @@ export class AuthService {
   // ─── Send Mobile OTP ─────────────────────────────────────────────────────────
 
   async sendMobileOtp(mobile: string) {
-    await this.otpRepo.delete({ email: mobile, purpose: 'login', used: false });
+    const normalizedMobile = mobile.trim();
+    await this.otpRepo.delete({
+      email: normalizedMobile,
+      purpose: 'login',
+      used: false,
+    });
 
     const otp = '123456'; // fixed OTP for development
     const codeHash = await bcrypt.hash(otp, 10);
 
     await this.otpRepo.save({
-      email: mobile,
+      email: normalizedMobile,
       codeHash,
       purpose: 'login',
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
@@ -396,8 +402,9 @@ export class AuthService {
   // ─── Verify Mobile OTP (OtpEntity + UserEntity + BusinessEntity + RefreshTokenEntity) ──
 
   async verifyMobileOtp(mobile: string, code: string) {
+    const normalizedMobile = mobile.trim();
     const otpRow = await this.otpRepo.findOne({
-      where: { email: mobile, purpose: 'login', used: false },
+      where: { email: normalizedMobile, purpose: 'login', used: false },
       order: { createdAt: 'DESC' },
     });
 
@@ -419,9 +426,9 @@ export class AuthService {
     otpRow.used = true;
     await this.otpRepo.save(otpRow);
 
-    const user = await this.userRepository.findOne({ where: { mobile } });
-    console.log('Mobile OTP login - user lookup result:', user);
-
+    const user = await this.userRepository.findOne({
+      where: { mobile: normalizedMobile },
+    });
     if (user) {
       // Existing user: read Business + persist RefreshToken atomically
       const qr = this.createQueryRunner();
@@ -461,7 +468,7 @@ export class AuthService {
 
     // New user: issue temp registration token
     const tempToken = this.jwtService.sign(
-      { mobile, scope: 'mobile_register' },
+      { mobile: normalizedMobile, scope: 'mobile_register' },
       { expiresIn: '15m' },
     );
 
@@ -519,7 +526,20 @@ export class AuthService {
       });
       const savedBusiness = await qr.manager.save(BusinessEntity, business);
 
-      // 3. Generate tokens + persist RefreshToken
+      // 3. Create default Petty Cash account for the business
+      const pettyCash = qr.manager.create(AccountEntity, {
+        name: 'Petty Cash',
+        accountType: AccountType.CASH,
+        openingBalance: 0,
+        currentBalance: 0,
+        isDefault: true,
+        businessId: savedBusiness.id,
+        isActive: true,
+        description: 'Default petty cash account',
+      });
+      await qr.manager.save(AccountEntity, pettyCash);
+
+      // 5. Generate tokens + persist RefreshToken
       const tokens = await this.generateTokens(savedUser, savedBusiness.id);
 
       await qr.manager.save(RefreshTokenEntity, {
